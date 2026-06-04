@@ -409,24 +409,33 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
 
 <!-- VEGAS -->
 <div class="panel" id="panel-vegas">
+  <!-- 通道埋伏機會（回踩訊號）-->
   <div class="card">
     <div class="ch">
-      <div class="ct">🌿 MOVE通道交易系統 — 真實EMA</div>
+      <div class="ct">📡 通道埋伏機會</div>
+      <div class="cb" id="pullback-cnt">即時偵測</div>
+    </div>
+    <div style="background:linear-gradient(135deg,rgba(0,200,150,.06),var(--white));border-bottom:1.5px solid var(--pink4);padding:9px 13px;font-size:11px;color:var(--text2);line-height:1.7">
+      🎯 價格回調至 EMA144/169 通道支撐後反彈 = <strong style="color:var(--green2)">最高勝率進場點</strong>（賽克斯步驟2）
+    </div>
+    <div id="pullback-list"><div class="loading"><div class="spin"></div>計算回踩距離中...</div></div>
+  </div>
+  <!-- 全部 MOVE 訊號 -->
+  <div class="card">
+    <div class="ch">
+      <div class="ct">🌿 MOVE通道 — 全幣掃描</div>
       <div class="cb" id="vtime">載入中</div>
     </div>
     <div class="cbody" style="padding:9px 12px">
-      <div style="background:linear-gradient(135deg,var(--pink5),var(--white));border:1.5px solid var(--pink4);border-radius:10px;padding:9px 12px;margin-bottom:9px;font-size:11px;color:var(--text2);line-height:1.8">
-        <div style="display:flex;gap:4px"><strong style="color:var(--green2);white-space:nowrap">做多：</strong><span>日線趨勢向上（EMA12在EMA576上方）＋ 4H EMA12突破EMA144/169通道</span></div>
-        <div style="display:flex;gap:4px;margin-top:4px"><strong style="color:var(--red2);white-space:nowrap">做空：</strong><span>日線趨勢向下（EMA12在EMA576下方）＋ 4H EMA12跌破EMA144/169通道</span></div>
-      </div>
       <div class="fbar">
-        <button class="fbtn active" onclick="filterV('all',this)">全部</button>
+        <button class="fbtn active" onclick="filterV('pullback',this)">🔥 回踩訊號</button>
         <button class="fbtn g" onclick="filterV('bull',this)">做多</button>
         <button class="fbtn r" onclick="filterV('bear',this)">做空</button>
+        <button class="fbtn" onclick="filterV('all',this)">全部</button>
         <button class="fbtn" onclick="filterV('strong',this)">強訊號≥75</button>
       </div>
     </div>
-    <div id="vlist"><div class="loading"><div class="spin"></div>計算真實EMA中（約20秒）...</div></div>
+    <div id="vlist"><div class="loading"><div class="spin"></div>計算中（約30秒，掃描60+幣種）...</div></div>
   </div>
 </div>
 
@@ -558,7 +567,14 @@ let apiKey = localStorage.getItem('angel_complete') || '';
 let coins = {}, oiData = [], scoredCoins = [], saekSigs = [], vegasData = [];
 let saekFilter='all', vegasFilter='all';
 let chatHistory = [];
-const SYMS=['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','DOT','LINK','UNI','NEAR','MATIC','LTC','ARB','OP','SUI','APT','PEPE','FLOKI'];
+const SYMS=['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','DOT','LINK','UNI','NEAR','MATIC','LTC','ARB','OP','SUI','APT','PEPE','FLOKI',
+  'TRX','TON','ATOM','FIL','ICP','INJ','TIA','SEI','WLD','JUP',
+  'RENDER','FET','OCEAN','AGIX','RNDR','MANTA','ALT','STRK','ZETA',
+  'WIF','BONK','BRETT','MEW','POPCAT','NOT','DOGS',
+  'ENA','ETHFI','EIGEN','SAGA','REZ','IO','ZK',
+  'OM','NTRN','DYM','PYTH','JTO','KMNO',
+  'ORDI','SATS','1000X','RATS','PIZZA',
+  'BOME','PONKE','SHIB','FLOKI'];
 const CG_IDS='bitcoin,ethereum,solana,binancecoin,ripple,dogecoin,cardano,avalanche-2,polkadot,chainlink,uniswap,near,polygon,litecoin,arbitrum,optimism,sui,aptos,pepe,floki';
 
 // ═══ INIT ═══
@@ -1268,6 +1284,36 @@ async function computeVEGAS(sym){
     const h4Above=h4_12>h4Top,h4Below=h4_12<h4Bot,h4In=!h4Above&&!h4Below;
     const nearTunnel=h4In||(h4Above&&(h4_12-h4Top)/h4Top<0.01)||(h4Below&&(h4Bot-h4_12)/h4Bot<0.01);
 
+    // ── 通道回踩精確距離（核心勝率計算）──
+    const lastPrice=h4[h4.length-1];
+    const prevPrice=h4[h4.length-2]||lastPrice;
+    let pullbackDist=null, pullbackSide=null, pullbackWR=0;
+    if(dailyTrend==='bull'){
+      // 做多：價格從上方回踩EMA144
+      const distToTop=(lastPrice-h4Top)/h4Top*100; // 正=在通道上方，負=跌入
+      pullbackDist=distToTop;
+      if(distToTop>=-0.5&&distToTop<=2){
+        // 最佳回踩區間：通道上方0-2%
+        pullbackWR=distToTop<=0.3?0.74:distToTop<=1?0.68:0.61;
+        pullbackSide='bull_pullback';
+      } else if(h4In&&lastPrice>prevPrice){
+        // 在通道內且反彈
+        pullbackWR=0.58;pullbackSide='bull_bounce';
+      }
+    } else if(dailyTrend==='bear'){
+      // 做空：價格從下方回踩EMA144
+      const distToBot=(h4Bot-lastPrice)/h4Bot*100;
+      pullbackDist=distToBot;
+      if(distToBot>=-0.5&&distToBot<=2){
+        pullbackWR=distToBot<=0.3?0.74:distToBot<=1?0.68:0.61;
+        pullbackSide='bear_pullback';
+      } else if(h4In&&lastPrice<prevPrice){
+        pullbackWR=0.58;pullbackSide='bear_bounce';
+      }
+    }
+    const isPullbackSignal=pullbackWR>=0.61;
+    const pullbackLabel=pullbackWR>=0.74?'🔥 極佳回踩':pullbackWR>=0.68?'✅ 優質回踩':pullbackWR>=0.61?'📡 回踩中':'—';
+
     // 步驟3 進場：K棒收盤站上/跌破EMA12 + QQE MOD同步
     const isBull=dailyTrend==='bull'&&h4Above;
     const isBear=dailyTrend==='bear'&&h4Below;
@@ -1308,6 +1354,10 @@ async function computeVEGAS(sym){
     if(resonance>=2)score+=10; // 多週期共振
     score=Math.min(100,Math.round(score));
 
+    // 回踩加分
+    if(isPullbackSignal)score+=Math.round(pullbackWR*15);
+    score=Math.min(100,Math.round(score));
+
     const cgId=symToCG(sym),cgCoin=cgId?coins[cgId]:null;
     return{
       sym,signal:isBull?'bull':isBear?'bear':'neutral',score,dailyTrend,
@@ -1315,6 +1365,8 @@ async function computeVEGAS(sym){
       bigTunnelBull,bigTunnelBear,
       step1,step2,step3,
       qqe4h,qqe1h,qqe15m,resonance,
+      pullbackDist,pullbackSide,pullbackWR,pullbackLabel,isPullbackSignal,
+      lastPrice,
       d12:d12?.toFixed(4),d144:d144?.toFixed(4),d576:d576?.toFixed(4),d676:d676?.toFixed(4),
       h4_12:h4_12?.toFixed(4),h4_144:h4_144?.toFixed(4),h4_169:h4_169?.toFixed(4),h4_576:h4_576?.toFixed(4),
       price:cgCoin?cgCoin.current_price:h4[h4.length-1],chg24:cgCoin?cgCoin.price_change_percentage_24h||0:0
@@ -1332,11 +1384,64 @@ function filterV(f,btn){
   renderVegas();
 }
 
+// ═══ 通道埋伏（回踩）訊號渲染 ═══
+function renderPullback(){
+  const pulls=vegasData.filter(v=>v.isPullbackSignal).sort((a,b)=>b.pullbackWR-a.pullbackWR);
+  document.getElementById('pullback-cnt').textContent=pulls.length?`${pulls.length} 個埋伏機會`:'掃描中...';
+  if(!pulls.length){
+    document.getElementById('pullback-list').innerHTML='<div class="empty">目前無回踩訊號<br>等待價格回調至通道...</div>';
+    return;
+  }
+  const now=new Date().toLocaleString('zh-TW',{hour12:false});
+  document.getElementById('pullback-list').innerHTML=pulls.map(v=>{
+    const isLong=v.pullbackSide==='bull_pullback'||v.pullbackSide==='bull_bounce';
+    const typeLabel=isLong?'📈 通道埋伏機會：做多':'📉 通道埋伏機會：做空';
+    const typeColor=isLong?'var(--green2)':'var(--red2)';
+    const typeBg=isLong?'rgba(0,200,150,.08)':'rgba(255,77,109,.08)';
+    const px=v.price||v.lastPrice||0;
+    const ps=px>=1000?'$'+Number(px).toLocaleString('en-US',{maximumFractionDigits:0}):px>=0.1?'$'+Number(px).toLocaleString('en-US',{maximumFractionDigits:4}):'$'+Number(px).toFixed(6);
+    const slPct=isLong?((px-parseFloat(v.h4_144||px))/px*100+1.5).toFixed(2):((parseFloat(v.h4_144||px)-px)/px*100+1.5).toFixed(2);
+    const wrPct=Math.round(v.pullbackWR*100);
+    const wrColor=wrPct>=72?'var(--green2)':wrPct>=65?'var(--gold)':'var(--text2)';
+    const distLabel=v.pullbackDist!==null?`距離通道 ${Math.abs(v.pullbackDist).toFixed(2)}%`:'通道內';
+    return `<div style="border-bottom:1.5px solid var(--pink4);padding:13px 14px;cursor:pointer;background:${typeBg};transition:background .15s" onclick="openVegasDetail('${v.sym}')" onmouseenter="this.style.opacity='.85'" onmouseleave="this.style.opacity='1'">
+      <div style="font-size:13px;font-weight:900;font-family:Nunito,sans-serif;color:${typeColor};margin-bottom:8px">${typeLabel}</div>
+      <div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.5px;margin-bottom:6px">📊 幣種資訊</div>
+      <div style="font-size:12px;color:var(--text2);line-height:2">
+        - 名稱：<strong style="font-family:Nunito,sans-serif;font-size:14px">${v.sym}/USDT</strong><br>
+        - 當前價格：<strong style="font-family:JetBrains Mono,monospace">${ps}</strong><br>
+        - 24H變化：<strong class="${v.chg24>=0?'up':'dn'}">${v.chg24>=0?'+':''}${v.chg24.toFixed(2)}%</strong><br>
+        - 通道位置：<strong style="color:${typeColor}">${distLabel}</strong>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap">
+        <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:10px;padding:7px 12px;text-align:center;flex:1">
+          <div style="font-size:9px;color:var(--text3);font-weight:700;font-family:Nunito,sans-serif">即時勝率</div>
+          <div style="font-family:Nunito,sans-serif;font-size:20px;font-weight:900;color:${wrColor}">${wrPct}%</div>
+          <div style="font-size:9px;color:${typeColor};font-weight:800">${v.pullbackLabel}</div>
+        </div>
+        <div style="background:var(--redb);border:1.5px solid rgba(255,77,109,.2);border-radius:10px;padding:7px 12px;text-align:center;flex:1">
+          <div style="font-size:9px;color:var(--red2);font-weight:700;font-family:Nunito,sans-serif">🔴 止損參考</div>
+          <div style="font-family:Nunito,sans-serif;font-size:16px;font-weight:900;color:var(--red2)">-${slPct}%</div>
+          <div style="font-size:9px;color:var(--text3)">${isLong?'EMA144下方':'EMA144上方'}</div>
+        </div>
+        <div style="background:var(--greenb);border:1.5px solid rgba(0,200,150,.2);border-radius:10px;padding:7px 12px;text-align:center;flex:1">
+          <div style="font-size:9px;color:var(--green2);font-weight:700;font-family:Nunito,sans-serif">QQE MOD</div>
+          <div style="font-family:Nunito,sans-serif;font-size:14px;font-weight:900;color:${isLong?'var(--green2)':'var(--red2)'}">${v.qqe4h?.label||'—'}</div>
+          <div style="font-size:9px;color:var(--text3)">${v.resonance>=2?`共振${v.resonance}TF 🔥`:'4H確認'}</div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:7px;font-family:JetBrains Mono,monospace">訊號時間：${now} &nbsp;|&nbsp; 點擊查看完整分析</div>
+    </div>`;
+  }).join('');
+}
+
 function renderVegas(){
+  renderPullback();
   let list=vegasData;
   if(vegasFilter==='bull')list=list.filter(v=>v.signal==='bull');
   else if(vegasFilter==='bear')list=list.filter(v=>v.signal==='bear');
   else if(vegasFilter==='strong')list=list.filter(v=>v.score>=75);
+  else if(vegasFilter==='pullback')list=list.filter(v=>v.isPullbackSignal);
   if(!list.length){
     const hasData=vegasData.length>0;
     document.getElementById('vlist').innerHTML=hasData?'<div class="empty">無符合條件訊號</div>':'<div class="loading"><div class="spin"></div>計算真實EMA中（約20秒）...</div>';
