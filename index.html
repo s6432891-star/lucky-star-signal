@@ -1493,41 +1493,49 @@ function renderRecs(){
     if(critCount === 0 && vegasAligned) wr -= 0.03;
 
     // ── 賽克斯系統（三步驟 + QQE MOD）──
-    // 步驟1+2+3
     const saekFull    = vd?.step1 && vd?.step2 && vd?.step3;
     const saekPartial = vd?.step1 && vd?.step2;
-    if(saekFull)    wr += 0.07;
-    else if(saekPartial) wr += 0.03;
-    // QQE MOD 同向加分，逆向扣分
+    // 賽克斯方向由 VEGAS signal 決定
+    const saekBull = vd?.signal === 'bull';
+    const saekBear = vd?.signal === 'bear';
+    if(saekFull){
+      wr += (saekBull&&type==='long')||(saekBear&&type==='short') ?  0.07 : -0.07;
+    } else if(saekPartial){
+      wr += (saekBull&&type==='long')||(saekBear&&type==='short') ?  0.03 : -0.03;
+    }
+
+    // QQE MOD：同向+5% / 逆向-5%
     const qqeBull = vd?.qqe4h?.isBull;
     const qqeBear = vd?.qqe4h?.isBear;
-    if(qqeBull && type==='long')  wr += 0.05;
-    if(qqeBear && type==='short') wr += 0.05;
-    if(qqeBear && type==='long')  wr -= 0.04;
-    if(qqeBull && type==='short') wr -= 0.04;
-    // 多週期共振
-    if(vd?.resonance >= 3)     wr += 0.06;
-    else if(vd?.resonance >= 2) wr += 0.03;
-    // 通道回踩（賽克斯步驟2精準位置）
-    if(vd?.isPullbackSignal) wr += 0.05;
+    if(qqeBull) wr += type==='long'  ?  0.05 : -0.05;
+    if(qqeBear) wr += type==='short' ?  0.05 : -0.05;
+
+    // 多週期共振：方向對齊才加，逆向扣
+    const resAligned = (saekBull&&type==='long')||(saekBear&&type==='short');
+    if(vd?.resonance >= 3)      wr += resAligned ?  0.06 : -0.06;
+    else if(vd?.resonance >= 2) wr += resAligned ?  0.03 : -0.03;
+
+    // 通道回踩：方向對齊加，逆向扣
+    if(vd?.isPullbackSignal){
+      const pbLong = vd?.pullbackSide==='bull_pullback'||vd?.pullbackSide==='bull_bounce';
+      wr += (pbLong&&type==='long')||(!pbLong&&type==='short') ?  0.05 : -0.05;
+    }
 
     // ── 兩系統共振獎勵 ──
-    // MOVE 有篩選 + 賽克斯步驟滿足 = 額外加分
     const moveOK = critCount >= 2;
     const saekOK = saekFull || saekPartial;
-    if(moveOK && saekOK && vegasAligned) wr += 0.05;
+    if(moveOK && saekOK) wr += vegasAligned ? 0.05 : -0.05;
 
-    // ── RSI（輔助確認）──
-    if(rsi < 32 && type==='long')  wr += 0.04;
-    if(rsi > 68 && type==='short') wr += 0.04;
-    if(rsi > 72 && type==='long')  wr -= 0.03;
-    if(rsi < 28 && type==='short') wr -= 0.03;
+    // ── RSI：同向+4% / 逆向-4% ──
+    if(rsi < 32) wr += type==='long'  ?  0.04 : -0.04; // 超賣利多
+    if(rsi > 68) wr += type==='short' ?  0.04 : -0.04; // 超買利空
 
-    // ── 資金費率 ──
-    if(fr!==null && parseFloat(fr)<0    && type==='long')  wr += 0.04;
-    if(fr!==null && parseFloat(fr)>0.01 && type==='short') wr += 0.04;
-    if(fr!==null && parseFloat(fr)>0.01 && type==='long')  wr -= 0.03;
-    if(fr!==null && parseFloat(fr)<0    && type==='short') wr -= 0.03;
+    // ── 資金費率：同向+4% / 逆向-4% ──
+    if(fr !== null){
+      const frNum = parseFloat(fr);
+      if(frNum < 0)    wr += type==='long'  ?  0.04 : -0.04; // 負費率利多
+      if(frNum > 0.01) wr += type==='short' ?  0.04 : -0.04; // 高費率利空
+    }
 
     // 8. OANDA 量價型態（對稱加扣分）
     if(volPat){
