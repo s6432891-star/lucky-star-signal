@@ -1455,27 +1455,77 @@ function renderRecs(){
     const rsi=getRSI(c.symbol);
     const fr=getFR(c.symbol);
     const oi=oiData.find(o=>o.sym.toLowerCase()===c.symbol.toLowerCase());
-    const volSpike=oi&&oi.vol>5000000;
+    // OANDA 6大量價型態
+    const volPat=oi?detectVolPattern(oi,vd):null;
+
     // ── 綜合勝率（所有指標整合）──
     let wr=0.40;
+
+    // 1. VEGAS 通道
     if(vd?.signal==='bull'&&type==='long')  wr+=0.10;
     if(vd?.signal==='bear'&&type==='short') wr+=0.10;
+
+    // 2. 賽克斯三步驟
     if(vd?.step1&&vd?.step2&&vd?.step3)    wr+=0.08;
     else if(vd?.step1&&vd?.step2)           wr+=0.04;
+
+    // 3. QQE MOD
     if(vd?.qqe4h?.isBull&&type==='long')   wr+=0.06;
     if(vd?.qqe4h?.isBear&&type==='short')  wr+=0.06;
+
+    // 4. 多週期共振
     if(vd?.resonance>=2)                    wr+=0.05;
+
+    // 5. 通道回踩
     if(vd?.isPullbackSignal)                wr+=0.07;
+
+    // 6. RSI
     if(rsi<32&&type==='long')               wr+=0.05;
     if(rsi>68&&type==='short')              wr+=0.05;
+
+    // 7. 資金費率（預載10幣有效）
     if(fr!==null&&parseFloat(fr)<0&&type==='long')    wr+=0.04;
     if(fr!==null&&parseFloat(fr)>0.01&&type==='short') wr+=0.04;
-    if(oi?.dir==='long'&&type==='long')     wr+=0.03;
-    if(oi?.dir==='short'&&type==='short')   wr+=0.03;
-    if(volSpike)                             wr+=0.03;
-    wr=Math.min(0.85,Math.max(0.35,wr));
-    // RR動態
-    const rr=(vd?.step1&&vd?.step2&&vd?.step3)?3.0:vd?.isPullbackSignal?2.5:2.0;
+    if(fr!==null&&parseFloat(fr)>0.01&&type==='long')  wr-=0.02; // 高費率做多不利
+    if(fr!==null&&parseFloat(fr)<0&&type==='short')    wr-=0.02;
+
+    // 8. OANDA 量價型態（核心）
+    if(volPat){
+      if(volPat.signal==='long'&&type==='long'){
+        // 放量突破 > 量增價漲
+        wr += volPat.name.includes('突破')?0.08:0.05;
+      }
+      if(volPat.signal==='short'&&type==='short'){
+        wr += volPat.name.includes('突破')?0.08:0.05;
+      }
+      if(volPat.signal==='watch_long'&&type==='long'){
+        // 價跌量縮：賣壓減弱，接近底部，做多小加
+        wr += 0.03;
+      }
+      if(volPat.signal==='exit'){
+        // 天量天價：可能反轉，做多降勝率
+        if(type==='long')  wr -= 0.08;
+        if(type==='short') wr += 0.05; // 做空反而有利
+      }
+      if(volPat.signal==='watch'&&type==='long'){
+        // 爆量長黑：空方極強，做多危險
+        wr -= 0.07;
+      }
+      // 縮量整理：中性，等方向確認
+      // 低量上漲：做多不加分（缺支撐）
+      if(volPat.name.includes('縮量')&&type==='long')  wr -= 0.02;
+      if(volPat.name.includes('低量')&&type==='long')  wr -= 0.03;
+    }
+
+    wr=Math.min(0.85,Math.max(0.30,wr));
+
+    // 指標標籤補充量價型態
+    const volTag = volPat?volPat.name.replace(/[🚀📈📉💥⚠️⏸]/g,'').trim():null;
+
+    // RR動態（量價型態也影響）
+    const rr=volPat?.signal==='long'&&type==='long'&&volPat.name.includes('突破')?3.0:
+              (vd?.step1&&vd?.step2&&vd?.step3)?3.0:
+              vd?.isPullbackSignal?2.5:2.0;
     const ev=wr*(0.03*rr)-(1-wr)*0.03;
     const evColor=ev>0?'var(--green2)':'var(--red2)';
     const wrColor=wr>=0.70?'var(--green2)':wr>=0.60?'var(--gold)':'var(--text3)';
@@ -1488,7 +1538,7 @@ function renderRecs(){
     if(vd?.isPullbackSignal) tags.push('回踩');
     if(rsi<32&&type==='long') tags.push(`RSI${rsi}`);
     if(rsi>68&&type==='short') tags.push(`RSI${rsi}`);
-    if(volSpike) tags.push('量增');
+    if(volTag) tags.push(volTag);
     return `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1.5px solid var(--pink4);cursor:pointer;padding:10px 8px;align-items:center;transition:background .15s" onclick="openScoreDetail('${c.id}','${type}')" onmouseenter="this.style.background='var(--pink5)'" onmouseleave="this.style.background=''">
       <div style="display:flex;align-items:center;gap:5px">
         <span style="font-size:12px">${ranks[i]}</span>
