@@ -630,7 +630,7 @@ let chatHistory = [];
 // 動態幣種列表（從OKX即時抓取，按成交量排序）
 let SYMS = ['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','DOT','LINK']; // 初始值，啟動後會被替換
 const CG_IDS='bitcoin,ethereum,solana,binancecoin,ripple,dogecoin,cardano,avalanche-2,polkadot,chainlink,uniswap,near,polygon,litecoin,arbitrum,optimism,sui,aptos,pepe,floki';
-const MAX_SYMS = 150; // 最多掃描幣種數
+const MAX_SYMS = 60; // 最多掃描幣種數（按成交量排序前60）
 
 // 從 OKX 動態取得所有 USDT 永續合約，按成交量排序
 async function loadAllSymbols(){
@@ -2024,9 +2024,9 @@ async function computeVEGAS(sym){
     // 同時抓 日線、4H、1H、15M（賽克斯多週期共振）
     const[daily,h4,h1,m15]=await Promise.all([
       fetchKlines(sym,'1D',700),
-      fetchKlines(sym,'4H',700),
-      fetchKlines(sym,'1H',200),
-      fetchKlines(sym,'15m',200)
+      fetchKlines(sym,'4H',300),
+      fetchKlines(sym,'1H',150),
+      fetchKlines(sym,'15m',150)
     ]);
     if(!daily||daily.length<100||!h4||h4.length<100)return null;
 
