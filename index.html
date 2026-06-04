@@ -1458,36 +1458,64 @@ function renderRecs(){
     // OANDA 6大量價型態
     const volPat=oi?detectVolPattern(oi,vd):null;
 
-    // ── 綜合勝率（所有指標整合）──
-    let wr=0.40;
+    // ── MOVE 交易系統三篩選標準 ──
+    const paList  = c ? detectPA(c, type)           : [];
+    const patList = c ? detectPattern(c, type)      : [];
+    const srList  = c ? detectSR(c, type, vegasData): [];
+    const crit1 = paList.length  > 0; // 篩選1：裸K/PA
+    const crit2 = patList.length > 0; // 篩選2：型態
+    const crit3 = srList.length  > 0; // 篩選3：支撐壓力
+    const critCount = [crit1,crit2,crit3].filter(Boolean).length;
 
-    // 1. VEGAS 通道
-    if(vd?.signal==='bull'&&type==='long')  wr+=0.10;
-    if(vd?.signal==='bear'&&type==='short') wr+=0.10;
+    // ── 綜合勝率 ──
+    let wr = 0.40;
 
-    // 2. 賽克斯三步驟
-    if(vd?.step1&&vd?.step2&&vd?.step3)    wr+=0.08;
-    else if(vd?.step1&&vd?.step2)           wr+=0.04;
+    // 1. MOVE 核心：VEGAS通道方向（必要條件）
+    const vegasAligned = vd && (
+      (vd.signal==='bull'&&type==='long') ||
+      (vd.signal==='bear'&&type==='short')
+    );
+    const vegasAgainst = vd && (
+      (vd.signal==='bull'&&type==='short') ||
+      (vd.signal==='bear'&&type==='long')
+    );
+    if(vegasAligned)  wr += 0.10;
+    if(vegasAgainst)  wr -= 0.12; // 逆勢風險高
+    if(vd?.h4InTunnel) wr -= 0.03; // 通道內整理，方向未定
 
-    // 3. QQE MOD
-    if(vd?.qqe4h?.isBull&&type==='long')   wr+=0.06;
-    if(vd?.qqe4h?.isBear&&type==='short')  wr+=0.06;
+    // 2. MOVE 三篩選標準（核心邏輯：越多符合勝率越高）
+    // 每多一個篩選標準 +5%，三個都中額外再+5%
+    wr += critCount * 0.05;
+    if(critCount >= 3) wr += 0.05; // 三篩選全中獎勵
 
-    // 4. 多週期共振
-    if(vd?.resonance>=2)                    wr+=0.05;
+    // 3. 賽克斯進場三步驟（MOVE + 賽克斯共振）
+    if(vd?.step1&&vd?.step2&&vd?.step3) wr += 0.06;
+    else if(vd?.step1&&vd?.step2)        wr += 0.03;
 
-    // 5. 通道回踩
-    if(vd?.isPullbackSignal)                wr+=0.07;
+    // 4. QQE MOD（方向確認）
+    if(vd?.qqe4h?.isBull&&type==='long')  wr += 0.05;
+    if(vd?.qqe4h?.isBear&&type==='short') wr += 0.05;
+    if(vd?.qqe4h?.isBear&&type==='long')  wr -= 0.04;
+    if(vd?.qqe4h?.isBull&&type==='short') wr -= 0.04;
 
-    // 6. RSI
-    if(rsi<32&&type==='long')               wr+=0.05;
-    if(rsi>68&&type==='short')              wr+=0.05;
+    // 5. 多週期共振
+    if(vd?.resonance>=3) wr += 0.07;
+    else if(vd?.resonance>=2) wr += 0.04;
 
-    // 7. 資金費率（預載10幣有效）
-    if(fr!==null&&parseFloat(fr)<0&&type==='long')    wr+=0.04;
-    if(fr!==null&&parseFloat(fr)>0.01&&type==='short') wr+=0.04;
-    if(fr!==null&&parseFloat(fr)>0.01&&type==='long')  wr-=0.02; // 高費率做多不利
-    if(fr!==null&&parseFloat(fr)<0&&type==='short')    wr-=0.02;
+    // 6. 通道回踩（找位精準）
+    if(vd?.isPullbackSignal) wr += 0.06;
+
+    // 7. RSI
+    if(rsi<32&&type==='long')  wr += 0.05;
+    if(rsi>68&&type==='short') wr += 0.05;
+    if(rsi>70&&type==='long')  wr -= 0.04;
+    if(rsi<30&&type==='short') wr -= 0.04;
+
+    // 8. 資金費率（預載10幣有效）
+    if(fr!==null&&parseFloat(fr)<0&&type==='long')     wr += 0.04;
+    if(fr!==null&&parseFloat(fr)>0.01&&type==='short') wr += 0.04;
+    if(fr!==null&&parseFloat(fr)>0.01&&type==='long')  wr -= 0.03;
+    if(fr!==null&&parseFloat(fr)<0&&type==='short')    wr -= 0.03;
 
     // 8. OANDA 量價型態（對稱加扣分）
     if(volPat){
@@ -1539,7 +1567,11 @@ function renderRecs(){
     const wrColor=wr>=0.70?'var(--green2)':wr>=0.60?'var(--gold)':'var(--text3)';
     // 指標標籤（精簡）
     const tags=[];
-    if(vd?.signal==='bull'&&type==='long'||vd?.signal==='bear'&&type==='short') tags.push('VEGAS');
+    if(vegasAligned) tags.push('MOVE✅');
+    if(vegasAgainst) tags.push('逆MOVE⚠️');
+    if(critCount>=3) tags.push('篩選3/3🏆');
+    else if(critCount===2) tags.push('篩選2/3');
+    else if(critCount===1) tags.push('篩選1/3');
     if(vd?.step1&&vd?.step2&&vd?.step3) tags.push('賽3/3');
     else if(vd?.step1&&vd?.step2) tags.push('賽2/3');
     if(vd?.resonance>=2) tags.push(`共振${vd.resonance}TF`);
