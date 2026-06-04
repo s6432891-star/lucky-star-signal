@@ -567,29 +567,48 @@ let apiKey = localStorage.getItem('angel_complete') || '';
 let coins = {}, oiData = [], scoredCoins = [], saekSigs = [], vegasData = [];
 let saekFilter='all', vegasFilter='all';
 let chatHistory = [];
-const SYMS=['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','DOT','LINK','UNI','NEAR','MATIC','LTC','ARB','OP','SUI','APT','PEPE','FLOKI',
-  'TRX','TON','ATOM','FIL','ICP','INJ','TIA','SEI','WLD','JUP',
-  'RENDER','FET','OCEAN','AGIX','RNDR','MANTA','ALT','STRK','ZETA',
-  'WIF','BONK','BRETT','MEW','POPCAT','NOT','DOGS',
-  'ENA','ETHFI','EIGEN','SAGA','REZ','IO','ZK',
-  'OM','NTRN','DYM','PYTH','JTO','KMNO',
-  'ORDI','SATS','1000X','RATS','PIZZA',
-  'BOME','PONKE','SHIB','FLOKI'];
+// 動態幣種列表（從OKX即時抓取，按成交量排序）
+let SYMS = ['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','DOT','LINK']; // 初始值，啟動後會被替換
 const CG_IDS='bitcoin,ethereum,solana,binancecoin,ripple,dogecoin,cardano,avalanche-2,polkadot,chainlink,uniswap,near,polygon,litecoin,arbitrum,optimism,sui,aptos,pepe,floki';
+const MAX_SYMS = 150; // 最多掃描幣種數
+
+// 從 OKX 動態取得所有 USDT 永續合約，按成交量排序
+async function loadAllSymbols(){
+  try{
+    const r=await fetch('https://www.okx.com/api/v5/market/tickers?instType=SWAP');
+    if(!r.ok)return;
+    const j=await r.json();
+    if(j.code!=='0')return;
+    const syms=j.data
+      .filter(t=>t.instId.endsWith('-USDT-SWAP'))
+      .map(t=>({sym:t.instId.replace('-USDT-SWAP',''),vol:parseFloat(t.volCcy24h)||0}))
+      .filter(t=>t.vol>500000) // 過濾低流動性（24H量>50萬U）
+      .sort((a,b)=>b.vol-a.vol)
+      .slice(0,MAX_SYMS)
+      .map(t=>t.sym);
+    SYMS=syms;
+    document.getElementById('vtime').textContent=`掃描 ${syms.length} 個幣種`;
+    console.log(`✅ 動態載入 ${syms.length} 個幣種`);
+  }catch(e){console.warn('loadAllSymbols失敗',e);}
+}
 
 // ═══ INIT ═══
 document.addEventListener('DOMContentLoaded',()=>{
   if(apiKey){document.getElementById('ainp').value=apiKey;document.getElementById('aist').textContent='● 已連線 ✨';}
   setInterval(()=>document.getElementById('clk').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false}),1000);
-  // Load coins + OI first (fast), then VEGAS in background
-  loadFast().then(()=>{
-    loadVEGAS();
-    loadRealIndicators().then(()=>calcSignalEVs());
+  // 1. 先動態載入全部幣種列表
+  loadAllSymbols().then(()=>{
+    // 2. 快速載入價格/OI
+    loadFast().then(()=>{
+      // 3. VEGAS EMA 全幣掃描（背景執行）
+      loadVEGAS();
+      loadRealIndicators().then(()=>calcSignalEVs());
+    });
   });
   // 價格/OI/EV 每60秒更新
   setInterval(()=>{loadFast();loadRealIndicators().then(()=>calcSignalEVs());},60000);
-  // VEGAS EMA 計算較重，每3分鐘更新
-  setInterval(()=>{loadVEGAS();},180000);
+  // VEGAS 全幣掃描每3分鐘更新
+  setInterval(()=>{loadAllSymbols().then(()=>loadVEGAS());},180000);
 });
 
 async function loadFast(){
@@ -601,10 +620,12 @@ async function loadFast(){
 }
 
 async function loadVEGAS(){
-  document.getElementById('vlist').innerHTML='<div class="loading"><div class="spin"></div>計算真實EMA中（約20秒）...</div>';
+  document.getElementById('vlist').innerHTML=`<div class="loading"><div class="spin"></div>掃描 ${SYMS.length} 個幣種中，請稍候...</div>`;
   vegasData=[];
   const batchSize=4;
   for(let i=0;i<SYMS.length;i+=batchSize){
+    const done=i+batchSize,pct=Math.round(done/SYMS.length*100);
+    document.getElementById('vcnt').textContent=`${Math.min(done,SYMS.length)}/${SYMS.length}`;
     const batch=SYMS.slice(i,i+batchSize);
     const res=await Promise.all(batch.map(s=>computeVEGAS(s)));
     res.forEach(r=>{if(r)vegasData.push(r);});
