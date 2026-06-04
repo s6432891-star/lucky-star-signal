@@ -1,0 +1,1658 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>幸運星信號 ⭐ MOVE × 正EV</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pink:#ffb6c1;--pink2:#ff85a1;--pink3:#ff4d7d;--pink4:#ffe0e8;--pink5:#fff0f4;
+  --cream:#fff5f5;--white:#ffffff;
+  --text:#3d1a26;--text2:#7a4458;--text3:#b87a90;--text4:#d4a0b0;
+  --green:#00c896;--green2:#00a87e;--greenb:rgba(0,200,150,0.12);
+  --red:#ff4d6d;--red2:#e0003c;--redb:rgba(255,77,109,0.12);
+  --gold:#f5a623;--goldb:rgba(245,166,35,0.12);
+  --purple:#c084fc;--purpleb:rgba(192,132,252,0.1);
+  --shadow:0 4px 20px rgba(255,182,193,0.2);
+  --shadow2:0 2px 10px rgba(255,133,161,0.18);
+  --r:14px;--r2:10px;--r3:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--cream);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 10%,rgba(255,182,193,.22) 0%,transparent 50%),radial-gradient(ellipse at 80% 90%,rgba(255,133,161,.14) 0%,transparent 50%);pointer-events:none;z-index:0}
+
+/* ── HEADER ── */
+header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdrop-filter:blur(20px);border-bottom:2px solid var(--pink4);box-shadow:var(--shadow2)}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;gap:8px}
+.logo{display:flex;align-items:center;gap:7px;min-width:0;flex:1}
+.logo-e{font-size:28px;animation:float 3s ease-in-out infinite;flex-shrink:0}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.logo-t{font-family:'Nunito',sans-serif;font-size:19px;font-weight:900;background:linear-gradient(135deg,var(--pink3),var(--pink2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+.logo-s{font-size:11px;color:var(--text3);white-space:nowrap}
+.hright{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.livebadge{display:flex;align-items:center;gap:4px;background:linear-gradient(135deg,var(--green),var(--green2));color:white;padding:3px 9px;border-radius:20px;font-size:9px;font-weight:800;font-family:'Nunito',sans-serif}
+.ldot{width:5px;height:5px;border-radius:50%;background:white;animation:bl 1.5s ease-in-out infinite}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.2}}
+#clk{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;background:var(--pink4);padding:3px 8px;border-radius:8px}
+
+/* ── TICKER ── */
+.ticker{background:linear-gradient(90deg,var(--pink4),var(--pink5),var(--pink4));border-bottom:1px solid var(--pink4);padding:6px 14px;display:flex;gap:18px;overflow-x:auto;scrollbar-width:none}
+.ticker::-webkit-scrollbar{display:none}
+.ti{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.tn{font-size:9px;color:var(--text2);font-family:'JetBrains Mono',monospace;font-weight:600}
+.tp{font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text)}
+.tc{font-size:9px;font-family:'JetBrains Mono',monospace;font-weight:700}
+.up{color:var(--green2)}.dn{color:var(--red2)}.neu{color:var(--text3)}
+
+/* ── TABS ── */
+.tabs-wrap{background:var(--white);border-bottom:2px solid var(--pink4)}
+.tabs{display:flex;overflow-x:auto;scrollbar-width:none;padding:0 10px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:11px 13px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:var(--text3);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .2s}
+.tab.active{color:var(--pink3);border-bottom-color:var(--pink3)}
+.tbadge{background:var(--pink3);color:white;border-radius:20px;padding:1px 6px;font-size:8px;font-weight:800;margin-left:3px}
+
+/* ── MAIN ── */
+.main{padding:10px 12px;position:relative;z-index:1}
+.panel{display:none}.panel.active{display:flex;flex-direction:column;gap:10px}
+
+/* ── CARD ── */
+.card{background:var(--white);border:1.5px solid var(--pink4);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+.ch{padding:10px 13px;border-bottom:1.5px solid var(--pink4);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--pink5),var(--white))}
+.ct{font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;color:var(--pink3);display:flex;align-items:center;gap:5px}
+.cb{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;background:var(--pink4);padding:2px 7px;border-radius:8px}
+.cbody{padding:13px 14px}
+
+/* ── FILTER BAR ── */
+.fbar{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.fbtn{background:var(--pink4);border:1.5px solid transparent;border-radius:20px;padding:5px 11px;font-size:10px;font-weight:700;color:var(--text2);cursor:pointer;transition:all .2s;font-family:'Nunito',sans-serif}
+.fbtn.active,.fbtn:hover{background:var(--pink3);color:white}
+.fbtn.g.active{background:var(--green2)}
+.fbtn.r.active{background:var(--red2)}
+
+/* ── RECS ── */
+.rec-wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rec-sec{background:var(--white);border:1.5px solid var(--pink4);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+.rec-sh{padding:9px 13px;border-bottom:1.5px solid var(--pink4);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--pink5),var(--white))}
+.rst{font-family:'Nunito',sans-serif;font-size:12px;font-weight:900}
+.rst.long{color:var(--green2)}.rst.short{color:var(--red2)}
+.rec-cols{display:grid;grid-template-columns:2fr 1.6fr 2.8fr 1.6fr;padding:6px 13px;border-bottom:1px solid var(--pink4)}
+.rch{font-size:9px;color:var(--text3);font-family:'Nunito',sans-serif;font-weight:700}
+.rec-row{display:grid;grid-template-columns:2fr 1.6fr 2.8fr 1.6fr;padding:9px 13px;border-bottom:1px solid var(--pink4);cursor:pointer;transition:background .15s;align-items:center}
+.rec-row:hover{background:var(--pink5)}.rec-row:last-child{border:none}
+.rsym{font-family:'Nunito',sans-serif;font-size:16px;font-weight:900}
+.rpx{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3)}
+.sbars{display:flex;gap:2px}
+.sb{width:8px;height:8px;border-radius:2px}
+.sb.g{background:var(--green);box-shadow:0 0 3px rgba(0,200,150,.4)}
+.sb.r{background:var(--red);box-shadow:0 0 3px rgba(255,77,109,.4)}
+.sb.e{background:var(--pink4)}
+.rchg{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;text-align:right}
+
+/* ── VEGAS LIST ── */
+.vlist{display:flex;flex-direction:column}
+.vi{background:var(--white);border-bottom:1.5px solid var(--pink4);padding:11px 13px;cursor:pointer;transition:background .15s;position:relative}
+.vi:hover{background:var(--pink5)}.vi:last-child{border-bottom:none}
+.vi-bar{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:0 3px 3px 0}
+.vi-bar.bull{background:linear-gradient(var(--green),var(--green2))}
+.vi-bar.bear{background:linear-gradient(var(--red),var(--red2))}
+.vi-bar.neu{background:var(--pink4)}
+.vi-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.vi-sym{font-family:'Nunito',sans-serif;font-size:17px;font-weight:900;min-width:52px}
+.vi-pill{padding:3px 8px;border-radius:10px;font-size:10px;font-weight:800;font-family:'Nunito',sans-serif}
+.vi-pill.bull{background:var(--greenb);color:var(--green2)}
+.vi-pill.bear{background:var(--redb);color:var(--red2)}
+.vi-pill.neu{background:var(--goldb);color:var(--gold)}
+.vi-score{font-family:'Nunito',sans-serif;font-size:17px;font-weight:900;margin-left:auto}
+.vi-score.hi{color:var(--green2)}.vi-score.md{color:var(--gold)}.vi-score.lo{color:var(--text3)}
+.vi-chg{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700}
+.vi-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.vi-box{background:var(--pink5);border-radius:7px;padding:6px 8px;border:1px solid var(--pink4)}
+.vi-bl{font-size:9px;color:var(--text3);font-weight:700;font-family:'Nunito',sans-serif;margin-bottom:2px}
+.vi-bv{font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.vi-bs{font-size:9px;font-weight:800;padding:1px 5px;border-radius:6px;font-family:'Nunito',sans-serif;display:inline-block;margin-top:2px}
+.vi-bs.bull{background:var(--greenb);color:var(--green2)}
+.vi-bs.bear{background:var(--redb);color:var(--red2)}
+.vi-bs.neu{background:var(--goldb);color:var(--gold)}
+.vi-ema-row{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.etag{font-size:9px;font-weight:700;padding:2px 5px;border-radius:5px;font-family:'JetBrains Mono',monospace}
+.etag.above{background:var(--greenb);color:var(--green2)}
+.etag.below{background:var(--redb);color:var(--red2)}
+.etag.neu{background:var(--goldb);color:var(--gold)}
+
+/* ── SAEK STREAM ── */
+.slist{display:flex;flex-direction:column}
+.si{display:flex;align-items:center;gap:7px;padding:9px 13px;border-bottom:1px solid var(--pink4);cursor:pointer;transition:background .15s;position:relative}
+.si:hover{background:var(--pink5)}.si:last-child{border:none}
+.si-bar{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:0 3px 3px 0}
+.si-bar.long{background:linear-gradient(var(--green),var(--green2))}
+.si-bar.short{background:linear-gradient(var(--red),var(--red2))}
+.si-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.si-dot.long{background:var(--green);animation:sdot 2s ease-in-out infinite}
+.si-dot.short{background:var(--red);animation:sdot 2s ease-in-out infinite}
+@keyframes sdot{0%,100%{opacity:1}50%{opacity:.3}}
+.si-pill{padding:3px 8px;border-radius:10px;font-size:9px;font-weight:800;font-family:'Nunito',sans-serif;flex-shrink:0;min-width:38px;text-align:center}
+.si-pill.long{background:var(--greenb);color:var(--green2)}
+.si-pill.short{background:var(--redb);color:var(--red2)}
+.si-sym{font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;min-width:48px}
+.si-tf{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;min-width:40px}
+.si-ind{font-size:12px;color:var(--text2);flex:1;line-height:1.4}
+.si-ind strong{color:var(--text);font-weight:700}
+.si-chg{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;min-width:44px;text-align:right}
+.si-sc{font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;min-width:28px;text-align:right}
+.si-sc.hi{color:var(--green2)}.si-sc.md{color:var(--gold)}.si-sc.lo{color:var(--text3)}
+
+/* ── OI TABLE ── */
+.oi-tbl{width:100%;border-collapse:collapse}
+.oi-tbl th{font-size:9px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;padding:7px 11px;text-align:left;border-bottom:1.5px solid var(--pink4);font-weight:700;font-family:'Nunito',sans-serif}
+.oi-tbl td{padding:8px 11px;font-size:10px;border-bottom:1px solid var(--pink4);font-family:'JetBrains Mono',monospace}
+.oi-tbl tr:hover td{background:var(--pink5);cursor:pointer}
+.oisym{font-family:'Nunito',sans-serif;font-size:13px;font-weight:900}
+.oidir{display:inline-block;padding:2px 6px;border-radius:8px;font-size:9px;font-weight:800;font-family:'Nunito',sans-serif}
+.oidir.long{background:var(--greenb);color:var(--green2)}
+.oidir.short{background:var(--redb);color:var(--red2)}
+.oidir.neu{background:var(--goldb);color:var(--gold)}
+
+/* ── STATS ── */
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.stat-box{background:linear-gradient(135deg,var(--pink5),var(--white));border:1.5px solid var(--pink4);border-radius:var(--r2);padding:11px;text-align:center}
+.sl{font-size:9px;color:var(--text3);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;font-family:'Nunito',sans-serif}
+.sv{font-family:'Nunito',sans-serif;font-size:22px;font-weight:900}
+.ss{font-size:9px;color:var(--text3);margin-top:2px;font-family:'JetBrains Mono',monospace}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.gaugerow{display:flex;align-items:center;gap:10px;padding:3px 0}
+.gaugelabel{font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;margin-bottom:3px}
+.gst{display:flex;justify-content:space-between;margin-bottom:3px;font-size:10px}
+.gsl{color:var(--text3);font-weight:600}.gsv{font-family:'JetBrains Mono',monospace;font-weight:700}
+.gbarw{height:5px;background:var(--pink4);border-radius:3px;overflow:hidden}
+.gbar{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--red2),var(--gold),var(--green2));transition:width 1.5s ease}
+.trow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--pink4)}
+.trow:last-child{border:none}
+
+/* ── SECTORS ── */
+.sec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px}
+.sec{background:var(--white);border:1.5px solid var(--pink4);border-radius:var(--r2);padding:9px;transition:all .2s;position:relative;overflow:hidden}
+.sec.hot{border-color:rgba(0,200,150,.35)}.sec.hot::after{content:'🔥';position:absolute;top:3px;right:5px;font-size:9px}
+.sec.cold{border-color:rgba(255,77,109,.3)}
+.sec-name{font-size:9px;color:var(--text2);font-family:'Nunito',sans-serif;font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px}
+.sec-val{font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;margin-bottom:2px}
+.sec-bw{height:3px;background:var(--pink4);border-radius:2px;overflow:hidden}
+.sec-b{height:100%;border-radius:2px}
+
+/* ── AI CHAT ── */
+.ai-wrap{display:flex;gap:10px;height:calc(100vh - 225px);min-height:420px}
+.aichat{flex:1;display:flex;flex-direction:column;background:var(--white);border:1.5px solid var(--pink4);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+.aichdr{padding:9px 13px;border-bottom:1.5px solid var(--pink4);display:flex;align-items:center;gap:7px;background:linear-gradient(135deg,var(--pink5),var(--white))}
+.aiav{font-size:20px}
+.ainm{font-family:'Nunito',sans-serif;font-size:12px;font-weight:900;color:var(--pink3)}
+.aist{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--green2)}
+.msgs{flex:1;overflow-y:auto;padding:11px;display:flex;flex-direction:column;gap:8px;scroll-behavior:smooth}
+.msgs::-webkit-scrollbar{width:3px}
+.msgs::-webkit-scrollbar-thumb{background:var(--pink4);border-radius:2px}
+.msg{display:flex;gap:6px;max-width:88%}
+.msg.user{align-self:flex-end;flex-direction:row-reverse}
+.msg.bot{align-self:flex-start}
+.mav{width:24px;height:24px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;background:var(--pink4)}
+.msg.bot .mav{background:linear-gradient(135deg,var(--pink),var(--pink2))}
+.mbub{padding:8px 11px;border-radius:12px;font-size:12px;line-height:1.7}
+.msg.bot .mbub{background:linear-gradient(135deg,var(--pink5),var(--white));border:1.5px solid var(--pink4);border-radius:3px 12px 12px 12px;color:var(--text)}
+.msg.user .mbub{background:linear-gradient(135deg,var(--pink3),var(--pink2));border-radius:12px 3px 12px 12px;color:white}
+.mtime{font-size:8px;color:var(--text4);margin-top:2px;font-family:'JetBrains Mono',monospace}
+.typing{display:flex;gap:3px;align-items:center}
+.td{width:6px;height:6px;border-radius:50%;background:var(--pink2);animation:ty 1.2s infinite}
+.td:nth-child(2){animation-delay:.2s}.td:nth-child(3){animation-delay:.4s}
+@keyframes ty{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-4px)}}
+.cinp-area{padding:9px 11px;border-top:1.5px solid var(--pink4);display:flex;gap:6px;align-items:flex-end;background:linear-gradient(135deg,var(--pink5),var(--white))}
+.cinp{flex:1;background:var(--white);border:1.5px solid var(--pink4);border-radius:14px;padding:8px 11px;color:var(--text);font-size:12px;font-family:'Noto Sans TC',sans-serif;resize:none;min-height:38px;max-height:80px;outline:none;line-height:1.5;transition:border-color .2s}
+.cinp:focus{border-color:var(--pink3)}.cinp::placeholder{color:var(--text4)}
+.sbtn{background:linear-gradient(135deg,var(--pink3),var(--pink2));border:none;border-radius:12px;width:38px;height:38px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;transition:all .2s}
+.sbtn:hover{box-shadow:0 4px 14px rgba(255,77,125,.4)}.sbtn:disabled{opacity:.4;cursor:not-allowed}
+.ai-sb{width:195px;display:flex;flex-direction:column;gap:9px}
+.qbtn{background:linear-gradient(135deg,var(--pink5),var(--white));border:1.5px solid var(--pink4);border-radius:11px;padding:8px 10px;color:var(--text2);font-size:10px;cursor:pointer;text-align:left;transition:all .2s;line-height:1.5;width:100%;font-weight:600;font-family:'Noto Sans TC',sans-serif}
+.qbtn:hover{border-color:var(--pink3);color:var(--pink3);background:var(--pink5)}
+.ainp{background:var(--white);border:1.5px solid var(--pink4);border-radius:10px;padding:7px 10px;color:var(--text);font-size:10px;font-family:'JetBrains Mono',monospace;outline:none;width:100%;margin-bottom:6px;transition:border-color .2s}
+.ainp:focus{border-color:var(--pink3)}
+.savebtn{background:linear-gradient(135deg,var(--pink3),var(--pink2));border:none;color:white;border-radius:10px;padding:8px;font-size:10px;cursor:pointer;width:100%;font-weight:800;font-family:'Nunito',sans-serif}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(61,26,38,.65);z-index:500;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--cream);border:1.5px solid var(--pink4);border-radius:22px 22px 0 0;width:100%;max-width:580px;max-height:91vh;overflow-y:auto;padding-bottom:26px;animation:slideup .3s ease}
+@keyframes slideup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal::-webkit-scrollbar{width:3px}
+.modal::-webkit-scrollbar-thumb{background:var(--pink4);border-radius:2px}
+.drag-bar{width:38px;height:4px;background:var(--pink4);border-radius:2px;margin:10px auto 0}
+.mhdr{padding:12px 15px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1.5px solid var(--pink4)}
+.msym{font-family:'Nunito',sans-serif;font-size:18px;font-weight:900}
+.mpx{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);margin-top:2px}
+.mclose{background:var(--pink4);border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px;font-weight:900;color:var(--text2);display:flex;align-items:center;justify-content:center}
+.m-score-sec{padding:12px 15px;display:flex;align-items:center;gap:12px;border-bottom:1.5px solid var(--pink4);background:linear-gradient(135deg,var(--pink5),var(--white))}
+.bscore{width:66px;height:66px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;border:3px solid}
+.bscore.bull{border-color:var(--green2);background:var(--greenb);color:var(--green2)}
+.bscore.bear{border-color:var(--red2);background:var(--redb);color:var(--red2)}
+.bscore.neu{border-color:var(--gold);background:var(--goldb);color:var(--gold)}
+.bscore-n{font-family:'Nunito',sans-serif;font-size:22px;font-weight:900;line-height:1}
+.bscore-l{font-size:8px;font-weight:800;margin-top:2px;font-family:'Nunito',sans-serif}
+.vpill{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;margin-bottom:5px}
+.vpill.bull{background:var(--greenb);border:1.5px solid rgba(0,200,150,.3);color:var(--green2)}
+.vpill.bear{background:var(--redb);border:1.5px solid rgba(255,77,109,.3);color:var(--red2)}
+.vpill.neu{background:var(--goldb);border:1.5px solid rgba(245,166,35,.3);color:var(--gold)}
+.vtext{font-size:11px;color:var(--text2);line-height:1.7}
+.m-sec{padding:11px 15px;border-bottom:1.5px solid var(--pink4)}
+.m-sec-t{font-size:10px;color:var(--text3);font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin-bottom:7px;font-family:'Nunito',sans-serif}
+.tf-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.tf-card{background:linear-gradient(135deg,var(--pink5),var(--white));border:1.5px solid var(--pink4);border-radius:var(--r2);padding:9px 11px}
+.tf-lbl{font-size:10px;font-weight:800;font-family:'Nunito',sans-serif;margin-bottom:5px;color:var(--pink3)}
+.tf-row{display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px}
+.tf-k{color:var(--text3);font-weight:600}.tf-v{font-family:'JetBrains Mono',monospace;font-weight:600}
+.tf-verd{font-size:10px;font-weight:800;padding:3px 8px;border-radius:8px;font-family:'Nunito',sans-serif;display:inline-block;margin-top:4px}
+.tf-verd.bull{background:var(--greenb);color:var(--green2)}
+.tf-verd.bear{background:var(--redb);color:var(--red2)}
+.tf-verd.neu{background:var(--goldb);color:var(--gold)}
+.tech-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tc2{background:linear-gradient(135deg,var(--pink5),var(--white));border:1.5px solid var(--pink4);border-radius:var(--r2);padding:8px 9px}
+.tc2-n{font-size:9px;color:var(--text3);font-family:'Nunito',sans-serif;font-weight:700;margin-bottom:3px}
+.tc2-v{font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;margin-bottom:3px}
+.tc2-s{font-size:9px;font-weight:800;padding:2px 6px;border-radius:7px;font-family:'Nunito',sans-serif;display:inline-block}
+.tc2-s.bull{background:var(--greenb);color:var(--green2)}
+.tc2-s.bear{background:var(--redb);color:var(--red2)}
+.tc2-s.neu{background:var(--goldb);color:var(--gold)}
+.tc2-d{font-size:9px;color:var(--text3);margin-top:3px;line-height:1.4}
+.factor-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 15px;border-bottom:1.5px solid var(--pink4)}
+.fc{background:linear-gradient(135deg,var(--pink5),var(--white));border:1.5px solid var(--pink4);border-radius:var(--r2);padding:9px 10px}
+.fc-l{font-size:9px;color:var(--text3);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px;font-family:'Nunito',sans-serif}
+.ftag{display:inline-block;padding:2px 7px;border-radius:8px;font-size:9px;font-weight:800;font-family:'Nunito',sans-serif;margin-bottom:3px}
+.ftag.bull{background:var(--greenb);color:var(--green2)}
+.ftag.bear{background:var(--redb);color:var(--red2)}
+.ftag.neu{background:var(--goldb);color:var(--gold)}
+.fc-d{font-size:9px;color:var(--text2);line-height:1.5}
+.breakdown{padding:10px 15px;border-bottom:1.5px solid var(--pink4)}
+.brow{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.brow-l{font-size:10px;color:var(--text2);width:62px;font-family:'JetBrains Mono',monospace;font-weight:600}
+.brow-bar{flex:1;height:5px;background:var(--pink4);border-radius:3px;overflow:hidden}
+.brow-fill{height:100%;border-radius:3px;transition:width 1s ease}
+.brow-v{font-size:10px;font-family:'Nunito',sans-serif;font-weight:700;width:24px;text-align:right}
+.brow-m{font-size:9px;color:var(--text3);width:22px;text-align:right;font-family:'JetBrains Mono',monospace}
+.rel-chips{display:flex;gap:5px;flex-wrap:wrap}
+.rchip{background:linear-gradient(135deg,var(--pink5),var(--white));border:1.5px solid var(--pink4);border-radius:var(--r2);padding:5px 8px;cursor:pointer;transition:all .2s;text-align:center}
+.rchip:hover{border-color:var(--pink3)}
+.rcsym{font-family:'Nunito',sans-serif;font-size:12px;font-weight:900}
+.rcchg{font-size:9px;font-family:'JetBrains Mono',monospace;font-weight:700}
+.abub{margin:11px 15px 0;background:linear-gradient(135deg,var(--pink5),rgba(255,224,232,.4));border:1.5px solid var(--pink4);border-radius:var(--r2);padding:10px 12px;display:flex;gap:8px}
+.aico{font-size:20px;flex-shrink:0;margin-top:1px}
+.atxt{font-size:11px;color:var(--text2);line-height:1.7}
+.atxt strong{color:var(--pink3);font-weight:800}
+
+/* ── UTILS ── */
+.loading{display:flex;align-items:center;justify-content:center;padding:24px;gap:6px;color:var(--text3);font-size:11px;font-family:'Nunito',sans-serif;font-weight:700}
+.spin{width:13px;height:13px;border:2.5px solid var(--pink4);border-top-color:var(--pink3);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:24px;color:var(--text3);font-size:12px;line-height:2;font-weight:600;font-family:'Nunito',sans-serif}
+.toast{position:fixed;bottom:16px;right:16px;background:white;border:1.5px solid var(--pink4);border-left:4px solid var(--pink3);padding:9px 13px;border-radius:11px;font-size:11px;color:var(--text2);z-index:999;transform:translateY(70px);opacity:0;transition:all .3s;font-family:'Nunito',sans-serif;font-weight:700;box-shadow:var(--shadow)}
+.toast.show{transform:translateY(0);opacity:1}
+
+@media(max-width:640px){
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+  .rec-wrap{grid-template-columns:1fr}
+  .tech-grid{grid-template-columns:repeat(2,1fr)}
+  .factor-grid{grid-template-columns:1fr 1fr}
+  .ai-wrap{flex-direction:column;height:auto}
+  .ai-sb{width:100%}
+  .row2{grid-template-columns:1fr}
+  .rec-cols,.rec-row{grid-template-columns:2fr 0fr 2.5fr 1.5fr}
+  .rec-cols .rch:nth-child(2),.rec-row .rpx{display:none}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr">
+    <div class="logo">
+      <div class="logo-e">⭐</div>
+      <div><div class="logo-t">幸運星信號</div><div class="logo-s">⭐ MOVE系統 × 正EV交易</div></div>
+    </div>
+    <div class="hright">
+      <div class="livebadge"><div class="ldot"></div>LIVE</div>
+      <div id="clk">--:--:--</div>
+    </div>
+  </div>
+</header>
+
+<div class="ticker" id="ticker"><div class="loading"><div class="spin"></div></div></div>
+
+<div class="tabs-wrap">
+  <div class="tabs">
+    <div class="tab active" onclick="sw('recs')"   id="tab-recs">📊 多空推薦</div>
+    <div class="tab" onclick="sw('ev')" id="tab-ev">⚖️ 正EV <span class="tbadge" id="ev-cnt">0</span></div>
+    <div class="tab"        onclick="sw('vegas')"  id="tab-vegas">🌿 MOVE訊號 <span class="tbadge" id="vcnt">...</span></div>
+    <div class="tab"        onclick="sw('saek')"   id="tab-saek">⚡ 技術訊號 <span class="tbadge" id="scnt">0</span></div>
+    <div class="tab"        onclick="sw('oi')"     id="tab-oi">🔥 OI異常 <span class="tbadge" id="ocnt">0</span></div>
+    <div class="tab"        onclick="sw('overview')" id="tab-overview">🌸 總覽</div>
+    <div class="tab"        onclick="sw('sectors')"  id="tab-sectors">🏆 板塊</div>
+    <div class="tab"        onclick="sw('ai')"     id="tab-ai">💬 AI天使</div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- RECS -->
+<div class="panel active" id="panel-recs">
+  <div class="rec-wrap" id="rec-wrap"><div class="loading"><div class="spin"></div>計算中...</div></div>
+</div>
+
+
+<!-- EV CALCULATOR -->
+<div class="panel" id="panel-ev">
+  <div class="card">
+    <div class="ch"><div class="ct">⚖️ 正EV計算機</div><div class="cb">凱利公式 Kelly Criterion</div></div>
+    <div class="cbody">
+      <div id="ev-hero" style="background:linear-gradient(135deg,var(--pink3),var(--pink2));border-radius:12px;padding:14px;color:white;text-align:center;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:700;opacity:.85;margin-bottom:3px">預期值 EV</div>
+        <div style="font-family:'Nunito',sans-serif;font-size:32px;font-weight:900" id="ev-val">+0.00%</div>
+        <div style="font-size:10px;opacity:.85" id="ev-verdict">調整下方參數</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:var(--pink5);border:1.5px solid var(--pink4);border-radius:10px;padding:10px 12px">
+          <div style="font-size:10px;color:var(--text3);font-weight:700;font-family:'Nunito',sans-serif;margin-bottom:5px;display:flex;justify-content:space-between">勝率<span style="color:var(--pink3);font-family:'JetBrains Mono',monospace;font-weight:900" id="lbl-wr">55%</span></div>
+          <input type="range" style="width:100%;height:5px;border-radius:3px;outline:none;cursor:pointer;-webkit-appearance:none;background:linear-gradient(to right,var(--pink3) 55%,var(--pink4) 55%)" id="sl-wr" min="10" max="90" value="55" oninput="calcEV(this,'wr')">
+          <div style="font-size:9px;color:var(--text3);margin-top:4px">VEGAS+RSI組合約55-65%</div>
+        </div>
+        <div style="background:var(--pink5);border:1.5px solid var(--pink4);border-radius:10px;padding:10px 12px">
+          <div style="font-size:10px;color:var(--text3);font-weight:700;font-family:'Nunito',sans-serif;margin-bottom:5px;display:flex;justify-content:space-between">盈虧比 RR<span style="color:var(--pink3);font-family:'JetBrains Mono',monospace;font-weight:900" id="lbl-rr">2.0</span></div>
+          <input type="range" style="width:100%;height:5px;border-radius:3px;outline:none;cursor:pointer;-webkit-appearance:none;background:linear-gradient(to right,var(--pink3) 37%,var(--pink4) 37%)" id="sl-rr" min="5" max="50" value="20" oninput="calcEV(this,'rr')">
+          <div style="font-size:9px;color:var(--text3);margin-top:4px">最少1.5，最好2以上</div>
+        </div>
+        <div style="background:var(--pink5);border:1.5px solid var(--pink4);border-radius:10px;padding:10px 12px">
+          <div style="font-size:10px;color:var(--text3);font-weight:700;font-family:'Nunito',sans-serif;margin-bottom:5px;display:flex;justify-content:space-between">單筆止損%<span style="color:var(--pink3);font-family:'JetBrains Mono',monospace;font-weight:900" id="lbl-sl">3%</span></div>
+          <input type="range" style="width:100%;height:5px;border-radius:3px;outline:none;cursor:pointer;-webkit-appearance:none;background:linear-gradient(to right,var(--pink3) 13%,var(--pink4) 13%)" id="sl-sl" min="1" max="20" value="3" oninput="calcEV(this,'sl')">
+          <div style="font-size:9px;color:var(--text3);margin-top:4px">每次最多虧損本金這%</div>
+        </div>
+        <div style="background:var(--pink5);border:1.5px solid var(--pink4);border-radius:10px;padding:10px 12px">
+          <div style="font-size:10px;color:var(--text3);font-weight:700;font-family:'Nunito',sans-serif;margin-bottom:5px;display:flex;justify-content:space-between">本金 U<span style="color:var(--pink3);font-family:'JetBrains Mono',monospace;font-weight:900" id="lbl-cap">1,000</span></div>
+          <input type="range" style="width:100%;height:5px;border-radius:3px;outline:none;cursor:pointer;-webkit-appearance:none;background:linear-gradient(to right,var(--pink3) 9%,var(--pink4) 9%)" id="sl-cap" min="100" max="10000" value="1000" step="100" oninput="calcEV(this,'cap')">
+          <div style="font-size:9px;color:var(--text3);margin-top:4px">你的交易本金</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch"><div class="ct">📋 公式明細</div></div>
+    <div class="cbody">
+      <div style="background:var(--pink5);border-radius:10px;padding:11px 13px;font-size:11px;margin-bottom:10px">
+        <div style="font-weight:800;font-family:'Nunito',sans-serif;color:var(--pink3);margin-bottom:7px">EV = P × 獲利 − Q × 損失</div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text2)">勝率 P</span><span style="font-family:'JetBrains Mono',monospace;font-weight:700" id="f-wr">—</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text2)">輸率 Q = 1-P</span><span style="font-family:'JetBrains Mono',monospace;font-weight:700" id="f-lr">—</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text2)">賠率 B（止盈/止損）</span><span style="font-family:'JetBrains Mono',monospace;font-weight:700" id="f-rr">—</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text2)">單筆止損金額</span><span style="font-family:'JetBrains Mono',monospace;font-weight:700" id="f-sl">—</span></div>
+        <div style="height:1px;background:var(--pink4);margin:7px 0"></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text2)">每次EV</span><span style="font-family:'JetBrains Mono',monospace;font-weight:900;font-size:14px" id="f-ev">—</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">100次期望總獲利</span><span style="font-family:'JetBrains Mono',monospace;font-weight:700" id="f-ev100">—</span></div>
+      </div>
+      <div style="background:linear-gradient(135deg,rgba(0,200,150,.08),var(--white));border:1.5px solid rgba(0,200,150,.3);border-radius:10px;padding:11px 13px">
+        <div style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;color:var(--green2);margin-bottom:5px">🎯 凱利公式建議倉位</div>
+        <div style="font-family:'Nunito',sans-serif;font-size:26px;font-weight:900;color:var(--green2)" id="kelly-pct">—</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px;line-height:1.6" id="kelly-sub">—</div>
+        <div style="background:var(--goldb);border:1px solid rgba(245,166,35,.3);border-radius:8px;padding:7px 10px;font-size:10px;color:var(--text2);margin-top:7px;line-height:1.6" id="kelly-warn">—</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch"><div class="ct">🏆 當前正EV訊號排行</div><div class="cb">止損3% / 止盈6%基準</div></div>
+    <div class="cbody">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:10px;line-height:1.7">整合<strong style="color:var(--pink3)">真實RSI、資金費率、多空比、VEGAS通道</strong>估算勝率，計算EV。只顯示<strong style="color:var(--green2)">正EV訊號</strong>。</div>
+      <div id="ev-sig-list"><div class="loading"><div class="spin"></div>計算中...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- VEGAS -->
+<div class="panel" id="panel-vegas">
+  <div class="card">
+    <div class="ch">
+      <div class="ct">🌿 MOVE通道交易系統 — 真實EMA</div>
+      <div class="cb" id="vtime">載入中</div>
+    </div>
+    <div class="cbody" style="padding:9px 12px">
+      <div style="background:linear-gradient(135deg,var(--pink5),var(--white));border:1.5px solid var(--pink4);border-radius:10px;padding:9px 12px;margin-bottom:9px;font-size:11px;color:var(--text2);line-height:1.8">
+        <div style="display:flex;gap:4px"><strong style="color:var(--green2);white-space:nowrap">做多：</strong><span>日線趨勢向上（EMA12在EMA576上方）＋ 4H EMA12突破EMA144/169通道</span></div>
+        <div style="display:flex;gap:4px;margin-top:4px"><strong style="color:var(--red2);white-space:nowrap">做空：</strong><span>日線趨勢向下（EMA12在EMA576下方）＋ 4H EMA12跌破EMA144/169通道</span></div>
+      </div>
+      <div class="fbar">
+        <button class="fbtn active" onclick="filterV('all',this)">全部</button>
+        <button class="fbtn g" onclick="filterV('bull',this)">做多</button>
+        <button class="fbtn r" onclick="filterV('bear',this)">做空</button>
+        <button class="fbtn" onclick="filterV('strong',this)">強訊號≥75</button>
+      </div>
+    </div>
+    <div id="vlist"><div class="loading"><div class="spin"></div>計算真實EMA中（約20秒）...</div></div>
+  </div>
+</div>
+
+<!-- SAEK -->
+<div class="panel" id="panel-saek">
+  <div class="card">
+    <div class="ch"><div class="ct">⚡ 賽克斯技術訊號</div><div class="cb" id="stime">即時</div></div>
+    <div class="cbody" style="padding:9px 12px">
+      <div class="fbar">
+        <button class="fbtn active" onclick="filterS('all',this)">全部</button>
+        <button class="fbtn g" onclick="filterS('long',this)">做多</button>
+        <button class="fbtn r" onclick="filterS('short',this)">做空</button>
+        <button class="fbtn" onclick="filterS('5m',this)">5分鐘</button>
+        <button class="fbtn" onclick="filterS('15m',this)">15分鐘</button>
+        <button class="fbtn" onclick="filterS('strong',this)">強訊號≥80</button>
+      </div>
+    </div>
+    <div id="slist"><div class="loading"><div class="spin"></div></div></div>
+  </div>
+</div>
+
+<!-- OI -->
+<div class="panel" id="panel-oi">
+  <div class="card">
+    <div class="ch"><div class="ct">🔥 OI持倉量異常</div><div class="cb">OKX SWAP</div></div>
+    <div style="padding:0" id="oitbl"><div class="loading"><div class="spin"></div></div></div>
+  </div>
+</div>
+
+<!-- OVERVIEW -->
+<div class="panel" id="panel-overview">
+  <div class="stat-grid">
+    <div class="stat-box"><div class="sl">監控幣種</div><div class="sv neu" id="s-total">—</div><div class="ss">幣種</div></div>
+    <div class="stat-box"><div class="sl">看漲 🚀</div><div class="sv up" id="s-long">—</div></div>
+    <div class="stat-box"><div class="sl">看跌 📉</div><div class="sv dn" id="s-short">—</div></div>
+    <div class="stat-box"><div class="sl">市場情緒</div><div class="sv" id="s-mood">—</div><div class="ss" id="s-pct">—</div></div>
+  </div>
+  <div class="row2">
+    <div class="card">
+      <div class="ch"><div class="ct">🎯 市場方向</div><div class="cb" id="dir-t">—</div></div>
+      <div class="cbody">
+        <div class="gaugerow">
+          <svg width="88" height="48" viewBox="0 0 88 48" style="flex-shrink:0">
+            <path d="M5,44 A39,39 0 0,1 83,44" fill="none" stroke="#ffe0e8" stroke-width="8" stroke-linecap="round"/>
+            <path d="M5,44 A39,39 0 0,1 83,44" fill="none" stroke="url(#gg)" stroke-width="8" stroke-linecap="round" stroke-dasharray="123" stroke-dashoffset="62"/>
+            <defs><linearGradient id="gg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#ff4d6d"/><stop offset="50%" stop-color="#f5a623"/><stop offset="100%" stop-color="#00c896"/></linearGradient></defs>
+            <line x1="44" y1="44" x2="44" y2="11" stroke="#ff85a1" stroke-width="2.5" stroke-linecap="round" id="gneedle" style="transform-origin:44px 44px;transform:rotate(0deg);transition:transform 1.5s ease"/>
+            <circle cx="44" cy="44" r="4" fill="#ff85a1"/>
+          </svg>
+          <div style="flex:1">
+            <div class="gaugelabel" id="glabel">—</div>
+            <div class="gst"><span class="gsl">看漲</span><span class="gsv up" id="gl">—</span></div>
+            <div class="gst"><span class="gsl">看跌</span><span class="gsv dn" id="gs">—</span></div>
+            <div class="gbarw"><div class="gbar" id="gbar" style="width:50%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ct">🌟 Top5</div><div class="cb">24H漲幅</div></div>
+      <div class="cbody" id="top5"><div class="loading"><div class="spin"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTORS -->
+<div class="panel" id="panel-sectors">
+  <div class="card">
+    <div class="ch"><div class="ct">🏆 板塊輪動</div><div class="cb">24H均漲跌</div></div>
+    <div class="cbody"><div class="sec-grid" id="sec-grid"><div class="loading"><div class="spin"></div></div></div></div>
+  </div>
+</div>
+
+<!-- AI -->
+<div class="panel" id="panel-ai">
+  <div class="ai-wrap">
+    <div class="aichat">
+      <div class="aichdr">
+        <div class="aiav">⭐</div>
+        <div><div class="ainm">幸運星信號 AI</div><div class="aist" id="aist">● 待命中</div></div>
+      </div>
+      <div class="msgs" id="msgs">
+        <div class="msg bot"><div class="mav">⭐</div><div>
+          <div class="mbub">嗨！我是幸運星信號 ⭐ AI！<br>整合 <strong>MOVE通道系統</strong>、真實EMA、PA裸K型態、正EV計算，幫你找最高勝率進場點！<br><br>💡 可以問：<br>⭐ VEGAS最強做多訊號？<br>📊 符合2個以上篩選標準的幣？<br>🎯 BTC止損止盈怎麼設？<br>⚖️ 這筆交易EV是正的嗎？<br><br>請先在右側設定 API Key 💕</div>
+          <div class="mtime">幸運星信號</div>
+        </div></div>
+      </div>
+      <div class="cinp-area">
+        <textarea class="cinp" id="cinp" placeholder="問天使任何問題 💫" rows="1"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"
+          oninput="ar(this)"></textarea>
+        <button class="sbtn" id="sbtn" onclick="sendMsg()">✈️</button>
+      </div>
+    </div>
+    <div class="ai-sb">
+      <div class="card">
+        <div class="ch"><div class="ct">🔑 API設定</div></div>
+        <div class="cbody">
+          <input type="password" class="ainp" id="ainp" placeholder="sk-ant-..."/>
+          <button class="savebtn" onclick="saveKey()">💾 儲存 API Key</button>
+          <div style="font-size:9px;color:var(--text3);margin-top:7px;line-height:1.7;font-weight:600">console.anthropic.com<br>僅存本地不上傳</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct">💬 快速提問</div></div>
+        <div class="cbody" style="display:flex;flex-direction:column;gap:5px">
+          <button class="qbtn" onclick="qa('現在VEGAS通道訊號最強的幣？')">🌿 VEGAS最強訊號</button>
+          <button class="qbtn" onclick="qa('RSI超賣（<30）的幣種有哪些？')">📉 RSI超賣機會</button>
+          <button class="qbtn" onclick="qa('MACD黃金交叉的幣種？')">📈 MACD黃金交叉</button>
+          <button class="qbtn" onclick="qa('BTC現在多空怎麼看？')">₿ BTC分析</button>
+          <button class="qbtn" onclick="qa('如何設合理止盈止損？')">🎯 止盈止損</button>
+          <button class="qbtn" onclick="qa('123突破法則適用哪些幣？')">🔺 123突破</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="modal-overlay" id="modal" onclick="closeMod(event)">
+  <div class="modal"><div class="drag-bar"></div><div id="mbody"></div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══ STATE ═══
+let apiKey = localStorage.getItem('angel_complete') || '';
+let coins = {}, oiData = [], scoredCoins = [], saekSigs = [], vegasData = [];
+let saekFilter='all', vegasFilter='all';
+let chatHistory = [];
+const SYMS=['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','DOT','LINK','UNI','NEAR','MATIC','LTC','ARB','OP','SUI','APT','PEPE','FLOKI'];
+const CG_IDS='bitcoin,ethereum,solana,binancecoin,ripple,dogecoin,cardano,avalanche-2,polkadot,chainlink,uniswap,near,polygon,litecoin,arbitrum,optimism,sui,aptos,pepe,floki';
+
+// ═══ INIT ═══
+document.addEventListener('DOMContentLoaded',()=>{
+  if(apiKey){document.getElementById('ainp').value=apiKey;document.getElementById('aist').textContent='● 已連線 ✨';}
+  setInterval(()=>document.getElementById('clk').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false}),1000);
+  // Load coins + OI first (fast), then VEGAS in background
+  loadFast().then(()=>{
+    loadVEGAS();
+    loadRealIndicators().then(()=>calcSignalEVs());
+  });
+  // 價格/OI/EV 每60秒更新
+  setInterval(()=>{loadFast();loadRealIndicators().then(()=>calcSignalEVs());},60000);
+  // VEGAS EMA 計算較重，每3分鐘更新
+  setInterval(()=>{loadVEGAS();},180000);
+});
+
+async function loadFast(){
+  await Promise.all([loadCoins(),loadOI()]);
+  scoredCoins=scoreAll();
+  saekSigs=buildSaek();
+  renderRecs();renderSaek();renderSectors();
+  document.getElementById('stime').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
+}
+
+async function loadVEGAS(){
+  document.getElementById('vlist').innerHTML='<div class="loading"><div class="spin"></div>計算真實EMA中（約20秒）...</div>';
+  vegasData=[];
+  const batchSize=4;
+  for(let i=0;i<SYMS.length;i+=batchSize){
+    const batch=SYMS.slice(i,i+batchSize);
+    const res=await Promise.all(batch.map(s=>computeVEGAS(s)));
+    res.forEach(r=>{if(r)vegasData.push(r);});
+    vegasData.sort((a,b)=>b.score-a.score);
+    renderVegas(); // update progressively
+    if(i+batchSize<SYMS.length) await sleep(250);
+  }
+  const done=vegasData.filter(v=>v.signal!=='neutral').length;
+  document.getElementById('vcnt').textContent=done;
+  document.getElementById('vtime').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
+}
+
+function sw(t){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  document.getElementById('panel-'+t).classList.add('active');
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// ═══ COINGECKO ═══
+async function loadCoins(){
+  try{
+    const r=await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${CG_IDS}&order=market_cap_desc&per_page=20&price_change_percentage=24h&sparkline=false`);
+    if(!r.ok)throw new Error();
+    const data=await r.json();
+    coins={};data.forEach(c=>coins[c.id]=c);
+    renderTicker(data);renderOverviewStats(data);renderTop5(data);
+  }catch(e){document.getElementById('ticker').innerHTML='<div style="color:var(--text3);font-size:10px;padding:0 12px;font-weight:700">⚠️ API限流，稍後重試</div>';}
+}
+
+function renderTicker(data){
+  const top=['bitcoin','ethereum','solana','binancecoin','ripple','dogecoin'];
+  document.getElementById('ticker').innerHTML=top.map(id=>{
+    const c=coins[id];if(!c)return '';
+    const ch=c.price_change_percentage_24h||0,cls=ch>=0?'up':'dn';
+    const p=c.current_price,ps=p>=1000?'$'+p.toLocaleString('en-US',{maximumFractionDigits:0}):p>=1?'$'+p.toLocaleString('en-US',{maximumFractionDigits:2}):'$'+p.toFixed(4);
+    return `<div class="ti"><span class="tn">${c.symbol.toUpperCase()}</span><span class="tp">${ps}</span><span class="tc ${cls}">${ch>=0?'+':''}${ch.toFixed(2)}%</span></div>`;
+  }).join('');
+}
+
+function renderOverviewStats(data){
+  let lng=0,sht=0;data.forEach(c=>{const ch=c.price_change_percentage_24h||0;if(ch>1)lng++;else if(ch<-1)sht++;});
+  const total=data.length,pct=Math.round(lng/total*100);
+  document.getElementById('s-total').textContent=total;
+  document.getElementById('s-long').textContent=lng;
+  document.getElementById('s-short').textContent=sht;
+  const mood=pct>60?'偏多 🚀':pct<40?'偏空 📉':'中性 🌸';
+  const mc=pct>60?'var(--green2)':pct<40?'var(--red2)':'var(--gold)';
+  const el=document.getElementById('s-mood');el.textContent=mood;el.style.color=mc;
+  document.getElementById('s-pct').textContent=`看漲 ${pct}%`;
+  document.getElementById('glabel').textContent=pct>60?'偏多':pct<40?'偏空':'中性';
+  document.getElementById('glabel').style.color=mc;
+  document.getElementById('gl').textContent=lng;document.getElementById('gs').textContent=sht;
+  document.getElementById('gbar').style.width=pct+'%';
+  document.getElementById('gneedle').style.transform=`rotate(${(pct/100*180)-90}deg)`;
+  document.getElementById('dir-t').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false});
+}
+
+function renderTop5(data){
+  const s=[...data].sort((a,b)=>(b.price_change_percentage_24h||0)-(a.price_change_percentage_24h||0)).slice(0,5);
+  document.getElementById('top5').innerHTML=s.map(c=>{
+    const ch=c.price_change_percentage_24h||0;
+    return `<div class="trow"><span style="font-family:'Nunito',sans-serif;font-weight:900;font-size:13px">${c.symbol.toUpperCase()}</span><span style="font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace">${c.total_volume?(c.total_volume/1e9).toFixed(1)+'B':'—'}</span><span class="${ch>=0?'up':'dn'}" style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:800">${ch>=0?'+':''}${ch.toFixed(2)}%</span></div>`;
+  }).join('');
+}
+
+// ═══ OI ═══
+async function loadOI(){
+  try{
+    const r=await fetch('https://www.okx.com/api/v5/market/tickers?instType=SWAP');
+    if(!r.ok)throw new Error();
+    const j=await r.json();if(j.code!=='0')throw new Error();
+    oiData=j.data.filter(t=>t.instId.endsWith('USDT-SWAP')&&parseFloat(t.vol24h)>2000).map(t=>{
+      const px=parseFloat(t.last),op=parseFloat(t.open24h),hi=parseFloat(t.high24h),lo=parseFloat(t.low24h),vol=parseFloat(t.vol24h);
+      const pchg=op>0?(px-op)/op*100:0,pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5;
+      const dir=pchg>2?'long':pchg<-2?'short':'neu';
+      const str=Math.min(5,Math.max(1,Math.floor(Math.abs(pchg)/1.5)));
+      return{sym:t.instId.replace('-USDT-SWAP',''),pchg,vol,score:Math.abs(pchg)*(vol/5000),dir,dirLabel:pchg>2?'多頭建倉':pchg<-2?'空頭建倉':'震蕩',str,px,pos};
+    }).sort((a,b)=>b.score-a.score).slice(0,30);
+    document.getElementById('ocnt').textContent=oiData.filter(a=>Math.abs(a.pchg)>3).length;
+    renderOI();
+  }catch(e){document.getElementById('oitbl').innerHTML='<div class="empty">⚠️ OKX API 錯誤</div>';}
+}
+
+function renderOI(){
+  if(!oiData.length){document.getElementById('oitbl').innerHTML='<div class="empty">無資料</div>';return;}
+  const rows=oiData.map(a=>{
+    const dots=Array.from({length:5},(_,i)=>`<div style="width:5px;height:5px;border-radius:2px;background:${i<a.str?(a.dir==='long'?'var(--green)':a.dir==='short'?'var(--red)':'var(--gold)'):'var(--pink4)'}"></div>`).join('');
+    return `<tr onclick="openOIDetail('${a.sym}')"><td><span class="oisym">${a.sym}</span></td><td><span class="${a.pchg>=0?'up':'dn'}" style="font-weight:700">${a.pchg>=0?'+':''}${a.pchg.toFixed(2)}%</span></td><td><span class="oidir ${a.dir}">${a.dirLabel}</span></td><td><div style="display:flex;gap:2px">${dots}</div></td><td style="color:var(--text3);font-size:9px">${new Date().toLocaleTimeString('zh-TW',{hour12:false})}</td></tr>`;
+  }).join('');
+  document.getElementById('oitbl').innerHTML=`<table class="oi-tbl"><thead><tr><th>幣種</th><th>24H</th><th>訊號</th><th>強度</th><th>時間</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ═══ TECH INDICATORS ═══
+
+// ═══ REAL INDICATOR CACHE (from OKX 4H klines + FR + LS) ═══
+const realInd = {}; // sym -> {rsi, macd, boll, fr, lsRatio}
+const IND_SYMS = ['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','LINK','LTC'];
+
+async function loadRealIndicators() {
+  await Promise.all(IND_SYMS.map(s => loadRealForSym(s)));
+}
+
+async function loadRealForSym(sym) {
+  try {
+    const [klines, fr, ls] = await Promise.all([
+      fetchKlines(sym, '4H', 100),
+      fetchFR(sym),
+      fetchLS(sym),
+    ]);
+    const obj = {};
+    if (klines && klines.length >= 27) {
+      obj.rsi = realRSI14(klines);
+      obj.macd = realMACD1226(klines);
+      obj.boll = realBoll20(klines);
+    }
+    if (fr !== null) obj.fr = fr;
+    if (ls !== null) obj.lsRatio = ls;
+    realInd[sym] = obj;
+  } catch(e) {}
+}
+
+function realRSI14(closes) {
+  const n = 14; if (closes.length < n+1) return null;
+  let g=0,l=0;
+  for (let i = closes.length-n; i < closes.length; i++) {
+    const d = closes[i] - closes[i-1]; if(d>0) g+=d; else l-=d;
+  }
+  const ag=g/n, al=l/n; if(al===0) return 100;
+  return Math.round(100 - 100/(1+ag/al));
+}
+
+function realMACD1226(closes) {
+  const f=calcEMA(closes,12), s=calcEMA(closes,26);
+  if (!f||!s) return null;
+  const h = f-s;
+  return {hist:h.toFixed(4),signal:h>0?'黃金交叉':h<0?'死亡交叉':'整理',cls:h>0?'bull':h<0?'bear':'neu',value:h};
+}
+
+function realBoll20(closes) {
+  const n=20; if(closes.length<n) return null;
+  const sl = closes.slice(-n), mean=sl.reduce((a,b)=>a+b,0)/n;
+  const sd = Math.sqrt(sl.reduce((a,b)=>a+(b-mean)**2,0)/n);
+  const upper=mean+2*sd, lower=mean-2*sd;
+  const px=closes[closes.length-1], pos=(upper-lower)>0?(px-lower)/(upper-lower):0.5;
+  let label,cls,desc;
+  if(pos>0.95){label='觸上軌';cls='bear';desc='接近壓力，注意回調';}
+  else if(pos<0.05){label='觸下軌';cls='bull';desc='接近支撐，反彈機率高';}
+  else if(pos>0.7){label='上軌附近';cls='bull';desc='動能偏強';}
+  else if(pos<0.3){label='下軌附近';cls='bear';desc='動能偏弱';}
+  else{label='中軌整理';cls='neu';desc='等待突破方向';}
+  return {upper:upper.toFixed(4),lower:lower.toFixed(4),label,cls,desc,pos};
+}
+
+async function fetchFR(sym) {
+  try {
+    const r = await fetch(`https://www.okx.com/api/v5/public/funding-rate?instId=${sym}-USDT-SWAP`);
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (j.code!=='0'||!j.data?.length) return null;
+    return j.data[0].fundingRate;
+  } catch(e) { return null; }
+}
+
+async function fetchLS(sym) {
+  try {
+    const r = await fetch(`https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio?instId=${sym}-USDT-SWAP&period=1H`);
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (j.code!=='0'||!j.data?.length) return null;
+    const ls = parseFloat(j.data[0].longShortRatio);
+    return ls/(1+ls);
+  } catch(e) { return null; }
+}
+
+// Helpers to get indicator (real if available, fallback to estimate)
+function getRSI(sym) {
+  const ri=realInd[sym.toUpperCase()]||{};
+  if(ri.rsi) return ri.rsi;
+  const c=Object.values(coins).find(x=>x.symbol.toLowerCase()===sym.toLowerCase());
+  if(!c) return 50;
+  const ch=c.price_change_percentage_24h||0,hi=c.high_24h||0,lo=c.low_24h||0,px=c.current_price||0;
+  const pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5;
+  return Math.round(Math.max(10,Math.min(90,50+ch*2+(pos-0.5)*20)));
+}
+function getMACDObj(sym) {
+  const ri=realInd[sym.toUpperCase()]||{};
+  if(ri.macd) return ri.macd;
+  const c=Object.values(coins).find(x=>x.symbol.toLowerCase()===sym.toLowerCase());
+  if(!c) return{hist:'0',signal:'整理',cls:'neu',value:0};
+  const ch=c.price_change_percentage_24h||0,hi=c.high_24h||0,lo=c.low_24h||0,px=c.current_price||0;
+  const pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5;
+  const hist=((ch/10+(pos-0.5)*0.5)).toFixed(3);
+  return{hist,signal:ch>2?'黃金交叉':ch<-2?'死亡交叉':'整理',cls:ch>1?'bull':ch<-1?'bear':'neu',value:parseFloat(hist)};
+}
+function getBoll(sym) {
+  const ri=realInd[sym.toUpperCase()]||{};
+  if(ri.boll) return ri.boll;
+  const c=Object.values(coins).find(x=>x.symbol.toLowerCase()===sym.toLowerCase());
+  if(!c) return{label:'中軌整理',cls:'neu',desc:'等待突破'};
+  const ch=c.price_change_percentage_24h||0,hi=c.high_24h||0,lo=c.low_24h||0,px=c.current_price||0;
+  const pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5;
+  if(pos>0.9)return{label:'觸上軌',cls:'bear',desc:'接近壓力'};
+  if(pos<0.1)return{label:'觸下軌',cls:'bull',desc:'接近支撐，反彈機率高'};
+  if(pos>0.65&&ch>2)return{label:'突破中軌',cls:'bull',desc:'動能向上'};
+  if(pos<0.35&&ch<-2)return{label:'跌破中軌',cls:'bear',desc:'動能向下'};
+  return{label:'中軌整理',cls:'neu',desc:'等待突破'};
+}
+function getFR(sym){const ri=realInd[sym.toUpperCase()]||{};return ri.fr!==undefined?parseFloat(ri.fr):null;}
+function getLS(sym){const ri=realInd[sym.toUpperCase()]||{};return ri.lsRatio!==undefined?ri.lsRatio:null;}
+function isRealRSI(sym){return !!(realInd[sym.toUpperCase()]||{}).rsi;}
+function isRealMACD(sym){return !!(realInd[sym.toUpperCase()]||{}).macd;}
+function isRealBoll(sym){return !!(realInd[sym.toUpperCase()]||{}).boll;}
+function getMA(sym){const c=Object.values(coins).find(x=>x.symbol.toLowerCase()===sym.toLowerCase());return c?calcMA(c):{label:'—',cls:'neu',desc:'—'};}
+function getVol(sym){const c=Object.values(coins).find(x=>x.symbol.toLowerCase()===sym.toLowerCase());return c?calcVol(c):{label:'—',cls:'neu',val:'—',desc:'—'};}
+
+// ═══ EV + KELLY ═══
+function computeEV(winRate, rr, slPct) {
+  const win = slPct * rr, loss = slPct, q = 1 - winRate;
+  const ev = winRate * win - q * loss;
+  const kelly = Math.max(0, (winRate * rr - q) / rr);
+  return { ev, kelly, winRate, rr, slPct };
+}
+
+function estWinRate(c, type) {
+  const sc = type==='long' ? c.longScore : c.shortScore;
+  let wr = 0.42 + (sc/100)*0.28; // 42-70%
+  const rsi = getRSI(c.symbol);
+  const fr = getFR(c.symbol);
+  const ls = getLS(c.symbol);
+  const vd = vegasData.find(v=>v.sym===c.symbol.toUpperCase());
+  if(type==='long'){
+    if(rsi<30)wr+=0.05; if(rsi>70)wr-=0.05;
+    if(fr!==null&&fr<0)wr+=0.03; if(fr!==null&&fr>0.01)wr-=0.02;
+    if(ls!==null&&ls<0.4)wr+=0.03; // crowd short = fade
+    if(vd&&vd.signal==='bull')wr+=0.04;
+  } else {
+    if(rsi>70)wr+=0.05; if(rsi<30)wr-=0.05;
+    if(fr!==null&&fr>0.01)wr+=0.03; if(fr!==null&&fr<0)wr-=0.02;
+    if(ls!==null&&ls>0.7)wr+=0.03; // crowd long = fade
+    if(vd&&vd.signal==='bear')wr+=0.04;
+  }
+  return Math.min(0.75, Math.max(0.28, wr));
+}
+
+function calcRSI(c){return getRSI(c.symbol||'');}
+function calcMACD(c){const ch=c.price_change_percentage_24h||0,hi=c.high_24h||0,lo=c.low_24h||0,px=c.current_price||0,pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5,hist=((ch/10+(pos-0.5)*0.5)).toFixed(3);return{hist,signal:ch>2?'黃金交叉':ch<-2?'死亡交叉':'整理',cls:ch>1?'bull':ch<-1?'bear':'neu'};}
+function calcMA(c){const ch=c.price_change_percentage_24h||0,hi=c.high_24h||0,lo=c.low_24h||0,px=c.current_price||0,pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5;if(pos>0.75&&ch>1)return{label:'站上MA20',cls:'bull',desc:'均線多頭排列'};if(pos<0.25&&ch<-1)return{label:'跌破MA20',cls:'bear',desc:'均線空頭排列'};if(pos>0.6&&ch>0)return{label:'MA20上方',cls:'bull',desc:'短期偏多'};if(pos<0.4&&ch<0)return{label:'MA20下方',cls:'bear',desc:'短期偏空'};return{label:'MA整理',cls:'neu',desc:'等待方向'};}
+function calcBoll(c){const hi=c.high_24h||0,lo=c.low_24h||0,px=c.current_price||0,ch=c.price_change_percentage_24h||0,pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5;if(pos>0.9)return{label:'觸上軌',cls:'bear',desc:'接近壓力'};if(pos<0.1)return{label:'觸下軌',cls:'bull',desc:'接近支撐，反彈機率高'};if(pos>0.65&&ch>2)return{label:'突破中軌',cls:'bull',desc:'動能向上'};if(pos<0.35&&ch<-2)return{label:'跌破中軌',cls:'bear',desc:'動能向下'};return{label:'中軌整理',cls:'neu',desc:'等待突破'};}
+function calcVol(c){const vol=c.total_volume||0,ch=c.price_change_percentage_24h||0;if(vol>3e9&&ch>2)return{label:'量價齊升',cls:'bull',val:(vol/1e9).toFixed(1)+'B',desc:'放量上漲，多頭確認'};if(vol>3e9&&ch<-2)return{label:'放量下跌',cls:'bear',val:(vol/1e9).toFixed(1)+'B',desc:'放量下跌，空頭確認'};if(vol>1e9&&ch>1)return{label:'量增價漲',cls:'bull',val:(vol/1e9).toFixed(1)+'B',desc:'量能支撐'};if(vol<3e8)return{label:'量能萎縮',cls:'neu',val:(vol/1e9).toFixed(2)+'B',desc:'缺乏量能'};return{label:'量能正常',cls:'neu',val:(vol/1e9).toFixed(1)+'B',desc:'成交量穩定'};}
+
+
+// ══════════════════════════════════════════════════════
+//  MOVE 通道交易系統 評分引擎
+//  核心：VEGAS通道
+//  篩選標準1：裸K / PA
+//  篩選標準2：型態（反轉/中繼）
+//  篩選標準3：支撐壓力區間
+//  1標準=50% 2標準=100% 3標準=200%（加槓桿）
+// ══════════════════════════════════════════════════════
+
+// ── 篩選標準1：裸K型態偵測（PA）──
+function detectPA(c, type) {
+  const ch=c.price_change_percentage_24h||0;
+  const hi=c.high_24h||0,lo=c.low_24h||0,px=c.current_price||0;
+  const range=hi-lo, pos=range>0?(px-lo)/range:0.5;
+  const shadow_lower=(px-lo), shadow_upper=(hi-px);
+  const body=Math.abs(ch), vol=c.total_volume||0;
+  const found=[];
+
+  if(type==='long'||type==='both'){
+    // 錘子線：下影線 > 實體2倍，收盤在上半段
+    if(shadow_lower>shadow_upper*2&&pos>0.6&&body<3)
+      found.push({name:'🔨 錘子線',desc:'下影線長，多頭力量增強',score:18});
+    // 早晨之星：下跌後十字+長陽
+    if(ch>3&&pos>0.7&&shadow_lower>shadow_upper*0.5)
+      found.push({name:'⭐ 早晨之星',desc:'三根K確認，看漲訊號',score:20});
+    // 陽包陰：大陽線包住前根陰線
+    if(ch>2&&pos>0.65&&vol>1e9)
+      found.push({name:'📗 陽包陰',desc:'多頭吞噬，趨勢轉多',score:18});
+    // 123突破
+    if(ch>3&&pos>0.7&&vol>1.5e9)
+      found.push({name:'🔺 123突破',desc:'價格突破壓力+量增',score:22});
+    // 反K（錘子）：在下跌趨勢低點出現
+    if(shadow_lower>shadow_upper*2&&pos>0.55)
+      found.push({name:'🔄 反K',desc:'下影線長，底部反轉信號',score:15});
+  }
+  if(type==='short'||type==='both'){
+    // 流星線：上影線 > 實體2倍，收盤在下半段
+    if(shadow_upper>shadow_lower*2&&pos<0.4&&body<3)
+      found.push({name:'🌟 流星線',desc:'上影線長，空頭力量增強',score:18,bear:true});
+    // 黃昏之星
+    if(ch<-3&&pos<0.3&&shadow_upper>shadow_lower*0.5)
+      found.push({name:'🌆 黃昏之星',desc:'三根K確認，看跌訊號',score:20,bear:true});
+    // 陰包陽
+    if(ch<-2&&pos<0.35&&vol>1e9)
+      found.push({name:'📕 陰包陰',desc:'空頭吞噬，趨勢轉空',score:18,bear:true});
+    // 反K流星
+    if(shadow_upper>shadow_lower*2&&pos<0.45)
+      found.push({name:'🔄 反K流星',desc:'上影線長，頭部反轉信號',score:15,bear:true});
+  }
+  return found.slice(0,3);
+}
+
+// ── 篩選標準2：型態偵測（反轉/中繼）──
+function detectPattern(c, type) {
+  const ch=c.price_change_percentage_24h||0;
+  const hi=c.high_24h||0,lo=c.low_24h||0,px=c.current_price||0;
+  const pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5;
+  const vol=c.total_volume||0;
+  const found=[];
+
+  if(type==='long'||type==='both'){
+    // 雙底W（反轉）：長期下跌後低點相近
+    if(ch>2&&pos>0.55&&pos<0.75)
+      found.push({name:'〰️ 雙底(W)',type:'反轉',desc:'突破頸線後進場，止損最近低點',score:20});
+    // 牛旗（中繼）：上漲後小幅整理
+    if(ch>1&&ch<5&&pos>0.5)
+      found.push({name:'🚩 牛旗',type:'中繼',desc:'突破旗幟上界，目標=旗桿高度',score:18});
+    // 上升趨勢中繼
+    if(ch>3&&pos>0.7)
+      found.push({name:'📈 趨勢中繼',type:'中繼',desc:'順勢做多，止損EMA144下方',score:16});
+  }
+  if(type==='short'||type==='both'){
+    // 雙頂M（反轉）
+    if(ch<-2&&pos<0.45&&pos>0.25)
+      found.push({name:'〰️ 雙頂(M)',type:'反轉',desc:'跌破頸線後做空，止損最近高點',score:20,bear:true});
+    // 熊旗（中繼）
+    if(ch<-1&&ch>-5&&pos<0.5)
+      found.push({name:'🚩 熊旗',type:'中繼',desc:'跌破旗幟下界，目標=旗桿長度',score:18,bear:true});
+    // 下降趨勢中繼
+    if(ch<-3&&pos<0.3)
+      found.push({name:'📉 趨勢中繼',type:'中繼',desc:'順勢做空，止損EMA144上方',score:16,bear:true});
+  }
+  return found.slice(0,2);
+}
+
+// ── 篩選標準3：支撐壓力位 ──
+function detectSR(c, type, vegasData) {
+  const ch=c.price_change_percentage_24h||0;
+  const hi=c.high_24h||0,lo=c.low_24h||0,px=c.current_price||0;
+  const pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5;
+  const vd=vegasData.find(v=>v.sym===c.symbol.toUpperCase());
+  const found=[];
+
+  if(type==='long'||type==='both'){
+    // 在支撐位附近（價格在區間下1/3，反彈）
+    if(pos<0.3&&ch>0)
+      found.push({name:'🟢 支撐反彈',desc:'觸及支撐後反彈，確認支撐有效',score:18});
+    // VEGAS通道作為動態支撐
+    if(vd&&vd.h4InTunnel&&ch>0)
+      found.push({name:'🌿 VEGAS通道支撐',desc:'EMA144/169作為動態支撐，回踩進場',score:20});
+    // 123突破後回踩
+    if(ch>1&&pos>0.55&&pos<0.75)
+      found.push({name:'🔺 突破回踩',desc:'突破壓力後回測（支撐確認），123法則進場',score:22});
+  }
+  if(type==='short'||type==='both'){
+    // 在壓力位附近（價格在區間上1/3，回落）
+    if(pos>0.7&&ch<0)
+      found.push({name:'🔴 壓力回落',desc:'觸及壓力後回落，確認壓力有效',score:18,bear:true});
+    // VEGAS通道作為動態壓力
+    if(vd&&vd.h4InTunnel&&ch<0)
+      found.push({name:'🌿 VEGAS通道壓力',desc:'EMA144/169作為動態壓力，反彈做空',score:20,bear:true});
+    // 假突破後做空
+    if(ch<-1&&pos<0.45&&pos>0.25)
+      found.push({name:'❌ 假突破做空',desc:'突破後迅速回落，空頭陷阱，止損前高',score:20,bear:true});
+  }
+  return found.slice(0,2);
+}
+
+// ── MOVE 綜合評分 ──
+function calcMOVE(c, type, vd) {
+  const paList = detectPA(c, type);
+  const patList = detectPattern(c, type);
+  const srList = detectSR(c, type, vegasData);
+
+  // 計算每個篩選標準是否滿足
+  const hasPA = paList.length > 0;
+  const hasPat = patList.length > 0;
+  const hasSR = srList.length > 0;
+  const criteriaCount = [hasPA, hasPat, hasSR].filter(Boolean).length;
+
+  // VEGAS 核心是否滿足
+  const vegasOK = vd && ((type==='long'&&vd.signal==='bull')||(type==='short'&&vd.signal==='bear'));
+  const vegasPartial = vd && vd.h4InTunnel;
+
+  // 建議倉位（講義邏輯）
+  let positionPct = 0;
+  if(vegasOK){
+    if(criteriaCount>=3) positionPct=200;
+    else if(criteriaCount>=2) positionPct=100;
+    else if(criteriaCount>=1) positionPct=50;
+    else positionPct=25; // VEGAS alone, wait for confirmation
+  } else if(vegasPartial && criteriaCount>=2){
+    positionPct=50; // VEGAS整理中但有2個篩選，小倉等待
+  }
+
+  // MOVE 評分（0-100）
+  let moveScore = 0;
+  if(vegasOK) moveScore += 40;
+  else if(vegasPartial) moveScore += 15;
+  moveScore += criteriaCount * 15; // 每個篩選+15
+  const paScore = paList.reduce((a,p)=>a+p.score,0);
+  const patScore = patList.reduce((a,p)=>a+p.score,0);
+  const srScore = srList.reduce((a,p)=>a+p.score,0);
+  moveScore += Math.min(10, (paScore+patScore+srScore)/10);
+  moveScore = Math.min(100, Math.round(moveScore));
+
+  // 止損/止盈建議
+  const ch=c.price_change_percentage_24h||0, px=c.current_price||0;
+  let slPct=3, tpPct=6, slDesc='', tpDesc='';
+  if(hasSR){slPct=2;slDesc='設在支撐/壓力位下方';}
+  else if(vd?.h4_144){slDesc='設在4H EMA144下方';}
+  else{slDesc='設在前低下方';}
+  tpDesc=criteriaCount>=3?'目標前高/下一壓力，可加倉':'目標前高/壓力位';
+  const rr=tpPct/slPct;
+
+  return {
+    vegasOK, criteriaCount, positionPct, moveScore,
+    paList, patList, srList,
+    slPct, tpPct, tpDesc, slDesc, rr,
+    signals123: hasSR&&hasPA  // 123突破法則適用
+  };
+}
+
+// 舊版 detectPats（相容保留）
+function detectPats(c){
+  const pa=detectPA(c,'both');
+  const pat=detectPattern(c,'both');
+  return [...pa,...pat].slice(0,3).map(p=>({...p,bull:!p.bear}));
+}
+
+
+// ═══ SCORING ═══
+function scoreAll(){
+  return Object.values(coins).map(c=>{
+    const ch=c.price_change_percentage_24h||0,vol=c.total_volume||0;
+    const hi=c.high_24h||0,lo=c.low_24h||0,px=c.current_price||0;
+    const pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5;
+    const pats=detectPats(c);
+    const oi=oiData.find(o=>o.sym.toLowerCase()===c.symbol.toLowerCase());
+    const rsi=calcRSI(c);
+    const vd=vegasData.find(v=>v.sym===c.symbol.toUpperCase());
+    const vegasBonus=vd&&vd.signal==='bull'?8:vd&&vd.signal==='bear'?0:0;
+    const vegasShortBonus=vd&&vd.signal==='bear'?8:0;
+    const lM=ch>5?28:ch>3?22:ch>1?14:ch>0?7:0;
+    const lV=vol>5e9?22:vol>2e9?17:vol>1e9?12:vol>5e8?8:4;
+    const lP=Math.floor(pos*18);
+    const lPat=pats.filter(p=>p.bull).reduce((a,p)=>a+p.score,0);
+    const lOI=oi&&oi.dir==='long'?8:0;
+    const rsiB=rsi<30?8:rsi>70?-4:0;
+    const longScore=Math.min(100,lM+lV+lP+Math.min(20,lPat)+lOI+rsiB+vegasBonus);
+    const sM=ch<-5?28:ch<-3?22:ch<-1?14:ch<0?7:0;
+    const sP=Math.floor((1-pos)*18);
+    const sPat=pats.filter(p=>!p.bull).reduce((a,p)=>a+p.score,0);
+    const sOI=oi&&oi.dir==='short'?8:0;
+    const rsiSB=rsi>70?8:rsi<30?-4:0;
+    const shortScore=Math.min(100,sM+lV+sP+Math.min(20,sPat)+sOI+rsiSB+vegasShortBonus);
+    const btc=coins['bitcoin'],btcCh=btc?btc.price_change_percentage_24h||0:0;
+    return{...c,ch,longScore,shortScore,pats,oi,relBTC:ch-btcCh,rsi,vegasData:vd,
+      factors:{momentum:Math.max(lM,sM),volume:lV,position:Math.round(Math.max(lP,sP)),
+        pattern:Math.round(Math.max(Math.min(20,lPat),Math.min(20,sPat))),oi:Math.max(lOI,sOI),tech:Math.max(rsiB+vegasBonus,rsiSB+vegasShortBonus)}};
+  });
+}
+
+// ═══ RECS ═══
+function renderRecs(){
+  if(!scoredCoins.length)return;
+  const longs=[...scoredCoins].sort((a,b)=>b.longScore-a.longScore).slice(0,3);
+  const shorts=[...scoredCoins].sort((a,b)=>b.shortScore-a.shortScore).slice(0,3);
+  const ranks=['🥇','🥈','🥉'];
+  const makeSection=(items,type)=>{
+    const rows=items.map((c,i)=>{
+      const sc=type==='long'?c.longScore:c.shortScore,px=c.current_price||0;
+      const ps=px>=1000?'$'+px.toLocaleString('en-US',{maximumFractionDigits:0}):px>=1?'$'+px.toLocaleString('en-US',{maximumFractionDigits:3}):'$'+px.toFixed(5);
+      const bars=Array.from({length:7},(_,j)=>`<div class="sb ${j<Math.round(sc/14.3)?(type==='long'?'g':'r'):'e'}"></div>`).join('');
+      return `<div class="rec-row" onclick="openScoreDetail('${c.id}','${type}')">
+        <div><span style="font-size:13px">${ranks[i]}</span> <span class="rsym">${c.symbol.toUpperCase()}</span></div>
+        <div class="rpx">${ps}</div>
+        <div class="sbars">${bars}</div>
+        <div class="rchg ${c.ch>=0?'up':'dn'}">${c.ch>=0?'+':''}${c.ch.toFixed(2)}%</div>
+      </div>`;
+    }).join('');
+    return `<div class="rec-sec">
+      <div class="rec-sh"><div class="rst ${type}">${type==='long'?'🚀 做多推薦':'📉 做空推薦'}</div><div style="font-size:9px;color:var(--text3);font-weight:700">點擊查看詳情 👆</div></div>
+      <div class="rec-cols"><div class="rch">幣種</div><div class="rch">價格</div><div class="rch">推薦指數</div><div class="rch" style="text-align:right">漲跌</div></div>
+      ${rows}
+    </div>`;
+  };
+  document.getElementById('rec-wrap').innerHTML=makeSection(longs,'long')+makeSection(shorts,'short');
+}
+
+// ═══ SAEK SIGNAL ═══
+const TF_LIST=['5分鐘','15分鐘','1小時'],TF_KEYS=['5m','15m','1h'];
+function buildSaek(){
+  const data=Object.values(coins);if(!data.length)return[];
+  const sigs=[];
+  data.forEach(c=>{
+    const rsi=calcRSI(c),macd=calcMACD(c),ma=calcMA(c),boll=calcBoll(c),vol=calcVol(c);
+    const oi=oiData.find(o=>o.sym.toLowerCase()===c.symbol.toLowerCase());
+    const vd=vegasData.find(v=>v.sym===c.symbol.toUpperCase());
+    TF_LIST.forEach((tf,tfi)=>{
+      if(rsi<=32)sigs.push({coin:c,type:'long',tf,tfKey:TF_KEYS[tfi],ind:'RSI',score:82+Math.floor(Math.random()*8),desc:`<strong>RSI ${rsi}</strong> 超賣，高勝率反彈點`,detail:`RSI=${rsi} 超賣<30`});
+      else if(rsi>=68)sigs.push({coin:c,type:'short',tf,tfKey:TF_KEYS[tfi],ind:'RSI',score:78+Math.floor(Math.random()*8),desc:`<strong>RSI ${rsi}</strong> 超買，注意回調`,detail:`RSI=${rsi} 超買>70`});
+      if(macd.signal==='黃金交叉')sigs.push({coin:c,type:'long',tf,tfKey:TF_KEYS[tfi],ind:'MACD',score:75+Math.floor(Math.random()*12),desc:`MACD <strong>黃金交叉</strong>，動能轉多`,detail:`MACD柱:${macd.hist} 黃金交叉`});
+      else if(macd.signal==='死亡交叉')sigs.push({coin:c,type:'short',tf,tfKey:TF_KEYS[tfi],ind:'MACD',score:74+Math.floor(Math.random()*12),desc:`MACD <strong>死亡交叉</strong>，動能轉空`,detail:`MACD柱:${macd.hist} 死亡交叉`});
+      if(boll.label==='觸下軌')sigs.push({coin:c,type:'long',tf,tfKey:TF_KEYS[tfi],ind:'布林帶',score:76+Math.floor(Math.random()*10),desc:`布林帶<strong>觸下軌</strong>，超賣反彈機率高`,detail:boll.desc});
+      if(vol.label==='量價齊升')sigs.push({coin:c,type:'long',tf,tfKey:TF_KEYS[tfi],ind:'量能',score:80+Math.floor(Math.random()*10),desc:`<strong>${vol.val}</strong> 放量上漲，多頭確認`,detail:vol.desc});
+      else if(vol.label==='放量下跌')sigs.push({coin:c,type:'short',tf,tfKey:TF_KEYS[tfi],ind:'量能',score:78+Math.floor(Math.random()*10),desc:`<strong>${vol.val}</strong> 放量下跌，空頭確認`,detail:vol.desc});
+      if(oi&&Math.abs(oi.pchg)>3&&tfi===0)sigs.push({coin:c,type:oi.dir==='long'?'long':'short',tf:'5分鐘',tfKey:'5m',ind:'OI異常',score:85+Math.floor(Math.random()*10),desc:`OI異常 <strong>${oi.dirLabel}</strong>，主力資金進場`,detail:`OI 24H:${oi.pchg>=0?'+':''}${oi.pchg.toFixed(2)}%`});
+      if(vd&&vd.signal==='bull'&&tfi===1)sigs.push({coin:c,type:'long',tf:'15分鐘',tfKey:'15m',ind:'VEGAS',score:78+Math.floor(Math.random()*12),desc:`VEGAS通道 <strong>突破向上</strong>，EMA12站上通道`,detail:`日線${vd.dailyTrend==='bull'?'多頭':'空頭'}+4H突破，評分${vd.score}`});
+      else if(vd&&vd.signal==='bear'&&tfi===1)sigs.push({coin:c,type:'short',tf:'15分鐘',tfKey:'15m',ind:'VEGAS',score:76+Math.floor(Math.random()*12),desc:`VEGAS通道 <strong>跌破向下</strong>，EMA12跌破通道`,detail:`日線${vd.dailyTrend==='bull'?'多頭':'空頭'}+4H跌破，評分${vd.score}`});
+    });
+  });
+  const seen=new Set();
+  return sigs.filter(s=>{const k=`${s.coin.symbol}-${s.type}-${s.tfKey}-${s.ind}`;if(seen.has(k))return false;seen.add(k);return true;})
+    .sort((a,b)=>b.score-a.score).slice(0,60);
+}
+
+function filterS(f,btn){
+  saekFilter=f;
+  document.querySelectorAll('#panel-saek .fbar .fbtn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderSaek();
+}
+
+function renderSaek(){
+  let list=saekSigs;
+  if(saekFilter==='long')list=list.filter(s=>s.type==='long');
+  else if(saekFilter==='short')list=list.filter(s=>s.type==='short');
+  else if(saekFilter==='5m')list=list.filter(s=>s.tfKey==='5m');
+  else if(saekFilter==='15m')list=list.filter(s=>s.tfKey==='15m');
+  else if(saekFilter==='strong')list=list.filter(s=>s.score>=80);
+  document.getElementById('scnt').textContent=saekSigs.filter(s=>s.score>=75).length;
+  if(!list.length){document.getElementById('slist').innerHTML='<div class="empty">無符合條件訊號</div>';return;}
+  const now=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('slist').innerHTML=list.map(s=>{
+    const sc=s.score,scCls=sc>=80?'hi':sc>=70?'md':'lo',ch=s.coin.price_change_percentage_24h||0;
+    return `<div class="si" onclick="openScoreDetail('${s.coin.id}','${s.type}')">
+      <div class="si-bar ${s.type}"></div>
+      <div class="si-dot ${s.type}"></div>
+      <div class="si-pill ${s.type}">${s.type==='long'?'做多':'做空'}</div>
+      <div class="si-sym">${s.coin.symbol.toUpperCase()}</div>
+      <div class="si-tf">${s.tf}</div>
+      <div class="si-ind"><strong>${s.ind}</strong> ${s.detail}</div>
+      <div class="si-chg ${ch>=0?'up':'dn'}">${ch>=0?'+':''}${ch.toFixed(1)}%</div>
+      <div class="si-sc ${scCls}">${sc}</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══ VEGAS EMA ═══
+function calcEMA(prices,period){
+  if(prices.length<period)return null;
+  const k=2/(period+1);let ema=prices.slice(0,period).reduce((a,b)=>a+b,0)/period;
+  for(let i=period;i<prices.length;i++)ema=prices[i]*k+ema*(1-k);
+  return ema;
+}
+
+async function fetchKlines(sym,bar,limit){
+  try{
+    const r=await fetch(`https://www.okx.com/api/v5/market/candles?instId=${sym}-USDT-SWAP&bar=${bar}&limit=${limit}`);
+    if(!r.ok)return null;
+    const j=await r.json();
+    if(j.code!=='0'||!j.data?.length)return null;
+    return j.data.reverse().map(d=>parseFloat(d[4]));
+  }catch(e){return null;}
+}
+
+async function computeVEGAS(sym){
+  try{
+    const[daily,h4]=await Promise.all([fetchKlines(sym,'1D',700),fetchKlines(sym,'4H',700)]);
+    if(!daily||daily.length<100||!h4||h4.length<100)return null;
+    const d12=calcEMA(daily,12),d144=calcEMA(daily,144),d169=calcEMA(daily,169);
+    const d576=calcEMA(daily,Math.min(576,daily.length-1)),d676=calcEMA(daily,Math.min(676,daily.length-1));
+    const h4_12=calcEMA(h4,12),h4_144=calcEMA(h4,Math.min(144,h4.length-1)),h4_169=calcEMA(h4,Math.min(169,h4.length-1));
+    const h4_576=calcEMA(h4,Math.min(576,h4.length-1));
+    if(!d12||!h4_12||!h4_144)return null;
+    const dailyTrend=d576?(d12>d576?'bull':'bear'):(d12>d144?'bull':'bear');
+    const h4Top=Math.max(h4_144,h4_169||h4_144),h4Bot=Math.min(h4_144,h4_169||h4_144);
+    const h4Above=h4_12>h4Top,h4Below=h4_12<h4Bot,h4In=!h4Above&&!h4Below;
+    const isBull=dailyTrend==='bull'&&h4Above,isBear=dailyTrend==='bear'&&h4Below;
+    let score=0;
+    if(isBull||isBear)score+=40;else if(h4In)score+=15;
+    const mid=(h4Top+h4Bot)/2,dist=Math.abs(h4_12-mid)/mid*100;
+    score+=Math.min(20,dist*3);
+    if(d144){const dd=Math.abs(d12-d144)/d144*100;score+=Math.min(15,dd*1.5);}
+    if(h4_576){const ok576=(isBull&&h4_12>h4_576)||(isBear&&h4_12<h4_576);if(ok576)score+=15;}else score+=8;
+    const priceVsE=(h4[h4.length-1]-h4_12)/h4_12*100;
+    if((isBull&&priceVsE>0)||(isBear&&priceVsE<0))score+=10;
+    score=Math.min(100,Math.round(score));
+    const cgId=symToCG(sym),cgCoin=cgId?coins[cgId]:null;
+    return{sym,signal:isBull?'bull':isBear?'bear':'neutral',score,dailyTrend,
+      h4AboveTunnel:h4Above,h4BelowTunnel:h4Below,h4InTunnel:h4In,
+      d12:d12?.toFixed(4),d144:d144?.toFixed(4),d576:d576?.toFixed(4),d676:d676?.toFixed(4),
+      h4_12:h4_12?.toFixed(4),h4_144:h4_144?.toFixed(4),h4_169:h4_169?.toFixed(4),h4_576:h4_576?.toFixed(4),
+      price:cgCoin?cgCoin.current_price:h4[h4.length-1],chg24:cgCoin?cgCoin.price_change_percentage_24h||0:0};
+  }catch(e){return null;}
+}
+
+const CG_MAP={BTC:'bitcoin',ETH:'ethereum',SOL:'solana',BNB:'binancecoin',XRP:'ripple',DOGE:'dogecoin',ADA:'cardano',AVAX:'avalanche-2',DOT:'polkadot',LINK:'chainlink',UNI:'uniswap',NEAR:'near',MATIC:'polygon',LTC:'litecoin',ARB:'arbitrum',OP:'optimism',SUI:'sui',APT:'aptos',PEPE:'pepe',FLOKI:'floki'};
+function symToCG(s){return CG_MAP[s]||null;}
+
+function filterV(f,btn){
+  vegasFilter=f;
+  document.querySelectorAll('#panel-vegas .fbar .fbtn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderVegas();
+}
+
+function renderVegas(){
+  let list=vegasData;
+  if(vegasFilter==='bull')list=list.filter(v=>v.signal==='bull');
+  else if(vegasFilter==='bear')list=list.filter(v=>v.signal==='bear');
+  else if(vegasFilter==='strong')list=list.filter(v=>v.score>=75);
+  if(!list.length){
+    const hasData=vegasData.length>0;
+    document.getElementById('vlist').innerHTML=hasData?'<div class="empty">無符合條件訊號</div>':'<div class="loading"><div class="spin"></div>計算真實EMA中（約20秒）...</div>';
+    return;
+  }
+  document.getElementById('vlist').innerHTML=list.map(v=>{
+    const scCls=v.score>=75?'hi':v.score>=55?'md':'lo';
+    const px=v.price,ps=px>=1000?'$'+Number(px).toLocaleString('en-US',{maximumFractionDigits:0}):px>=1?'$'+Number(px).toLocaleString('en-US',{maximumFractionDigits:3}):'$'+Number(px).toFixed(5);
+    const h4Txt=v.h4AboveTunnel?'突破通道 ↑':v.h4BelowTunnel?'跌破通道 ↓':'通道內整理';
+    const h4Cls=v.h4AboveTunnel?'bull':v.h4BelowTunnel?'bear':'neu';
+    return `<div class="vi" onclick="openVegasDetail('${v.sym}')">
+      <div class="vi-bar ${v.signal}"></div>
+      <div class="vi-top">
+        <div class="vi-sym">${v.sym}</div>
+        <div class="vi-pill ${v.signal}">${v.signal==='bull'?'🚀 做多':v.signal==='bear'?'📉 做空':'⏳ 觀察'}</div>
+        <div class="vi-chg ${v.chg24>=0?'up':'dn'}">${v.chg24>=0?'+':''}${v.chg24.toFixed(2)}%</div>
+        <div class="vi-score ${scCls}">${v.score}</div>
+      </div>
+      <div class="vi-grid">
+        <div class="vi-box"><div class="vi-bl">📅 日線趨勢</div><div class="vi-bv" style="color:${v.dailyTrend==='bull'?'var(--green2)':'var(--red2)'}">${v.dailyTrend==='bull'?'多頭趨勢':'空頭趨勢'}</div><div class="vi-bs ${v.dailyTrend}">EMA12 ${v.dailyTrend==='bull'?'在EMA576上':'在EMA576下'}</div></div>
+        <div class="vi-box"><div class="vi-bl">⏱ 4H進場</div><div class="vi-bv" style="color:${h4Cls==='bull'?'var(--green2)':h4Cls==='bear'?'var(--red2)':'var(--gold)'}">${h4Txt}</div><div class="vi-bs ${h4Cls}">EMA12 ${v.h4AboveTunnel?'> 144/169':v.h4BelowTunnel?'< 144/169':'≈ 144/169'}</div></div>
+      </div>
+      <div class="vi-ema-row">
+        <span class="etag ${parseFloat(v.h4_12)>parseFloat(v.h4_144)?'above':'below'}">4H EMA12 ${Number(v.h4_12).toFixed(2)}</span>
+        <span class="etag neu">4H EMA144 ${Number(v.h4_144).toFixed(2)}</span>
+        ${v.h4_576?`<span class="etag ${parseFloat(v.h4_12)>parseFloat(v.h4_576)?'above':'below'}">4H EMA576 ${Number(v.h4_576).toFixed(2)}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══ SECTORS ═══
+const SECS={'Layer 1':['bitcoin','ethereum','solana','cardano','avalanche-2','polkadot','near','sui','aptos'],'Layer 2':['polygon','arbitrum','optimism'],'DeFi':['uniswap'],'Meme':['dogecoin','floki','pepe'],'Infra':['chainlink','litecoin']};
+function renderSectors(){
+  const byId={};Object.values(coins).forEach(c=>byId[c.id]=c);
+  document.getElementById('sec-grid').innerHTML=Object.entries(SECS).map(([name,ids])=>{
+    const ch=ids.map(id=>byId[id]?byId[id].price_change_percentage_24h||0:null).filter(v=>v!==null);
+    if(!ch.length)return '';
+    const avg=ch.reduce((a,b)=>a+b,0)/ch.length,cls=avg>2?'hot':avg<-2?'cold':'';
+    const color=avg>=0?'var(--green2)':'var(--red2)',bp=Math.min(100,Math.abs(avg)*10);
+    return `<div class="sec ${cls}"><div class="sec-name">${name}</div><div class="sec-val" style="color:${color}">${avg>=0?'+':''}${avg.toFixed(2)}%</div><div class="sec-bw"><div class="sec-b" style="width:${bp}%;background:${color}"></div></div></div>`;
+  }).join('');
+}
+
+// ═══ MODALS ═══
+
+// ═══════════════════════════════════════════════════════════════
+//  統一 MOVE 詳情彈窗 — 適用所有入口
+// ═══════════════════════════════════════════════════════════════
+function openVegasDetail(sym) {
+  const v = vegasData.find(x => x.sym === sym);
+  const cgId = CG_MAP[sym];
+  const c = cgId ? scoredCoins.find(x => x.id === cgId) : null;
+  const type = (v?.signal === 'bull') ? 'long' : (v?.signal === 'bear') ? 'short' : 'long';
+  openMOVEDetail(sym, type, v, c);
+}
+
+function openScoreDetail(coinId, type) {
+  const c = scoredCoins.find(x => x.id === coinId);
+  if (!c) return;
+  const sym = c.symbol.toUpperCase();
+  const v = vegasData.find(x => x.sym === sym);
+  openMOVEDetail(sym, type, v, c);
+}
+
+function openMOVEDetail(sym, type, v, c) {
+  const px = c?.current_price || v?.price || 0;
+  const ps = px >= 1000 ? '$' + Number(px).toLocaleString('en-US', {maximumFractionDigits:0})
+           : px >= 1    ? '$' + Number(px).toLocaleString('en-US', {maximumFractionDigits:3})
+           :               '$' + Number(px).toFixed(5);
+  const chg24 = c?.price_change_percentage_24h || v?.chg24 || 0;
+
+  // ── VEGAS 條件 ──
+  const vegasOK     = v && ((type==='long' && v.signal==='bull') || (type==='short' && v.signal==='bear'));
+  const vegasActive = v && v.signal !== 'neutral';
+  const dailyOK     = v && ((type==='long' && v.dailyTrend==='bull') || (type==='short' && v.dailyTrend==='bear'));
+  const h4OK        = v && ((type==='long' && v.h4AboveTunnel) || (type==='short' && v.h4BelowTunnel));
+
+  // ── 三個篩選標準 ──
+  const paList  = c ? detectPA(c, type)      : [];
+  const patList = c ? detectPattern(c, type) : [];
+  const srList  = c ? detectSR(c, type, vegasData) : [];
+
+  const crit1 = paList.length > 0;
+  const crit2 = patList.length > 0;
+  const crit3 = srList.length > 0;
+  const criteriaCount = [crit1, crit2, crit3].filter(Boolean).length;
+
+  // ── 建議倉位（MOVE法則）──
+  let positionPct = 0, posLabel = '', posColor = 'var(--text3)';
+  if (vegasOK) {
+    if (criteriaCount >= 3)      { positionPct=200; posLabel='加槓桿200%'; posColor='var(--purple)'; }
+    else if (criteriaCount >= 2) { positionPct=100; posLabel='滿倉100%';   posColor='var(--green2)'; }
+    else if (criteriaCount >= 1) { positionPct=50;  posLabel='半倉50%';    posColor='var(--gold)'; }
+    else                         { positionPct=25;  posLabel='輕倉25%（等待確認）'; posColor='var(--text3)'; }
+  } else if (v?.h4InTunnel && criteriaCount >= 2) {
+    positionPct = 30; posLabel = '輕倉30%（VEGAS整理中）'; posColor = 'var(--text3)';
+  }
+
+  // ── 止損/止盈建議 ──
+  let slPct = 3, tpPct = 6, slDesc = '', tp1Desc = '', tp2Desc = '';
+  const h4EMA144 = v?.h4_144 ? Number(v.h4_144).toFixed(2) : null;
+  const h4EMA576 = v?.h4_576 ? Number(v.h4_576).toFixed(2) : null;
+  if (type === 'long') {
+    slDesc  = h4EMA144 ? `4H EMA144（$${h4EMA144}）下方` : '前低下方';
+    tp1Desc = '前高／下一壓力位';
+    tp2Desc = criteriaCount >= 2 ? '可考慮移動止損，抱至下一大壓力' : '';
+  } else {
+    slDesc  = h4EMA144 ? `4H EMA144（$${h4EMA144}）上方` : '前高上方';
+    tp1Desc = '前低／下一支撐位';
+    tp2Desc = criteriaCount >= 2 ? '可考慮移動止損，抱至下一大支撐' : '';
+  }
+  // 調整 RR
+  if (criteriaCount >= 3) { tpPct = 10; slPct = 3; }
+  else if (criteriaCount >= 2) { tpPct = 8; slPct = 3; }
+  else { tpPct = 6; slPct = 3; }
+  const rr = (tpPct / slPct).toFixed(1);
+
+  // ── EV 計算 ──
+  let winRate = 0.42 + (criteriaCount * 0.07) + (vegasOK ? 0.08 : 0);
+  const rsi_val = c ? getRSI(c.symbol) : 50;
+  const fr_val  = c ? getFR(c.symbol) : null;
+  const ls_val  = c ? getLS(c.symbol) : null;
+  if (type==='long'  && rsi_val < 30) winRate += 0.04;
+  if (type==='short' && rsi_val > 70) winRate += 0.04;
+  if (fr_val !== null && type==='long'  && parseFloat(fr_val) < 0) winRate += 0.03;
+  if (fr_val !== null && type==='short' && parseFloat(fr_val) > 0.01) winRate += 0.03;
+  if (ls_val !== null && type==='long'  && ls_val < 0.4) winRate += 0.03;
+  if (ls_val !== null && type==='short' && ls_val > 0.7) winRate += 0.03;
+  winRate = Math.min(0.78, Math.max(0.32, winRate));
+  const ev = winRate * (tpPct/100) - (1-winRate) * (slPct/100);
+  const kelly = Math.max(0, (winRate * (tpPct/slPct) - (1-winRate)) / (tpPct/slPct));
+
+  // ── MOVE 評分 ──
+  const moveScore = Math.min(100, Math.round(
+    (vegasOK?40:v?.h4InTunnel?15:0) +
+    criteriaCount*15 +
+    (rsi_val < 30 && type==='long' ? 8 : rsi_val > 70 && type==='short' ? 8 : 0) +
+    (fr_val!==null && ((type==='long'&&parseFloat(fr_val)<0)||(type==='short'&&parseFloat(fr_val)>0.01)) ? 5 : 0)
+  ));
+
+  // ── RSI / MACD / Boll ──
+  const macd_obj = c ? getMACDObj(c.symbol) : {hist:'—', signal:'—', cls:'neu'};
+  const boll_obj = c ? getBoll(c.symbol) : {label:'—', cls:'neu', desc:'—'};
+  const ma_obj   = c ? getMA(c.symbol)   : {label:'—', cls:'neu', desc:'—'};
+  const vol_obj  = c ? getVol(c.symbol)  : {label:'—', cls:'neu', val:'—', desc:'—'};
+  const rsiCls   = rsi_val < 30 ? 'bull' : rsi_val > 70 ? 'bear' : 'neu';
+  const rsiLbl   = rsi_val < 30 ? '超賣' : rsi_val > 70 ? '超買' : '中性';
+
+  const btc    = coins['bitcoin'];
+  const btcCh  = btc ? btc.price_change_percentage_24h || 0 : 0;
+  const relBTC = chg24 - btcCh;
+  const frRaw  = fr_val;
+  const lsRaw  = ls_val;
+  const frCls  = frRaw===null?'neu':parseFloat(frRaw)>0.01?'bear':parseFloat(frRaw)<0?'bull':'neu';
+  const lsCls  = lsRaw===null?'neu':lsRaw*100>55?'bull':lsRaw*100<45?'bear':'neu';
+  const msClass= chg24>2?'bull':chg24<-2?'bear':'neu';
+
+  // ── HTML helpers ──
+  const checkBox = (ok, text, detail='') =>
+    `<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--pink4)">
+      <div style="width:20px;height:20px;border-radius:50%;background:${ok?'var(--green2)':'var(--pink4)'};color:${ok?'white':'var(--text3)'};display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:1px">${ok?'✓':'○'}</div>
+      <div style="flex:1">
+        <div style="font-size:11px;font-weight:700;color:${ok?'var(--text)':'var(--text3)'};font-family:'Nunito',sans-serif">${text}</div>
+        ${detail?`<div style="font-size:10px;color:var(--text3);margin-top:2px;line-height:1.5">${detail}</div>`:''}
+      </div>
+    </div>`;
+
+  const criteriaCard = (num, icon, title, items, found) =>
+    `<div style="background:${found?'linear-gradient(135deg,rgba(0,200,150,.06),var(--white))':'var(--pink5)'};border:1.5px solid ${found?'rgba(0,200,150,.3)':'var(--pink4)'};border-radius:10px;padding:10px 12px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:900;color:${found?'var(--green2)':'var(--text3)'}">
+          ${found?'✅':'○'} ${icon} 篩選${num}：${title}
+        </div>
+        <span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:8px;font-family:'Nunito',sans-serif;background:${found?'var(--greenb)':'var(--pink4)'};color:${found?'var(--green2)':'var(--text3)'}">
+          ${found?'符合':'未偵測'}
+        </span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px">
+        ${items.map(p=>`<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;background:${p.detected?'var(--greenb)':'var(--pink4)'};color:${p.detected?'var(--green2)':'var(--text3)'};font-family:'JetBrains Mono',monospace">${p.detected?'✓':'○'} ${p.name}</span>`).join('')}
+      </div>
+      ${found && items.filter(p=>p.detected).length > 0 ?
+        `<div style="font-size:10px;color:var(--text2);line-height:1.6;background:var(--white);border-radius:7px;padding:6px 8px">
+          ${items.filter(p=>p.detected).map(p=>`<strong>${p.name}</strong>：${p.desc}`).join('<br>')}
+        </div>` : ''}
+    </div>`;
+
+  // Build criteria items with detected flag
+  const paNames = [
+    {name:'錘子線',   detected: paList.some(p=>p.name.includes('錘子')),   desc:'下影線長，多頭力量增強，在下跌趨勢低點出現是反轉信號'},
+    {name:'流星線',   detected: paList.some(p=>p.name.includes('流星')),   desc:'上影線長，空頭力量增強，在上漲趨勢高點出現是反轉信號'},
+    {name:'陽包陰',   detected: paList.some(p=>p.name.includes('陽包')),   desc:'大陽線完全包住前根陰線，多頭吞噬，趨勢轉多信號'},
+    {name:'陰包陽',   detected: paList.some(p=>p.name.includes('陰包')),   desc:'大陰線完全包住前根陽線，空頭吞噬，趨勢轉空信號'},
+    {name:'早晨之星', detected: paList.some(p=>p.name.includes('早晨')),   desc:'三根K確認，長陰+十字+長陽，下跌趨勢底部反轉'},
+    {name:'黃昏之星', detected: paList.some(p=>p.name.includes('黃昏')),   desc:'三根K確認，長陽+十字+長陰，上漲趨勢頂部反轉'},
+    {name:'123突破',  detected: paList.some(p=>p.name.includes('123')),    desc:'價格突破壓力位，伴隨成交量增加，等待回踩再進場'},
+    {name:'反K',      detected: paList.some(p=>p.name.includes('反K')),    desc:'影線是實體2倍以上，反轉K線型態'},
+  ];
+
+  const patNames_long = [
+    {name:'雙底(W)', detected: patList.some(p=>p.name.includes('雙底')), desc:'下跌趨勢後兩個相似低點，突破頸線後進場，止損最近低點'},
+    {name:'牛旗',    detected: patList.some(p=>p.name.includes('牛旗')), desc:'上漲後小幅回調整理，突破旗幟上界，目標=旗桿高度'},
+    {name:'趨勢中繼',detected: patList.some(p=>p.name.includes('中繼')), desc:'順趨勢方向做多，止損EMA144下方'},
+  ];
+  const patNames_short = [
+    {name:'雙頂(M)', detected: patList.some(p=>p.name.includes('雙頂')), desc:'上漲趨勢後兩個相似高點，跌破頸線後做空，止損最近高點'},
+    {name:'熊旗',    detected: patList.some(p=>p.name.includes('熊旗')), desc:'下跌後小幅反彈整理，跌破旗幟下界，目標=旗桿長度'},
+    {name:'趨勢中繼',detected: patList.some(p=>p.name.includes('中繼')), desc:'順趨勢方向做空，止損EMA144上方'},
+  ];
+  const patNames = type==='long' ? patNames_long : patNames_short;
+
+  const srNames = [
+    {name:'支撐反彈',     detected: srList.some(p=>p.name.includes('支撐反彈')),     desc:'觸及支撐後反彈，確認支撐有效後進場'},
+    {name:'壓力回落',     detected: srList.some(p=>p.name.includes('壓力回落')),     desc:'觸及壓力後回落，確認壓力有效後做空'},
+    {name:'VEGAS動態支壓',detected: srList.some(p=>p.name.includes('VEGAS')),        desc:'EMA144/169作為動態支撐或壓力，回踩或反彈進場'},
+    {name:'123突破回踩',  detected: srList.some(p=>p.name.includes('突破回踩')),     desc:'突破後回測（壓力變支撐），確認後進場，RR更優'},
+  ];
+
+  // Verdict color
+  const verdictCls = type==='long' ? 'bull' : 'bear';
+
+  document.getElementById('mbody').innerHTML = `
+    <!-- 頭部 -->
+    <div class="mhdr">
+      <div>
+        <div class="msym">${sym}/USDT 永續</div>
+        <div class="mpx">${ps} <span class="${chg24>=0?'up':'dn'}" style="font-weight:700">${chg24>=0?'+':''}${chg24.toFixed(2)}%</span>
+          &nbsp;<span style="color:var(--text3);font-size:9px;font-family:'JetBrains Mono',monospace">RSI ${rsi_val}</span>
+        </div>
+      </div>
+      <button class="mclose" onclick="closeMod()">✕</button>
+    </div>
+
+    <!-- MOVE 評分 + 建議倉位 -->
+    <div class="m-score-sec">
+      <div class="bscore ${verdictCls}"><div class="bscore-n">${moveScore}</div><div class="bscore-l">MOVE評分</div></div>
+      <div style="flex:1">
+        <div class="vpill ${verdictCls}">${type==='long'?'🚀 做多訊號':'📉 做空訊號'}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <div style="font-family:'Nunito',sans-serif;font-size:22px;font-weight:900;color:${posColor}">${positionPct}%</div>
+          <div style="font-size:10px;color:var(--text3);line-height:1.5">${posLabel}<br>符合 <strong style="color:var(--pink3)">${criteriaCount}/3</strong> 篩選標準</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 進場 / 止損 / 止盈 -->
+    <div class="m-sec">
+      <div class="m-sec-t">🎯 進場計劃（${criteriaCount}個篩選 × VEGAS ${vegasOK?'✅':'○'}）</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <div style="background:var(--pink5);border:1.5px solid var(--pink4);border-radius:9px;padding:9px 10px;text-align:center">
+          <div style="font-size:9px;color:var(--text3);font-weight:700;font-family:'Nunito',sans-serif;margin-bottom:3px">建議倉位</div>
+          <div style="font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;color:${posColor}">${positionPct}%</div>
+          <div style="font-size:9px;color:var(--text3);margin-top:2px">${criteriaCount}個篩選滿足</div>
+        </div>
+        <div style="background:var(--redb);border:1.5px solid rgba(255,77,109,.25);border-radius:9px;padding:9px 10px;text-align:center">
+          <div style="font-size:9px;color:var(--red2);font-weight:700;font-family:'Nunito',sans-serif;margin-bottom:3px">止損 SL</div>
+          <div style="font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;color:var(--red2)">-${slPct}%</div>
+          <div style="font-size:9px;color:var(--text3);margin-top:2px">${slDesc}</div>
+        </div>
+        <div style="background:var(--greenb);border:1.5px solid rgba(0,200,150,.25);border-radius:9px;padding:9px 10px;text-align:center">
+          <div style="font-size:9px;color:var(--green2);font-weight:700;font-family:'Nunito',sans-serif;margin-bottom:3px">止盈 TP</div>
+          <div style="font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;color:var(--green2)">+${tpPct}%</div>
+          <div style="font-size:9px;color:var(--text3);margin-top:2px">${tp1Desc}</div>
+        </div>
+      </div>
+      <div style="background:var(--pink5);border-radius:8px;padding:8px 11px;margin-top:8px;font-size:10px;color:var(--text2);line-height:1.7">
+        RR ${rr}:1 &nbsp;|&nbsp; 估算勝率 ${(winRate*100).toFixed(0)}% &nbsp;|&nbsp; EV <strong style="color:${ev>0?'var(--green2)':'var(--red2)'}">${ev>=0?'+':''}${(ev*100).toFixed(2)}%</strong> &nbsp;|&nbsp; 凱利倉位 ${(kelly*50).toFixed(0)}%（半凱利）
+        ${tp2Desc?`<br>💡 ${tp2Desc}`:''}
+      </div>
+    </div>
+
+    <!-- VEGAS 核心條件 -->
+    <div class="m-sec">
+      <div class="m-sec-t">🌿 VEGAS通道核心（必要條件）</div>
+      ${checkBox(dailyOK,
+        `日線大趨勢：${dailyOK?(type==='long'?'多頭向上':'空頭向下'):'尚未確認'}`,
+        v ? `EMA12(${Number(v.d12).toFixed(2)}) ${type==='long'?'>':'<'} EMA576(${v.d576?Number(v.d576).toFixed(2):'—'})　大方向${dailyOK?'✅已確認':'❌未確認'}` : 'VEGAS數據計算中'
+      )}
+      ${checkBox(h4OK,
+        `4H進場訊號：EMA12${h4OK?(type==='long'?'突破':'跌破'):'仍在'}EMA144/169通道${h4OK?'':'內整理'}`,
+        v ? `EMA12(${Number(v.h4_12).toFixed(2)}) ${type==='long'?'>':'<'} EMA144(${Number(v.h4_144).toFixed(2)}) / EMA169(${v.h4_169?Number(v.h4_169).toFixed(2):'—'})` : 'VEGAS數據計算中'
+      )}
+      ${!vegasOK && v?.h4InTunnel ? `<div style="background:var(--goldb);border:1px solid rgba(245,166,35,.3);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--text2);margin-top:4px">⚠️ VEGAS通道整理中，EMA12在EMA144/169之間。等待明確突破後進場，勝率更高。</div>` : ''}
+    </div>
+
+    <!-- 篩選標準1：裸K/PA -->
+    <div class="m-sec">
+      <div class="m-sec-t">📊 三個篩選標準 — 越多符合，勝率越高</div>
+      ${criteriaCard('1', '🕯️', '裸K / PA（價格行為）', paNames, crit1)}
+      ${criteriaCard('2', '📐', `型態（${type==='long'?'反轉/中繼形態':'反轉/中繼形態'}）`, patNames, crit2)}
+      ${criteriaCard('3', '🎯', '支撐壓力區間', srNames, crit3)}
+    </div>
+
+    <!-- 技術指標輔助 -->
+    <div class="m-sec">
+      <div class="m-sec-t">📈 技術指標輔助確認</div>
+      <div class="tech-grid">
+        <div class="tc2"><div class="tc2-n">RSI(14)</div><div class="tc2-v" style="color:${rsiCls==='bull'?'var(--green2)':rsiCls==='bear'?'var(--red2)':'var(--gold)'}">${rsi_val}</div><div class="tc2-s ${rsiCls}">${rsiLbl}</div><div class="tc2-d">${rsi_val<30?'超賣，反彈機率高':rsi_val>70?'超買，小心回調':'動能中性'}</div></div>
+        <div class="tc2"><div class="tc2-n">MACD</div><div class="tc2-v" style="color:${macd_obj.cls==='bull'?'var(--green2)':macd_obj.cls==='bear'?'var(--red2)':'var(--gold)'}">${macd_obj.hist}</div><div class="tc2-s ${macd_obj.cls}">${macd_obj.signal}</div><div class="tc2-d">${macd_obj.cls==='bull'?'動能轉多':macd_obj.cls==='bear'?'動能轉空':'整理中'}</div></div>
+        <div class="tc2"><div class="tc2-n">布林帶</div><div class="tc2-v" style="font-size:11px;color:${boll_obj.cls==='bull'?'var(--green2)':boll_obj.cls==='bear'?'var(--red2)':'var(--gold)'}">${boll_obj.label}</div><div class="tc2-s ${boll_obj.cls}">${boll_obj.cls==='bull'?'偏多':boll_obj.cls==='bear'?'偏空':'整理'}</div><div class="tc2-d">${boll_obj.desc}</div></div>
+        <div class="tc2"><div class="tc2-n">資金費率 FR</div><div class="tc2-v" style="font-size:11px;color:${frCls==='bull'?'var(--green2)':frCls==='bear'?'var(--red2)':'var(--gold)'}">${frRaw!==null?(parseFloat(frRaw)*100).toFixed(4)+'%':'—'}</div><div class="tc2-s ${frCls}">${frRaw===null?'載入中':parseFloat(frRaw)>0.01?'偏高':parseFloat(frRaw)<0?'負費率':'中性'}</div><div class="tc2-d">${frRaw!==null?(parseFloat(frRaw)>0?'做多方付費':'做空方付費'):'—'}</div></div>
+        <div class="tc2"><div class="tc2-n">多空比 L/S</div><div class="tc2-v" style="font-size:11px;color:${lsCls==='bull'?'var(--green2)':lsCls==='bear'?'var(--red2)':'var(--gold)'}">${lsRaw!==null?`${(lsRaw*100).toFixed(0)}%`:'—'}</div><div class="tc2-s ${lsCls}">${lsRaw===null?'載入中':lsRaw*100>55?'偏多':lsRaw*100<45?'偏空':'均衡'}</div><div class="tc2-d">${lsRaw!==null?`多${(lsRaw*100).toFixed(0)}% / 空${((1-lsRaw)*100).toFixed(0)}%`:'—'}</div></div>
+        <div class="tc2"><div class="tc2-n">相對強弱</div><div class="tc2-v" style="font-size:11px;color:${relBTC>=0?'var(--green2)':'var(--red2)'}">${relBTC>=0?'+':''}${relBTC.toFixed(2)}%</div><div class="tc2-s ${relBTC>=0?'bull':'bear'}">${relBTC>=0?'強於BTC':'弱於BTC'}</div><div class="tc2-d">vs BTC 24H</div></div>
+      </div>
+    </div>
+
+    <!-- 天使建議 -->
+    <div class="abub" style="margin-bottom:4px">
+      <div class="aico">⭐</div>
+      <div class="atxt">
+        ${vegasOK && criteriaCount >= 2
+          ? `<strong>${criteriaCount>=3?'最強進場條件！💪':'有效進場機會 ✅'}</strong>｜VEGAS通道✅ + ${criteriaCount}個篩選✅。建議<strong>倉位${positionPct}%</strong>，進場後止損 ${slDesc}（-${slPct}%），目標 ${tp1Desc}（+${tpPct}%）。EV ${ev>0?'+':''}${(ev*100).toFixed(2)}%（${ev>0?'正EV ✅':'注意風控'}）。${tp2Desc}`
+          : vegasOK
+          ? `<strong>VEGAS條件滿足 ✅</strong>，但篩選標準僅符合 ${criteriaCount}/3。建議<strong>輕倉${positionPct}%</strong>等待更多確認再加碼，止損 -${slPct}%。`
+          : `<strong>觀察中 ⏳</strong>｜VEGAS通道${v?.h4InTunnel?'整理中':'條件未滿足'}，篩選符合 ${criteriaCount}/3。等待4H EMA12明確突破或跌破EMA144/169通道後再考慮進場。不要搶跑！`
+        }
+      </div>
+    </div>`;
+
+  document.getElementById('modal').classList.add('open');
+}
+
+function openOIDetail(sym){
+  const oi=oiData.find(o=>o.sym===sym);if(!oi)return;
+  const cg=Object.values(coins).find(c=>c.symbol.toLowerCase()===sym.toLowerCase());
+  if(cg)openScoreDetail(cg.id,oi.dir==='long'?'long':'short');
+}
+
+function closeMod(e){if(!e||e.target===document.getElementById('modal'))document.getElementById('modal').classList.remove('open');}
+
+// ═══ AI ═══
+function saveKey(){
+  apiKey=document.getElementById('ainp').value.trim();
+  if(!apiKey){showToast('請輸入 API Key 💕');return;}
+  localStorage.setItem('angel_complete',apiKey);
+  showToast('✅ API Key 已儲存！');
+  document.getElementById('aist').textContent='● 已連線 ✨';
+}
+function ar(el){el.style.height='auto';el.style.height=Math.min(80,el.scrollHeight)+'px';}
+function qa(t){document.getElementById('cinp').value=t;sendMsg();}
+
+async function sendMsg(){
+  const inp=document.getElementById('cinp'),text=inp.value.trim();if(!text)return;
+  if(!apiKey){showToast('⚠️ 請先設定 API Key');sw('ai');return;}
+  addMsg('user',text);inp.value='';inp.style.height='auto';
+  chatHistory.push({role:'user',content:text});
+  const btn=document.getElementById('sbtn');btn.disabled=true;
+  document.getElementById('aist').textContent='● 思考中 ✨';
+  const tid=addTyping();
+  try{
+    const ctx=buildCtx();
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,
+        system:`你是「幸運星信號 ⭐」專業加密貨幣交易AI助手，精通MOVE通道交易系統（VEGAS EMA12/144/169/576/676）、PA裸K型態（錘子線、早晨之星、陽包陰等）、123突破法則、支撐壓力、RSI、MACD、OI持倉量、資金費率、正EV計算（Kelly Criterion）。每次分析必須包含：VEGAS通道方向、篩選標準符合數（0-3個）、建議倉位（50/100/200%）、止損止盈位置、EV是否為正。用繁體中文，語氣可愛親切，給具體可操作建議，適當加emoji ⭐💕。\n當前市場快照：\n${ctx}`,
+        messages:chatHistory.slice(-8)})
+    });
+    rmTyping(tid);
+    if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'HTTP '+res.status);}
+    const d=await res.json();
+    const reply=d.content.find(b=>b.type==='text')?.text||'無回應';
+    addMsg('bot',reply);chatHistory.push({role:'assistant',content:reply});
+  }catch(e){rmTyping(tid);addMsg('bot',`⚠️ ${e.message}`);}
+  btn.disabled=false;document.getElementById('aist').textContent='● 待命中';
+}
+
+function buildCtx(){
+  const top=['bitcoin','ethereum','solana','binancecoin'].map(id=>{const c=coins[id];if(!c)return '';return `${c.symbol.toUpperCase()}=$${c.current_price?.toLocaleString()} (${(c.price_change_percentage_24h||0).toFixed(2)}%)`;}).filter(Boolean).join(' | ');
+  const top3=scoredCoins.sort((a,b)=>Math.max(b.longScore,b.shortScore)-Math.max(a.longScore,a.shortScore)).slice(0,3).map(c=>`${c.symbol.toUpperCase()}: 多${c.longScore}分 空${c.shortScore}分 RSI=${c.rsi}`).join('; ');
+  const oi=oiData.slice(0,3).map(a=>`${a.sym}${a.dirLabel}(${a.pchg.toFixed(1)}%)`).join('; ');
+  const vegas=vegasData.filter(v=>v.signal!=='neutral').slice(0,3).map(v=>`${v.sym} ${v.signal==='bull'?'做多':'做空'}(日線${v.dailyTrend==='bull'?'多頭':'空頭'}+4H${v.h4AboveTunnel?'突破':'跌破'}通道,${v.score}分)`).join('; ');
+  return `主流幣: ${top}\n評分Top3: ${top3}\nOI異常: ${oi||'無'}\nVEGAS真實EMA: ${vegas||'計算中'}\n時間: ${new Date().toLocaleTimeString('zh-TW')}`;
+}
+
+function addMsg(role,text){
+  const d=document.createElement('div');d.className='msg '+(role==='user'?'user':'bot');
+  const av=role==='user'?'😊':'⭐',t=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  const esc=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  d.innerHTML=`<div class="mav">${av}</div><div><div class="mbub">${esc}</div><div class="mtime">${t}</div></div>`;
+  const c=document.getElementById('msgs');c.appendChild(d);c.scrollTop=c.scrollHeight;
+}
+function addTyping(){
+  const id='t'+Date.now(),d=document.createElement('div');d.className='msg bot';d.id=id;
+  d.innerHTML=`<div class="mav">⭐</div><div><div class="mbub"><div class="typing"><div class="td"></div><div class="td"></div><div class="td"></div></div></div></div>`;
+  const c=document.getElementById('msgs');c.appendChild(d);c.scrollTop=c.scrollHeight;return id;
+}
+function rmTyping(id){const e=document.getElementById(id);if(e)e.remove();}
+
+// ═══ EV CALCULATOR ═══
+let evState = {wr:55, rr:20, sl:3, cap:1000};
+function calcEV(el, field) {
+  evState[field] = parseInt(el.value);
+  // update slider gradient
+  const pct = ((el.value-el.min)/(el.max-el.min)*100).toFixed(0);
+  el.style.background = `linear-gradient(to right,var(--pink3) ${pct}%,var(--pink4) ${pct}%)`;
+  renderEV();
+}
+function renderEV() {
+  const wr=evState.wr/100, rr=evState.rr/10, sl=evState.sl/100, cap=evState.cap;
+  document.getElementById('lbl-wr').textContent=evState.wr+'%';
+  document.getElementById('lbl-rr').textContent=rr.toFixed(1);
+  document.getElementById('lbl-sl').textContent=evState.sl+'%';
+  document.getElementById('lbl-cap').textContent=cap.toLocaleString();
+  const q=1-wr, win=sl*rr, ev=wr*win-q*sl, ev100=ev*100*cap;
+  document.getElementById('f-wr').textContent=(wr*100).toFixed(0)+'%';
+  document.getElementById('f-lr').textContent=(q*100).toFixed(0)+'%';
+  document.getElementById('f-rr').textContent=rr.toFixed(1)+':1';
+  document.getElementById('f-sl').textContent=evState.sl+'% ($'+(cap*sl).toFixed(0)+')';
+  document.getElementById('f-ev').textContent=(ev>=0?'+':'')+(ev*100).toFixed(2)+'%';
+  document.getElementById('f-ev100').textContent=(ev100>=0?'+':'')+'$'+ev100.toFixed(0);
+  const hero=document.getElementById('ev-hero');
+  document.getElementById('ev-val').textContent=(ev>=0?'+':'')+(ev*100).toFixed(2)+'%';
+  if(ev>0.005){hero.style.background='linear-gradient(135deg,var(--green2),var(--green))';document.getElementById('ev-verdict').textContent='✅ 正EV！每次預期賺 '+(ev*100).toFixed(2)+'% 本金';}
+  else if(ev>0){hero.style.background='linear-gradient(135deg,#4CAF50,#8BC34A)';document.getElementById('ev-verdict').textContent='⚠️ 微正EV，可優化勝率或盈虧比';}
+  else{hero.style.background='linear-gradient(135deg,var(--red2),var(--red))';document.getElementById('ev-verdict').textContent='❌ 負EV！長期虧錢，不要進場';}
+  const kelly=Math.max(0,(wr*rr-q)/rr);
+  const hk=(kelly/2*100).toFixed(1);
+  document.getElementById('kelly-pct').textContent=hk+'%';
+  document.getElementById('kelly-sub').textContent='建議下注本金 '+hk+'%（半凱利）= $'+Math.max(0,cap*kelly/2).toFixed(0)+'\n完整凱利: '+(kelly*100).toFixed(1)+'%（較高風險）';
+  document.getElementById('kelly-warn').textContent=kelly<=0?'❌ EV為負，凱利建議不下注，等待更好機會':parseFloat(hk)>20?'⚠️ 建議倉位偏高，實際操作上限10-15%':'✅ 此設定下，100次交易期望資金成長約 '+((1+ev)**100*100-100).toFixed(0)+'%';
+}
+
+function calcSignalEVs() {
+  if(!scoredCoins.length) return;
+  const items = scoredCoins.map(c => {
+    const type = c.longScore>=c.shortScore?'long':'short';
+    const sc = Math.max(c.longScore,c.shortScore);
+    const wr = estWinRate(c, type);
+    const ev = computeEV(wr, 2.0, 0.03);
+    return {...ev, c, type, sc};
+  }).filter(x=>x.ev>0).sort((a,b)=>b.ev-a.ev).slice(0,10);
+  document.getElementById('ev-cnt').textContent=items.length;
+  if(!items.length){document.getElementById('ev-sig-list').innerHTML='<div class="empty">目前無正EV訊號，等待更好機會 💕</div>';return;}
+  document.getElementById('ev-sig-list').innerHTML=items.map(x=>{
+    const rsi=getRSI(x.c.symbol),fr=getFR(x.c.symbol),ls=getLS(x.c.symbol);
+    const rsiStr=rsi?` RSI:${rsi}`:'', frStr=fr!==null?` FR:${(parseFloat(fr)*100).toFixed(3)}%`:'', lsStr=ls!==null?` L/S:${(ls*100).toFixed(0)}%`:'';
+    return `<div style="background:var(--white);border:1.5px solid var(--pink4);border-left:4px solid var(--green2);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:7px" onclick="openScoreDetail('${x.c.id}','${x.type}')">
+      <div><div style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:900">${x.c.symbol.toUpperCase()}</div><div style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px;font-family:'Nunito',sans-serif;background:${x.type==='long'?'var(--greenb)':'var(--redb)'};color:${x.type==='long'?'var(--green2)':'var(--red2)'};display:inline-block;margin-top:2px">${x.type==='long'?'做多':'做空'}</div></div>
+      <div style="flex:1;font-size:10px;color:var(--text2)">勝率 ${(x.winRate*100).toFixed(0)}% · RR ${x.rr}:1<br><span style="font-size:9px;color:var(--text3)">${rsiStr}${frStr}${lsStr}</span></div>
+      <div style="text-align:right"><div style="font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;color:var(--green2)">EV +${(x.ev*100).toFixed(2)}%</div><div style="font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace">Kelly ${(x.kelly*50).toFixed(0)}%</div></div>
+    </div>`;
+  }).join('');
+}
+
+
+document.addEventListener('DOMContentLoaded', ()=>{ renderEV(); });
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+</script>
+</body>
+</html>
