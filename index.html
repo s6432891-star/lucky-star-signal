@@ -332,6 +332,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
     <div class="tab"        onclick="sw('flash')"  id="tab-flash">📊 成交量 <span class="tbadge" id="flash-cnt">0</span></div>
     <div class="tab"        onclick="sw('overview')" id="tab-overview">🌸 總覽</div>
     <div class="tab"        onclick="sw('sectors')"  id="tab-sectors">🏆 板塊</div>
+    <div class="tab"        onclick="sw('calc')"   id="tab-calc">🧮 計算機</div>
     <div class="tab"        onclick="sw('ai')"     id="tab-ai">💬 AI天使</div>
   </div>
 </div>
@@ -529,6 +530,43 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
     <div class="ch"><div class="ct">🏆 板塊輪動</div><div class="cb">24H均漲跌</div></div>
     <div class="cbody"><div class="sec-grid" id="sec-grid"><div class="loading"><div class="spin"></div></div></div></div>
   </div>
+</div>
+
+<!-- 計算機 -->
+<div class="panel" id="panel-calc">
+  <div class="card">
+    <div class="ch"><div class="ct">🧮 止盈止損計算機</div><div class="cb">MOVE 系統</div></div>
+    <div class="cbody">
+      <!-- 輸入區 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div>
+          <div style="font-size:11px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;margin-bottom:6px">💰 進場價格（USDT）</div>
+          <input id="calc-price" type="number" placeholder="例：65000"
+            style="width:100%;background:var(--white);border:2px solid var(--pink4);border-radius:10px;padding:11px 13px;font-size:16px;font-family:JetBrains Mono,monospace;font-weight:700;color:var(--text);outline:none;transition:border-color .2s"
+            oninput="calcSLTP()" onfocus="this.style.borderColor='var(--pink3)'" onblur="this.style.borderColor='var(--pink4)'">
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;margin-bottom:6px">📊 本金（USDT）</div>
+          <input id="calc-capital" type="number" placeholder="例：1000"
+            style="width:100%;background:var(--white);border:2px solid var(--pink4);border-radius:10px;padding:11px 13px;font-size:16px;font-family:JetBrains Mono,monospace;font-weight:700;color:var(--text);outline:none;transition:border-color .2s"
+            oninput="calcSLTP()" onfocus="this.style.borderColor='var(--pink3)'" onblur="this.style.borderColor='var(--pink4)'">
+        </div>
+      </div>
+      <!-- 方向按鈕 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+        <button id="calc-long-btn" onclick="setCalcDir('long')"
+          style="padding:13px;border-radius:12px;border:2px solid var(--green2);background:var(--greenb);color:var(--green2);font-size:15px;font-weight:900;font-family:Nunito,sans-serif;cursor:pointer;transition:all .2s">
+          🚀 做多 Long
+        </button>
+        <button id="calc-short-btn" onclick="setCalcDir('short')"
+          style="padding:13px;border-radius:12px;border:2px solid var(--pink4);background:var(--pink5);color:var(--text3);font-size:15px;font-weight:900;font-family:Nunito,sans-serif;cursor:pointer;transition:all .2s">
+          📉 做空 Short
+        </button>
+      </div>
+    </div>
+  </div>
+  <!-- 結果區 -->
+  <div id="calc-result"><div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;font-family:Nunito,sans-serif">輸入價格後自動顯示所有進場方案 ✨</div></div>
 </div>
 
 <!-- AI -->
@@ -2591,6 +2629,89 @@ function calcSignalEVs() {
 
 
 document.addEventListener('DOMContentLoaded', ()=>{ renderEV(); });
+
+// ═══ 止盈止損計算機 ═══
+let calcDir = 'long';
+
+function setCalcDir(dir){
+  calcDir = dir;
+  const lb = document.getElementById('calc-long-btn');
+  const sb = document.getElementById('calc-short-btn');
+  if(dir==='long'){
+    lb.style.cssText='padding:13px;border-radius:12px;border:2px solid var(--green2);background:var(--greenb);color:var(--green2);font-size:15px;font-weight:900;font-family:Nunito,sans-serif;cursor:pointer;transition:all .2s';
+    sb.style.cssText='padding:13px;border-radius:12px;border:2px solid var(--pink4);background:var(--pink5);color:var(--text3);font-size:15px;font-weight:900;font-family:Nunito,sans-serif;cursor:pointer;transition:all .2s';
+  } else {
+    sb.style.cssText='padding:13px;border-radius:12px;border:2px solid var(--red2);background:var(--redb);color:var(--red2);font-size:15px;font-weight:900;font-family:Nunito,sans-serif;cursor:pointer;transition:all .2s';
+    lb.style.cssText='padding:13px;border-radius:12px;border:2px solid var(--pink4);background:var(--pink5);color:var(--text3);font-size:15px;font-weight:900;font-family:Nunito,sans-serif;cursor:pointer;transition:all .2s';
+  }
+  calcSLTP();
+}
+
+function calcSLTP(){
+  const price   = parseFloat(document.getElementById('calc-price').value);
+  const capital = parseFloat(document.getElementById('calc-capital').value) || 0;
+  const el      = document.getElementById('calc-result');
+  if(!price || price <= 0){ el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;font-family:Nunito,sans-serif">輸入價格後自動顯示所有進場方案 ✨</div>'; return; }
+
+  const isLong = calcDir === 'long';
+  const slPct  = 0.03; // 固定止損 3%
+
+  // MOVE 四個方案
+  const plans = [
+    { label:'VEGAS only', icon:'⏳', pos:0.25, tp:0.06, rr:'2:1',   color:'var(--text3)',   bg:'var(--pink5)',           border:'var(--pink4)',  note:'等待篩選確認' },
+    { label:'1個篩選',    icon:'🌱', pos:0.50, tp:0.06, rr:'2:1',   color:'var(--gold)',    bg:'rgba(245,166,35,.08)',   border:'var(--gold)',   note:'半倉 — 保守進場' },
+    { label:'2個篩選',    icon:'🚀', pos:1.00, tp:0.08, rr:'2.7:1', color:'var(--green2)',  bg:'rgba(0,200,150,.08)',    border:'var(--green2)', note:'滿倉 — 移動止損至成本後加碼' },
+    { label:'3個篩選',    icon:'💎', pos:2.00, tp:0.10, rr:'3.3:1', color:'var(--purple)',  bg:'rgba(192,132,252,.1)',   border:'var(--purple)', note:'加槓桿 — 50%在+6%止盈，50%在+10%' },
+  ];
+
+  const fmt = (p) => p >= 1000 ? '$'+p.toLocaleString('en-US',{maximumFractionDigits:0}) : p >= 1 ? '$'+p.toLocaleString('en-US',{maximumFractionDigits:4}) : '$'+p.toFixed(6);
+
+  el.innerHTML = plans.map(p=>{
+    const slPrice  = isLong ? price*(1-slPct)    : price*(1+slPct);
+    const tpPrice  = isLong ? price*(1+p.tp)     : price*(1-p.tp);
+    const posAmt   = capital * p.pos;
+    const maxLoss  = posAmt * slPct;
+    const maxGain  = posAmt * p.tp;
+    const ev       = 0.55 * maxGain - 0.45 * maxLoss; // 預估55%勝率
+    const tp1Price = isLong ? price*(1+0.06) : price*(1-0.06); // 第一目標
+    const tp2Price = isLong ? price*(1+p.tp) : price*(1-p.tp); // 最終目標
+    const showDual = p.pos >= 1.0;
+
+    return `<div style="background:${p.bg};border:2px solid ${p.border};border-radius:14px;padding:14px 15px;margin-bottom:10px">
+      <!-- 標題 -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:18px">${p.icon}</span>
+        <span style="font-family:Nunito,sans-serif;font-size:15px;font-weight:900;color:${p.color}">${p.label}</span>
+        <span style="font-size:11px;font-weight:900;padding:3px 9px;border-radius:20px;background:${p.bg};border:1.5px solid ${p.border};color:${p.color};font-family:Nunito,sans-serif;margin-left:auto">倉位 ${Math.round(p.pos*100)}% · RR ${p.rr}</span>
+      </div>
+      <!-- 三格：SL / TP / 倉位金額 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:8px">
+        <div style="background:var(--redb);border:1.5px solid rgba(255,77,109,.25);border-radius:9px;padding:9px;text-align:center">
+          <div style="font-size:10px;font-weight:800;font-family:Nunito,sans-serif;color:var(--red2);margin-bottom:3px">🔴 止損 SL</div>
+          <div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:900;color:var(--red2)">${fmt(slPrice)}</div>
+          <div style="font-size:10px;color:var(--red2);margin-top:2px;font-weight:700">${isLong?'-':'+'}${(slPct*100).toFixed(0)}%</div>
+        </div>
+        <div style="background:var(--greenb);border:1.5px solid rgba(0,200,150,.25);border-radius:9px;padding:9px;text-align:center">
+          <div style="font-size:10px;font-weight:800;font-family:Nunito,sans-serif;color:var(--green2);margin-bottom:3px">🟢 止盈 TP</div>
+          <div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:900;color:var(--green2)">${fmt(tpPrice)}</div>
+          <div style="font-size:10px;color:var(--green2);margin-top:2px;font-weight:700">${isLong?'+':'-'}${(p.tp*100).toFixed(0)}%</div>
+        </div>
+        <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:9px;padding:9px;text-align:center">
+          <div style="font-size:10px;font-weight:800;font-family:Nunito,sans-serif;color:var(--text3);margin-bottom:3px">💼 倉位</div>
+          <div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:900;color:${p.color}">${capital>0?'$'+posAmt.toFixed(0):`${Math.round(p.pos*100)}%`}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">${capital>0?`最大虧 $${maxLoss.toFixed(0)}`:'輸入本金'}</div>
+        </div>
+      </div>
+      ${showDual?`
+      <!-- 分批止盈 -->
+      <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:9px;padding:8px 11px;margin-bottom:8px;font-size:11px;color:var(--text2);line-height:1.8">
+        ${p.pos===2.0?`🎯 分批止盈：50% 在 <strong style="color:var(--green2)">${fmt(tp1Price)}</strong>（+6%），50% 在 <strong style="color:var(--purple)">${fmt(tp2Price)}</strong>（+10%）`:`📌 達到 1:1（${fmt(tp1Price)}）後 → 移動止損至成本，剩餘部位抱至 ${fmt(tp2Price)}`}
+      </div>`:''}
+      <!-- 備註 -->
+      <div style="font-size:11px;color:${p.color};font-weight:700;font-family:Nunito,sans-serif">${p.note}</div>
+    </div>`;
+  }).join('');
+}
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
 </script>
