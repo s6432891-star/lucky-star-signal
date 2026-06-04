@@ -1825,16 +1825,22 @@ async function computeVEGAS(sym){
     const h4_576=calcEMA(h4,Math.min(576,h4.length-1));
     if(!d12||!h4_12||!h4_144)return null;
 
-    // ── 賽克斯三步驟 ──
-    // 步驟1 判勢：大通道方向
-    const bigTunnelBull = d576 ? (d144>d576&&d169>d576) : (d12>d144);
-    const bigTunnelBear = d576 ? (d144<d576&&d169<d576) : (d12<d144);
+    // ══ 賽克斯三步驟 ══════════════════════════════════════
+
+    // ── 步驟1 判勢：EMA144/169 小通道 vs EMA576/676 大通道 ──
+    const bigTunnelBull = d576 ? (d144>d576 && (d169||d144)>d576) : (d12>d144);
+    const bigTunnelBear = d576 ? (d144<d576 && (d169||d144)<d576) : (d12<d144);
     const dailyTrend = bigTunnelBull?'bull':bigTunnelBear?'bear':'neutral';
 
-    // 步驟2 找位：價格回調至小通道（EMA144/169）
+    // ── 步驟2 找位：「價格」回調至 EMA144/169 小通道區間 ──
     const h4Top=Math.max(h4_144,h4_169||h4_144),h4Bot=Math.min(h4_144,h4_169||h4_144);
     const h4Above=h4_12>h4Top,h4Below=h4_12<h4Bot,h4In=!h4Above&&!h4Below;
-    const nearTunnel=h4In||(h4Above&&(h4_12-h4Top)/h4Top<0.01)||(h4Below&&(h4Bot-h4_12)/h4Bot<0.01);
+    const lastPrice=h4[h4.length-1];
+    const prevPrice=h4[h4.length-2]||lastPrice;
+    // 價格在通道內或距通道上方2%以內（做多）/ 下方2%以內（做空）
+    const priceNearTunnel_long  = lastPrice<=h4Top*1.02 && lastPrice>=h4Bot*0.97;
+    const priceNearTunnel_short = lastPrice>=h4Bot*0.98 && lastPrice<=h4Top*1.03;
+    const nearTunnel = priceNearTunnel_long || priceNearTunnel_short;
 
     // ── 通道回踩精確距離（核心勝率計算）──
     const lastPrice=h4[h4.length-1];
@@ -1866,31 +1872,60 @@ async function computeVEGAS(sym){
     const isPullbackSignal=pullbackWR>=0.61;
     const pullbackLabel=pullbackWR>=0.74?'🔥 極佳回踩':pullbackWR>=0.68?'✅ 優質回踩':pullbackWR>=0.61?'📡 回踩中':'—';
 
-    // 步驟3 進場：K棒收盤站上/跌破EMA12 + QQE MOD同步
-    const isBull=dailyTrend==='bull'&&h4Above;
-    const isBear=dailyTrend==='bear'&&h4Below;
-
     // ── QQE MOD 多週期 ──
     const qqe4h  = calcQQEMOD(h4);
     const qqe1h  = h1  ? calcQQEMOD(h1)  : null;
     const qqe15m = m15 ? calcQQEMOD(m15) : null;
 
-    // 多週期共振分數
+    // ── 多週期 EMA 方向（EMA12 vs EMA144） ──
+    const h1_12   = h1  ? calcEMA(h1,  12)                       : null;
+    const h1_144  = h1  ? calcEMA(h1,  Math.min(144,h1.length-1)) : null;
+    const m15_12  = m15 ? calcEMA(m15, 12)                       : null;
+    const m15_144 = m15 ? calcEMA(m15, Math.min(144,m15.length-1)): null;
+
+    const h4_dir  = h4_12  > h4_144  ? 'bull' : 'bear';
+    const h1_dir  = (h1_12 &&h1_144) ? (h1_12 >h1_144 ?'bull':'bear') : null;
+    const m15_dir = (m15_12&&m15_144) ? (m15_12>m15_144?'bull':'bear') : null;
+
+    // ── VEGAS 做多/做空判斷（步驟3基礎） ──
+    const isBull = dailyTrend==='bull' && h4Above;
+    const isBear = dailyTrend==='bear' && h4Below;
+
+    // ── 步驟3 進場：K棒收盤站上/貫穿EMA12 + QQE MOD同步啟動 ──
+    // 做多：lastPrice > h4_12（收盤站上EMA12）且 QQE藍柱
+    const priceAboveEMA12 = lastPrice > h4_12;
+    const priceBelowEMA12 = lastPrice < h4_12;
+    const step3_long  = bigTunnelBull && priceNearTunnel_long  && priceAboveEMA12 && qqe4h?.isBull;
+    const step3_short = bigTunnelBear && priceNearTunnel_short && priceBelowEMA12 && qqe4h?.isBear;
+
+    // ── 賽克斯三步驟（依方向） ──
+    // 步驟1：EMA144/169 小通道 vs EMA576/676 大通道
+    const step1_long  = bigTunnelBull;
+    const step1_short = bigTunnelBear;
+    // 步驟2：價格回調至小通道
+    const step2_long  = bigTunnelBull && priceNearTunnel_long;
+    const step2_short = bigTunnelBear && priceNearTunnel_short;
+    // 整合（供彈窗顯示，取當前主方向）
+    const step1 = step1_long || step1_short;
+    const step2 = step2_long || step2_short;
+    const step3 = step3_long || step3_short;
+
+    // ── 多週期共振（EMA方向 + QQE 雙確認） ──
+    // 每個時框：EMA方向 AND QQE 同時符合才計1分
     let resonance=0;
-    if(isBull){
-      if(qqe4h?.isBull)  resonance++;
-      if(qqe1h?.isBull)  resonance++;
-      if(qqe15m?.isBull) resonance++;
-    } else if(isBear){
-      if(qqe4h?.isBear)  resonance++;
-      if(qqe1h?.isBear)  resonance++;
-      if(qqe15m?.isBear) resonance++;
+    const targetDir = isBull?'bull':isBear?'bear':null;
+    if(targetDir){
+      const isBullTarget = targetDir==='bull';
+      // 4H：EMA12 vs EMA144 + QQE
+      if(h4_dir===targetDir && (isBullTarget?qqe4h?.isBull:qqe4h?.isBear)) resonance++;
+      // 1H：EMA12 vs EMA144 + QQE
+      if(h1_dir===targetDir && (isBullTarget?qqe1h?.isBull:qqe1h?.isBear)) resonance++;
+      // 15M：EMA12 vs EMA144 + QQE
+      if(m15_dir===targetDir && (isBullTarget?qqe15m?.isBull:qqe15m?.isBear)) resonance++;
     }
 
-    // 賽克斯三步驟是否全滿足
-    const step1 = dailyTrend!=='neutral'; // 判勢
-    const step2 = nearTunnel;              // 找位
-    const step3 = (isBull||isBear) && (qqe4h?.isBull||qqe4h?.isBear); // 進場
+    // ── 假突破偵測（EMA12 沒有同時突破 = 假突破）──
+    const isFakeBreakout = (h4Above && !priceAboveEMA12) || (h4Below && !priceBelowEMA12);
 
     // ── 評分 ──
     let score=0;
@@ -1915,8 +1950,16 @@ async function computeVEGAS(sym){
       sym,signal:isBull?'bull':isBear?'bear':'neutral',score,dailyTrend,
       h4AboveTunnel:h4Above,h4BelowTunnel:h4Below,h4InTunnel:h4In,nearTunnel,
       bigTunnelBull,bigTunnelBear,
+      // 賽克斯三步驟（雙向）
       step1,step2,step3,
+      step1_long,step1_short,step2_long,step2_short,step3_long,step3_short,
+      isFakeBreakout,
+      priceAboveEMA12,priceBelowEMA12,
+      // QQE MOD 多週期
       qqe4h,qqe1h,qqe15m,resonance,
+      // 多週期 EMA 方向
+      h4_dir,h1_dir,m15_dir,
+      // 通道回踩
       pullbackDist,pullbackSide,pullbackWR,pullbackLabel,isPullbackSignal,
       lastPrice,
       d12:d12?.toFixed(4),d144:d144?.toFixed(4),d576:d576?.toFixed(4),d676:d676?.toFixed(4),
@@ -2286,18 +2329,54 @@ function openMOVEDetail(sym, type, v, c) {
       </div>
     </div>
 
-    <!-- VEGAS 核心條件 -->
+    <!-- 賽克斯三步驟核對清單 -->
     <div class="m-sec">
-      <div class="m-sec-t">🌿 VEGAS通道核心（必要條件）</div>
-      ${checkBox(dailyOK,
-        `日線大趨勢：${dailyOK?(type==='long'?'多頭向上':'空頭向下'):'尚未確認'}`,
-        v ? `EMA12(${Number(v.d12).toFixed(2)}) ${type==='long'?'>':'<'} EMA576(${v.d576?Number(v.d576).toFixed(2):'—'})　大方向${dailyOK?'✅已確認':'❌未確認'}` : 'VEGAS數據計算中'
-      )}
-      ${checkBox(h4OK,
-        `4H進場訊號：EMA12${h4OK?(type==='long'?'突破':'跌破'):'仍在'}EMA144/169通道${h4OK?'':'內整理'}`,
-        v ? `EMA12(${Number(v.h4_12).toFixed(2)}) ${type==='long'?'>':'<'} EMA144(${Number(v.h4_144).toFixed(2)}) / EMA169(${v.h4_169?Number(v.h4_169).toFixed(2):'—'})` : 'VEGAS數據計算中'
-      )}
-      ${!vegasOK && v?.h4InTunnel ? `<div style="background:var(--goldb);border:1px solid rgba(245,166,35,.3);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--text2);margin-top:4px">⚠️ VEGAS通道整理中，EMA12在EMA144/169之間。等待明確突破後進場，勝率更高。</div>` : ''}
+      <div class="m-sec-t">🔍 賽克斯系統 — 三步驟核對清單</div>
+
+      ${(()=>{
+        const s1 = type==='long' ? v?.step1_long  : v?.step1_short;
+        const s2 = type==='long' ? v?.step2_long  : v?.step2_short;
+        const s3 = type==='long' ? v?.step3_long  : v?.step3_short;
+        const fake = v?.isFakeBreakout;
+        const step3detail = v ? `K收${type==='long'?'站上':'貫穿'} EMA12(${Number(v.h4_12||0).toFixed(2)}) ${type==='long'?v?.priceAboveEMA12?'✅':'❌':v?.priceBelowEMA12?'✅':'❌'}　QQE MOD ${type==='long'?(v?.qqe4h?.isBull?'🔵藍柱✅':'⬜未啟動'):(v?.qqe4h?.isBear?'🔴紅柱✅':'⬜未啟動')}` : '數據計算中';
+        return `
+        ${checkBox(!!s1,
+          `步驟1 判勢：EMA144/169 小通道${s1?(type==='long'?'在EMA576/676上方':'在EMA576/676下方'):'方向未確認'}`,
+          v ? `EMA144(${Number(v.h4_144||0).toFixed(2)}) ${type==='long'?'> ':'< '} EMA576(${v.h4_576?Number(v.h4_576).toFixed(2):'—'})　大通道${s1?'✅確認':'❌未確認'}` : '計算中'
+        )}
+        ${checkBox(!!s2,
+          `步驟2 找位：價格${s2?'回調至':'尚未回調至'} EMA144/169 通道${type==='long'?'支撐':'壓力'}區間`,
+          v ? `EMA144(${Number(v.h4_144||0).toFixed(2)}) ~ EMA169(${v.h4_169?Number(v.h4_169).toFixed(2):'—'})　價格(${Number(v.lastPrice||0).toFixed(2)})${s2?'✅在區間內':'❌尚未回調'}` : '計算中'
+        )}
+        ${checkBox(!!s3, `步驟3 進場：K棒收盤${type==='long'?'站上':'貫穿'} EMA12 + QQE MOD${type==='long'?'藍柱':'紅柱'}同步啟動`, step3detail)}
+        ${fake?`<div style="background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.3);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--red2);margin-top:6px;font-weight:700">⚠️ 假突破偵測：價格突破通道但 EMA12 未同步突破 → 不進場，等待確認</div>`:''}
+        ${v?.h4InTunnel?`<div style="background:var(--goldb);border:1px solid rgba(245,166,35,.3);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--text2);margin-top:6px">⏳ VEGAS整理中：EMA12 在通道內，最多輕倉 30%，等待方向突破確認</div>`:''}
+        `;
+      })()}
+
+      <!-- QQE MOD 三時框狀態 -->
+      <div style="margin-top:10px">
+        <div style="font-size:10px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;letter-spacing:.5px;margin-bottom:7px">📡 QQE MOD 多週期共振 — ${v?.resonance||0}/3 時框確認</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
+          ${['4H','1H','15M'].map((tf,i)=>{
+            const q = i===0?v?.qqe4h:i===1?v?.qqe1h:v?.qqe15m;
+            const emaDir = i===0?v?.h4_dir:i===1?v?.h1_dir:v?.m15_dir;
+            const targetDir = type==='long'?'bull':'bear';
+            const qOK = q && (type==='long'?q.isBull:q.isBear);
+            const eOK = emaDir===targetDir;
+            const bothOK = qOK && eOK;
+            const color = bothOK?'var(--green2)':qOK||eOK?'var(--gold)':'var(--text3)';
+            const bg = bothOK?'rgba(0,200,150,.08)':qOK||eOK?'var(--goldb)':'var(--pink5)';
+            return `<div style="background:${bg};border:1.5px solid ${bothOK?'rgba(0,200,150,.3)':qOK||eOK?'rgba(245,166,35,.3)':'var(--pink4)'};border-radius:10px;padding:9px;text-align:center">
+              <div style="font-size:11px;font-weight:900;font-family:Nunito,sans-serif;color:${color};margin-bottom:4px">${tf}</div>
+              <div style="font-size:13px;margin-bottom:3px">${qOK?(type==='long'?'🔵':'🔴'):'⬜'}</div>
+              <div style="font-size:9px;font-weight:700;font-family:Nunito,sans-serif;color:${color}">${bothOK?'✅ EMA+QQE':qOK?'QQE✅':eOK?'EMA✅':'未啟動'}</div>
+              <div style="font-size:9px;color:var(--text3);margin-top:2px">EMA ${emaDir||'—'} · ${q?.label||'—'}</div>
+            </div>`;
+          }).join('')}
+        </div>
+        ${v?.resonance>=2?`<div style="background:rgba(0,200,150,.08);border:1.5px solid rgba(0,200,150,.3);border-radius:8px;padding:8px 11px;margin-top:8px;font-size:11px;color:var(--green2);font-weight:800;font-family:Nunito,sans-serif">🔥 ${v.resonance===3?'三':'雙'}週期共振！主力資金與機構共同進場訊號，趨勢延續性極高</div>`:''}
+      </div>
     </div>
 
     <!-- 篩選標準1：裸K/PA -->
@@ -2325,12 +2404,16 @@ function openMOVEDetail(sym, type, v, c) {
     <div class="abub" style="margin-bottom:0">
       <div class="aico">⭐</div>
       <div class="atxt">
-        ${vegasOK && criteriaCount >= 2
-          ? `<strong>${criteriaCount>=3?'最強進場條件！💪':'有效進場機會 ✅'}</strong>｜VEGAS通道✅ + ${criteriaCount}個篩選✅。建議<strong>倉位${positionPct}%</strong>，止損 -${slPct}%，目標 +${tpPct}%。EV <strong style="color:${ev>0?'var(--green2)':'var(--red2)'}">${ev>0?'+':''}${(ev*100).toFixed(2)}%</strong>`
-          : vegasOK
-          ? `<strong>VEGAS條件滿足 ✅</strong>，篩選符合 ${criteriaCount}/3。建議<strong>輕倉${positionPct}%</strong>，止損 -${slPct}%。`
-          : `<strong>觀察中 ⏳</strong>｜等待4H EMA12突破EMA144/169通道後再進場，不要搶跑！`
-        }
+        ${(()=>{
+          const s3ok = type==='long'?v?.step3_long:v?.step3_short;
+          const s2ok = type==='long'?v?.step2_long:v?.step2_short;
+          const fake = v?.isFakeBreakout;
+          if(fake) return `<strong style="color:var(--red2)">⚠️ 假突破警告！</strong>｜價格突破通道但 EMA12 未同步 → 不進場。等待 EMA12 也突破後再考慮。`;
+          if(vegasOK && s3ok && criteriaCount>=2) return `<strong>${criteriaCount>=3?'💎 三篩選全中！加槓桿機會':'🚀 有效進場機會'}</strong>｜賽克斯三步驟✅ MOVE${criteriaCount}篩選✅。建議倉位 <strong style="color:${posColor}">${positionPct}%</strong>，止損 -${slPct}%，目標 +${tpPct}%（RR ${rr}:1）。EV <strong style="color:${ev>0?'var(--green2)':'var(--red2)'}">${ev>0?'+':''}${(ev*100).toFixed(2)}%</strong>`;
+          if(vegasOK && s2ok) return `<strong>✅ 步驟2 找位完成</strong>｜等待步驟3：K棒收盤${type==='long'?'站上':'貫穿'}EMA12 + QQE MOD ${type==='long'?'藍':'紅'}柱同步啟動後進場。`;
+          if(vegasOK) return `<strong>VEGAS方向確認 ✅</strong>，篩選 ${criteriaCount}/3。目前 EMA12 ${v?.h4InTunnel?'整理中':'未回調至通道'}，建議輕倉 ${positionPct}%，等待回調。`;
+          return `<strong>觀察中 ⏳</strong>｜${v?.h4InTunnel?'VEGAS通道整理中，等待突破方向':'VEGAS條件未滿足'}。依紀律：VEGAS未確認→不進場，無論其他條件多強。`;
+        })()}
       </div>
     </div>
 
