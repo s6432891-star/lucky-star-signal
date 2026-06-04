@@ -793,28 +793,12 @@ function renderVolSpike(){
         <span style="padding:3px 9px;border-radius:12px;font-size:11px;font-weight:900;font-family:Nunito,sans-serif;background:${isLong?'var(--greenb)':'var(--redb)'};color:${typeColor}">${isLong?'🚀 做多':'📉 做空'}</span>
         <span style="margin-left:auto;font-family:Nunito,sans-serif;font-size:13px;font-weight:800" class="${s.pchg>=0?'up':'dn'}">${s.pchg>=0?'+':''}${s.pchg.toFixed(2)}%</span>
       </div>
-      <!-- 成交量 -->
-      <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:9px;padding:7px 11px;margin-bottom:8px;font-size:12px;color:var(--text2)">
-        ${s.volB} &nbsp;｜&nbsp; 24H量 <strong style="font-family:JetBrains Mono,monospace">${(s.vol/1e6).toFixed(1)}M</strong> USDT
-      </div>
-      <!-- 勝率/RR/EV -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:8px">
-        <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:9px;padding:8px;text-align:center">
-          <div style="font-size:10px;color:var(--text3);font-weight:700;font-family:Nunito,sans-serif;margin-bottom:2px">📊 勝率</div>
-          <div style="font-family:Nunito,sans-serif;font-size:20px;font-weight:900;color:${wrColor}">${Math.round(s.wr*100)}%</div>
+      <!-- 成交量 + 標籤 -->
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:9px;padding:5px 11px;font-size:12px;color:var(--text2)">
+          ${s.volB} &nbsp;｜&nbsp; <strong style="font-family:JetBrains Mono,monospace">${(s.vol/1e6).toFixed(1)}M</strong> U
         </div>
-        <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:9px;padding:8px;text-align:center">
-          <div style="font-size:10px;color:var(--text3);font-weight:700;font-family:Nunito,sans-serif;margin-bottom:2px">⚖️ 盈虧比</div>
-          <div style="font-family:Nunito,sans-serif;font-size:20px;font-weight:900;color:var(--gold)">${s.rr.toFixed(1)}:1</div>
-        </div>
-        <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:9px;padding:8px;text-align:center">
-          <div style="font-size:10px;color:var(--text3);font-weight:700;font-family:Nunito,sans-serif;margin-bottom:2px">✅ EV</div>
-          <div style="font-family:Nunito,sans-serif;font-size:20px;font-weight:900;color:${evColor}">${s.ev>=0?'+':''}${(s.ev*100).toFixed(1)}%</div>
-        </div>
-      </div>
-      <!-- 標籤 -->
-      <div style="display:flex;gap:5px;flex-wrap:wrap">
-        ${tags.map(tg=>`<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:6px;background:rgba(0,0,0,.05);color:${tg.c};font-family:Nunito,sans-serif">${tg.t}</span>`).join('')}
+        ${tags.map(tg=>`<span style="font-size:10px;font-weight:800;padding:3px 8px;border-radius:8px;background:rgba(0,0,0,.05);color:${tg.c};font-family:Nunito,sans-serif">${tg.t}</span>`).join('')}
         <span style="font-size:10px;color:var(--text3);margin-left:auto;font-family:JetBrains Mono,monospace">${new Date().toLocaleTimeString('zh-TW',{hour12:false})}</span>
       </div>
     </div>`;
@@ -868,16 +852,98 @@ function renderNews(items){
     const coinsHtml=coinList.length>0
       ?coinList.map(c=>`<span style="font-size:11px;font-weight:900;padding:2px 8px;border-radius:8px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">${c}</span>`).join('')
       :`<span style="font-size:11px;font-weight:900;padding:2px 8px;border-radius:8px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">市場</span>`;
-    return `<div style="padding:11px 13px;border-bottom:1.5px solid var(--pink4);background:${sentBg};cursor:pointer" onclick="window.open('${n.url}','_blank')">
+    const newsData=encodeURIComponent(JSON.stringify({title:n.title,url:n.url,coins:coinList,sentiment,sentColor,sentBg,agoTxt,source:n.source?.title||''}));
+    return `<div style="padding:11px 13px;border-bottom:1.5px solid var(--pink4);background:${sentBg};cursor:pointer" onclick="openNewsSummary('${newsData}')">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <span style="font-size:12px;font-weight:900;padding:3px 10px;border-radius:20px;background:${sentBg};border:1.5px solid ${sentColor};color:${sentColor};font-family:Nunito,sans-serif;white-space:nowrap">${sentiment}</span>
         ${coinsHtml}
         <span style="font-size:10px;color:var(--text3);margin-left:auto;white-space:nowrap;font-family:JetBrains Mono,monospace">${agoTxt}</span>
       </div>
       <div style="font-size:12px;color:var(--text2);line-height:1.6">${n.title}</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px;font-family:JetBrains Mono,monospace">點擊查看新聞總結 →</div>
     </div>`;
   }).join('');
   document.getElementById('news-list').innerHTML=rows||'<div class="empty">暫無快訊</div>';
+}
+
+// ═══ 新聞總結彈窗 ═══
+let newsModal=null;
+function openNewsSummary(encoded){
+  try{
+    const n=JSON.parse(decodeURIComponent(encoded));
+    // 建立底部彈窗
+    const overlay=document.createElement('div');
+    overlay.id='news-overlay';
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(61,26,38,.65);z-index:600;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)';
+    overlay.onclick=e=>{if(e.target===overlay)closeNewsModal();};
+    overlay.innerHTML=`
+      <div style="background:var(--cream);border:1.5px solid var(--pink4);border-radius:22px 22px 0 0;width:100%;max-width:580px;max-height:85vh;overflow-y:auto;padding-bottom:24px;animation:slideup .3s ease">
+        <div style="width:38px;height:4px;background:var(--pink4);border-radius:2px;margin:10px auto 0"></div>
+        <div style="padding:12px 15px;border-bottom:1.5px solid var(--pink4);display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:10px;font-weight:900;padding:2px 9px;border-radius:20px;display:inline-block;background:${n.sentBg};border:1.5px solid ${n.sentColor};color:${n.sentColor};font-family:Nunito,sans-serif;margin-bottom:5px">${n.sentiment}</div>
+            <div style="font-family:Nunito,sans-serif;font-size:14px;font-weight:900;color:var(--text);line-height:1.5">${n.title}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:4px;font-family:JetBrains Mono,monospace">${n.source} &nbsp;·&nbsp; ${n.agoTxt}</div>
+          </div>
+          <button onclick="closeNewsModal()" style="background:var(--pink4);border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px;font-weight:900;color:var(--text2);flex-shrink:0;margin-left:10px">✕</button>
+        </div>
+        <!-- 幣種標籤 -->
+        <div style="padding:10px 15px;border-bottom:1.5px solid var(--pink4);display:flex;gap:6px;flex-wrap:wrap">
+          ${(n.coins||[]).map(c=>`<span style="font-size:11px;font-weight:900;padding:3px 10px;border-radius:10px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">${c}</span>`).join('')||'<span style="font-size:11px;color:var(--text3)">市場新聞</span>'}
+        </div>
+        <!-- AI 總結區 -->
+        <div style="padding:13px 15px">
+          <div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;font-family:Nunito,sans-serif;margin-bottom:8px">⭐ AI 新聞總結</div>
+          <div id="news-summary-content" style="background:linear-gradient(135deg,var(--pink5),var(--white));border:1.5px solid var(--pink4);border-radius:12px;padding:13px;font-size:13px;color:var(--text2);line-height:1.8">
+            <div style="display:flex;align-items:center;gap:6px;color:var(--text3)"><div class="spin"></div>AI 分析中...</div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <a href="${n.url}" target="_blank" style="flex:1;background:linear-gradient(135deg,var(--pink3),var(--pink2));color:white;border:none;border-radius:12px;padding:11px;font-size:12px;font-weight:900;font-family:Nunito,sans-serif;text-align:center;cursor:pointer;text-decoration:none;display:block">📖 閱讀原文</a>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    // 呼叫 AI 總結
+    summarizeNews(n.title, n.coins||[], n.sentiment);
+  }catch(e){console.warn(e);}
+}
+
+function closeNewsModal(){
+  const el=document.getElementById('news-overlay');
+  if(el)el.remove();
+}
+
+async function summarizeNews(title, coins, sentiment){
+  const el=document.getElementById('news-summary-content');
+  if(!el)return;
+  if(!apiKey){
+    el.innerHTML=`<div style="line-height:1.8;color:var(--text2)">
+      <strong style="color:${sentiment.includes('利多')?'var(--green2)':'sentiment'.includes('利空')?'var(--red2)':'var(--gold)'}">判斷：${sentiment}</strong><br><br>
+      ${coins.length>0?`相關幣種：<strong>${coins.join('、')}</strong><br><br>`:''}
+      📌 <strong>新聞標題：</strong>${title}<br><br>
+      <span style="color:var(--text3)">💡 設定 AI API Key 後可獲得更詳細的中文分析與交易建議</span>
+    </div>`;
+    return;
+  }
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-haiku-4-5',max_tokens:400,
+        system:'你是加密貨幣交易分析師，用繁體中文回覆，精簡扼要。',
+        messages:[{role:'user',content:`請用繁體中文分析這則加密貨幣新聞，給出：1) 一句話總結 2) 對${coins.join('/')||'市場'}的影響（利多/利空）3) 短線交易建議（做多/做空/觀望）。新聞：「${title}」`}]
+      })
+    });
+    if(!res.ok)throw new Error();
+    const d=await res.json();
+    const reply=d.content.find(b=>b.type==='text')?.text||'';
+    if(el)el.innerHTML=reply.replace(/\n/g,'<br>');
+  }catch(e){
+    if(el)el.innerHTML=`<strong style="color:${sentiment.includes('利多')?'var(--green2)':'var(--red2)'}">判斷：${sentiment}</strong><br><br>
+      ${coins.length>0?`相關幣種：<strong>${coins.join('、')}</strong><br>`:''}
+      ${title}<br><br><span style="font-size:11px;color:var(--text3)">（AI分析失敗，請檢查API Key及餘額）</span>`;
+  }
 }
 
 function renderOI(){
