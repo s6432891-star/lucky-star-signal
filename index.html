@@ -329,7 +329,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
     <div class="tab"        onclick="sw('vegas')"  id="tab-vegas">🌿 MOVE訊號 <span class="tbadge" id="vcnt">...</span></div>
     <div class="tab"        onclick="sw('saek')"   id="tab-saek">⚡ 技術訊號 <span class="tbadge" id="scnt">0</span></div>
     <div class="tab"        onclick="sw('oi')"     id="tab-oi">🔥 OI異常 <span class="tbadge" id="ocnt">0</span></div>
-    <div class="tab"        onclick="sw('flash')"  id="tab-flash">📰 快訊 <span class="tbadge" id="flash-cnt">0</span></div>
+    <div class="tab"        onclick="sw('flash')"  id="tab-flash">📊 成交量 <span class="tbadge" id="flash-cnt">0</span></div>
     <div class="tab"        onclick="sw('overview')" id="tab-overview">🌸 總覽</div>
     <div class="tab"        onclick="sw('sectors')"  id="tab-sectors">🏆 板塊</div>
     <div class="tab"        onclick="sw('ai')"     id="tab-ai">💬 AI天使</div>
@@ -466,26 +466,24 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
   </div>
 </div>
 
-<!-- FLASH 快訊 -->
+<!-- 成交量 -->
 <div class="panel" id="panel-flash">
-  <!-- 成交量暴增訊號 -->
   <div class="card">
     <div class="ch">
-      <div class="ct">🚀 成交量暴增訊號</div>
+      <div class="ct">🔥 成交量暴增訊號</div>
       <div class="cb" id="vol-time">即時</div>
     </div>
     <div style="background:linear-gradient(135deg,rgba(192,132,252,.08),var(--white));border-bottom:1.5px solid var(--pink4);padding:9px 13px;font-size:11px;color:var(--text2);line-height:1.7">
-      ⚡ 成交量突然放大 <strong style="color:var(--purple)">2倍+</strong>，搭配趨勢方向 = 主力進場訊號，附帶 <strong style="color:var(--green2)">勝率</strong> 及 <strong style="color:var(--gold)">盈虧比 RR</strong>
+      ⚡ 24H成交量異常放大，搭配 VEGAS + QQE MOD 方向確認 = <strong style="color:var(--purple)">主力進場訊號</strong>
     </div>
     <div id="vol-list"><div class="loading"><div class="spin"></div>計算中...</div></div>
   </div>
-  <!-- 即時快訊 -->
   <div class="card">
     <div class="ch">
-      <div class="ct">📰 加密貨幣快訊</div>
-      <div class="cb" id="news-time">即時</div>
+      <div class="ct">📈 成交量排行榜</div>
+      <div class="cb" id="vol-rank-time">24H</div>
     </div>
-    <div id="news-list"><div class="loading"><div class="spin"></div>載入快訊...</div></div>
+    <div id="vol-rank-list"><div class="loading"><div class="spin"></div>載入中...</div></div>
   </div>
 </div>
 
@@ -629,14 +627,10 @@ document.addEventListener('DOMContentLoaded',()=>{
       loadRealIndicators().then(()=>calcSignalEVs());
     });
   });
-  // 新聞載入
-  loadNews();
   // 價格/OI/EV 每60秒更新
   setInterval(()=>{loadFast();loadRealIndicators().then(()=>calcSignalEVs());},60000);
   // VEGAS 全幣掃描每3分鐘更新
   setInterval(()=>{loadAllSymbols().then(()=>loadVEGAS());},180000);
-  // 新聞每5分鐘更新
-  setInterval(()=>{loadNews();},300000);
 });
 
 async function loadFast(){
@@ -736,7 +730,8 @@ async function loadOI(){
     }).sort((a,b)=>b.score-a.score).slice(0,30);
     document.getElementById('ocnt').textContent=oiData.filter(a=>Math.abs(a.pchg)>3).length;
     renderOI();
-    renderVolSpike(); // 同步更新成交量暴增
+    renderVolSpike();
+    renderVolRank();
   }catch(e){document.getElementById('oitbl').innerHTML='<div class="empty">⚠️ OKX API 錯誤</div>';}
 }
 
@@ -951,7 +946,40 @@ async function summarizeNews(title, coins, sentiment){
   }
 }
 
-// fallback：從市場資料生成快訊
+// ═══ 成交量排行榜 ═══
+function renderVolRank(){
+  if(!oiData.length)return;
+  document.getElementById('vol-rank-time').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
+  const sorted=[...oiData].sort((a,b)=>b.vol-a.vol).slice(0,20);
+  const max=sorted[0]?.vol||1;
+  document.getElementById('vol-rank-list').innerHTML=sorted.map((a,i)=>{
+    const vd=vegasData.find(v=>v.sym===a.sym);
+    const isLong=a.dir==='long', isShort=a.dir==='short';
+    const vegasMatch=vd&&((isLong&&vd.signal==='bull')||(isShort&&vd.signal==='bear'));
+    const qqeMatch=vd&&((isLong&&vd.qqe4h?.isBull)||(isShort&&vd.qqe4h?.isBear));
+    const barW=Math.round(a.vol/max*100);
+    const barColor=isLong?'var(--green2)':isShort?'var(--red2)':'var(--text3)';
+    const rankEmoji=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
+    return `<div style="padding:9px 13px;border-bottom:1px solid var(--pink4);cursor:pointer" onclick="openVegasDetail('${a.sym}')">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
+        <span style="font-size:12px;min-width:24px">${rankEmoji}</span>
+        <span style="font-family:Nunito,sans-serif;font-size:15px;font-weight:900">${a.sym}</span>
+        <span style="font-size:11px;font-weight:800;padding:2px 7px;border-radius:8px;font-family:Nunito,sans-serif;background:${isLong?'var(--greenb)':isShort?'var(--redb)':'var(--pink4)'};color:${barColor}">${isLong?'🚀 做多':isShort?'📉 做空':'⚖️ 中性'}</span>
+        <span style="font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;margin-left:auto" class="${a.pchg>=0?'up':'dn'}">${a.pchg>=0?'+':''}${a.pchg.toFixed(2)}%</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:7px">
+        <div style="flex:1;height:6px;background:var(--pink4);border-radius:3px;overflow:hidden">
+          <div style="width:${barW}%;height:100%;background:${barColor};border-radius:3px;transition:width .8s ease"></div>
+        </div>
+        <span style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--text3);min-width:48px;text-align:right">${(a.vol/1e6).toFixed(0)}M U</span>
+        ${vegasMatch?`<span style="font-size:9px;font-weight:800;padding:1px 5px;border-radius:5px;background:var(--greenb);color:var(--green2);font-family:Nunito">VEGAS</span>`:''}
+        ${qqeMatch?`<span style="font-size:9px;font-weight:800;padding:1px 5px;border-radius:5px;background:${isLong?'rgba(0,200,150,.12)':'rgba(255,77,109,.12)'};color:${barColor};font-family:Nunito">QQE</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// fallback：從市場資料生成快訊（保留供其他用途）
 function renderNewsFromMarket(){
   window._newsCache=[];
   const items=[];
