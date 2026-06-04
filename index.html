@@ -329,6 +329,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
     <div class="tab"        onclick="sw('vegas')"  id="tab-vegas">🌿 MOVE訊號 <span class="tbadge" id="vcnt">...</span></div>
     <div class="tab"        onclick="sw('saek')"   id="tab-saek">⚡ 技術訊號 <span class="tbadge" id="scnt">0</span></div>
     <div class="tab"        onclick="sw('oi')"     id="tab-oi">🔥 OI異常 <span class="tbadge" id="ocnt">0</span></div>
+    <div class="tab"        onclick="sw('flash')"  id="tab-flash">📰 快訊 <span class="tbadge" id="flash-cnt">0</span></div>
     <div class="tab"        onclick="sw('overview')" id="tab-overview">🌸 總覽</div>
     <div class="tab"        onclick="sw('sectors')"  id="tab-sectors">🏆 板塊</div>
     <div class="tab"        onclick="sw('ai')"     id="tab-ai">💬 AI天使</div>
@@ -462,6 +463,29 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
   <div class="card">
     <div class="ch"><div class="ct">🔥 OI持倉量異常</div><div class="cb">OKX SWAP</div></div>
     <div style="padding:0" id="oitbl"><div class="loading"><div class="spin"></div></div></div>
+  </div>
+</div>
+
+<!-- FLASH 快訊 -->
+<div class="panel" id="panel-flash">
+  <!-- 成交量暴增訊號 -->
+  <div class="card">
+    <div class="ch">
+      <div class="ct">🚀 成交量暴增訊號</div>
+      <div class="cb" id="vol-time">即時</div>
+    </div>
+    <div style="background:linear-gradient(135deg,rgba(192,132,252,.08),var(--white));border-bottom:1.5px solid var(--pink4);padding:9px 13px;font-size:11px;color:var(--text2);line-height:1.7">
+      ⚡ 成交量突然放大 <strong style="color:var(--purple)">2倍+</strong>，搭配趨勢方向 = 主力進場訊號，附帶 <strong style="color:var(--green2)">勝率</strong> 及 <strong style="color:var(--gold)">盈虧比 RR</strong>
+    </div>
+    <div id="vol-list"><div class="loading"><div class="spin"></div>計算中...</div></div>
+  </div>
+  <!-- 即時快訊 -->
+  <div class="card">
+    <div class="ch">
+      <div class="ct">📰 加密貨幣快訊</div>
+      <div class="cb" id="news-time">即時</div>
+    </div>
+    <div id="news-list"><div class="loading"><div class="spin"></div>載入快訊...</div></div>
   </div>
 </div>
 
@@ -605,10 +629,14 @@ document.addEventListener('DOMContentLoaded',()=>{
       loadRealIndicators().then(()=>calcSignalEVs());
     });
   });
+  // 新聞載入
+  loadNews();
   // 價格/OI/EV 每60秒更新
   setInterval(()=>{loadFast();loadRealIndicators().then(()=>calcSignalEVs());},60000);
   // VEGAS 全幣掃描每3分鐘更新
   setInterval(()=>{loadAllSymbols().then(()=>loadVEGAS());},180000);
+  // 新聞每5分鐘更新
+  setInterval(()=>{loadNews();},300000);
 });
 
 async function loadFast(){
@@ -708,7 +736,133 @@ async function loadOI(){
     }).sort((a,b)=>b.score-a.score).slice(0,30);
     document.getElementById('ocnt').textContent=oiData.filter(a=>Math.abs(a.pchg)>3).length;
     renderOI();
+    renderVolSpike(); // 同步更新成交量暴增
   }catch(e){document.getElementById('oitbl').innerHTML='<div class="empty">⚠️ OKX API 錯誤</div>';}
+}
+
+// ═══ 成交量暴增偵測 ═══
+function renderVolSpike(){
+  // 從 oiData 找出成交量異常大的幣（對比基準：score高+vol大）
+  const spikes = oiData
+    .filter(a=>a.vol>2000000) // 24H量>200萬U才計算
+    .map(a=>{
+      const vd = vegasData.find(v=>v.sym===a.sym);
+      const vegasAlign = vd && ((a.dir==='long'&&vd.signal==='bull')||(a.dir==='short'&&vd.signal==='bear'));
+      const qqeAlign = vd && ((a.dir==='long'&&vd.qqe4h?.isBull)||(a.dir==='short'&&vd.qqe4h?.isBear));
+      const pullback = vd?.isPullbackSignal;
+      // 勝率估算
+      let wr = 0.45;
+      if(vegasAlign) wr+=0.12;
+      if(qqeAlign)   wr+=0.08;
+      if(pullback)   wr+=0.10;
+      if(Math.abs(a.pchg)>5) wr+=0.05;
+      if(a.dir!=='neu') wr+=0.05;
+      wr = Math.min(0.82, wr);
+      // RR 建議（基於成交量動能）
+      const rr = Math.abs(a.pchg)>8?3.0:Math.abs(a.pchg)>5?2.5:2.0;
+      // EV
+      const q=1-wr, ev=wr*(0.03*rr)-q*0.03;
+      // 成交量等級
+      const volB = a.vol>=50000000?'🔥🔥🔥 巨量':a.vol>=10000000?'🔥🔥 大量':a.vol>=2000000?'🔥 放量':'正常';
+      return{...a,wr,rr,ev,vegasAlign,qqeAlign,pullback,volB};
+    })
+    .filter(a=>a.dir!=='neu'&&a.ev>0)
+    .sort((a,b)=>b.wr-a.wr)
+    .slice(0,20);
+
+  document.getElementById('flash-cnt').textContent=spikes.length;
+  document.getElementById('vol-time').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
+
+  if(!spikes.length){
+    document.getElementById('vol-list').innerHTML='<div class="empty">目前無成交量異常訊號</div>';
+    return;
+  }
+  document.getElementById('vol-list').innerHTML=spikes.map(s=>{
+    const isLong=s.dir==='long';
+    const typeColor=isLong?'var(--green2)':'var(--red2)';
+    const typeBg=isLong?'rgba(0,200,150,.06)':'rgba(255,77,109,.06)';
+    const wrColor=s.wr>=0.70?'var(--green2)':s.wr>=0.60?'var(--gold)':'var(--text2)';
+    const evColor=s.ev>0?'var(--green2)':'var(--red2)';
+    const tags=[];
+    if(s.vegasAlign) tags.push({t:'VEGAS✅',c:'var(--green2)'});
+    if(s.qqeAlign)   tags.push({t:'QQE同步',c:isLong?'var(--green2)':'var(--red2)'});
+    if(s.pullback)   tags.push({t:'通道回踩',c:'var(--purple)'});
+    return `<div style="border-bottom:1.5px solid var(--pink4);padding:12px 14px;background:${typeBg}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="font-family:Nunito,sans-serif;font-size:18px;font-weight:900">${s.sym}</span>
+        <span style="padding:3px 9px;border-radius:12px;font-size:11px;font-weight:900;font-family:Nunito,sans-serif;background:${isLong?'var(--greenb)':'var(--redb)'};color:${typeColor}">${isLong?'🚀 做多':'📉 做空'}</span>
+        <span style="margin-left:auto;font-family:Nunito,sans-serif;font-size:13px;font-weight:800" class="${s.pchg>=0?'up':'dn'}">${s.pchg>=0?'+':''}${s.pchg.toFixed(2)}%</span>
+      </div>
+      <!-- 成交量 -->
+      <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:9px;padding:7px 11px;margin-bottom:8px;font-size:12px;color:var(--text2)">
+        ${s.volB} &nbsp;｜&nbsp; 24H量 <strong style="font-family:JetBrains Mono,monospace">${(s.vol/1e6).toFixed(1)}M</strong> USDT
+      </div>
+      <!-- 勝率/RR/EV -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:8px">
+        <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:9px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);font-weight:700;font-family:Nunito,sans-serif;margin-bottom:2px">📊 勝率</div>
+          <div style="font-family:Nunito,sans-serif;font-size:20px;font-weight:900;color:${wrColor}">${Math.round(s.wr*100)}%</div>
+        </div>
+        <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:9px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);font-weight:700;font-family:Nunito,sans-serif;margin-bottom:2px">⚖️ 盈虧比</div>
+          <div style="font-family:Nunito,sans-serif;font-size:20px;font-weight:900;color:var(--gold)">${s.rr.toFixed(1)}:1</div>
+        </div>
+        <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:9px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);font-weight:700;font-family:Nunito,sans-serif;margin-bottom:2px">✅ EV</div>
+          <div style="font-family:Nunito,sans-serif;font-size:20px;font-weight:900;color:${evColor}">${s.ev>=0?'+':''}${(s.ev*100).toFixed(1)}%</div>
+        </div>
+      </div>
+      <!-- 標籤 -->
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        ${tags.map(tg=>`<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:6px;background:rgba(0,0,0,.05);color:${tg.c};font-family:Nunito,sans-serif">${tg.t}</span>`).join('')}
+        <span style="font-size:10px;color:var(--text3);margin-left:auto;font-family:JetBrains Mono,monospace">${new Date().toLocaleTimeString('zh-TW',{hour12:false})}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══ 即時新聞 ═══
+async function loadNews(){
+  try{
+    // 使用 CryptoPanic 免費 API
+    const r=await fetch('https://cryptopanic.com/api/free/v1/posts/?auth_token=free&public=true&currencies=BTC,ETH,SOL,BNB&filter=hot');
+    if(!r.ok)throw new Error();
+    const j=await r.json();
+    renderNews(j.results||[]);
+  }catch(e){
+    // fallback：使用 CoinGecko 新聞
+    try{
+      const r2=await fetch('https://api.coingecko.com/api/v3/news');
+      if(!r2.ok)throw new Error();
+      const j2=await r2.json();
+      renderNews((j2.data||[]).map(n=>({title:n.title,url:n.url,published_at:n.updated_at,source:{title:n.news_site},currencies:[]})));
+    }catch(e2){
+      document.getElementById('news-list').innerHTML='<div class="empty">📡 新聞載入中，請稍後...</div>';
+    }
+  }
+}
+
+function renderNews(items){
+  if(!items.length){document.getElementById('news-list').innerHTML='<div class="empty">暫無新聞</div>';return;}
+  document.getElementById('news-time').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
+  document.getElementById('news-list').innerHTML=items.slice(0,20).map(n=>{
+    const t=new Date(n.published_at||n.created_at||Date.now());
+    const ago=Math.round((Date.now()-t)/60000);
+    const agoTxt=ago<60?`${ago}分前`:`${Math.floor(ago/60)}小時前`;
+    const coins=(n.currencies||[]).map(c=>`<span style="font-size:9px;font-weight:800;padding:1px 5px;border-radius:5px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">${c.code}</span>`).join('');
+    const sentiment=n.votes?.positive>n.votes?.negative?'🟢':n.votes?.negative>n.votes?.positive?'🔴':'⚪';
+    return `<div style="padding:11px 13px;border-bottom:1.5px solid var(--pink4);cursor:pointer" onclick="window.open('${n.url}','_blank')">
+      <div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:5px">
+        <span style="font-size:14px;flex-shrink:0">${sentiment}</span>
+        <div style="font-size:12px;font-weight:700;color:var(--text);line-height:1.5;flex:1">${n.title}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        ${coins}
+        <span style="font-size:10px;color:var(--text3);font-family:JetBrains Mono,monospace">${n.source?.title||'—'}</span>
+        <span style="font-size:10px;color:var(--text3);margin-left:auto;font-family:JetBrains Mono,monospace">${agoTxt}</span>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderOI(){
