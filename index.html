@@ -843,26 +843,41 @@ async function loadNews(){
 }
 
 function renderNews(items){
-  if(!items.length){document.getElementById('news-list').innerHTML='<div class="empty">暫無新聞</div>';return;}
+  if(!items.length){document.getElementById('news-list').innerHTML='<div class="empty">暫無快訊</div>';return;}
   document.getElementById('news-time').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
-  document.getElementById('news-list').innerHTML=items.slice(0,20).map(n=>{
+
+  // 只顯示有幣種標記的新聞，並判斷利多/利空
+  const filtered=items.filter(n=>(n.currencies||[]).length>0||(n.title||'').match(/BTC|ETH|SOL|BNB|XRP|crypto|bitcoin|ethereum/i));
+  const rows=filtered.slice(0,30).map(n=>{
     const t=new Date(n.published_at||n.created_at||Date.now());
     const ago=Math.round((Date.now()-t)/60000);
     const agoTxt=ago<60?`${ago}分前`:`${Math.floor(ago/60)}小時前`;
-    const coins=(n.currencies||[]).map(c=>`<span style="font-size:9px;font-weight:800;padding:1px 5px;border-radius:5px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">${c.code}</span>`).join('');
-    const sentiment=n.votes?.positive>n.votes?.negative?'🟢':n.votes?.negative>n.votes?.positive?'🔴':'⚪';
-    return `<div style="padding:11px 13px;border-bottom:1.5px solid var(--pink4);cursor:pointer" onclick="window.open('${n.url}','_blank')">
-      <div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:5px">
-        <span style="font-size:14px;flex-shrink:0">${sentiment}</span>
-        <div style="font-size:12px;font-weight:700;color:var(--text);line-height:1.5;flex:1">${n.title}</div>
+    // 幣種
+    const coinList=(n.currencies||[]).map(c=>c.code||c).slice(0,4);
+    // 利多/利空判斷
+    const posV=n.votes?.positive||0, negV=n.votes?.negative||0;
+    const titleLow=(n.title||'').toLowerCase();
+    const bullWords=['surge','rally','bullish','buy','launch','partnership','approve','etf','adoption','all-time','record','upgrade'];
+    const bearWords=['crash','dump','bear','sell','hack','ban','fraud','liquidate','fear','drop','plunge','collapse'];
+    const hasBull=bullWords.some(w=>titleLow.includes(w));
+    const hasBear=bearWords.some(w=>titleLow.includes(w));
+    let sentiment, sentColor, sentBg;
+    if(posV>negV||hasBull){sentiment='📈 利多';sentColor='var(--green2)';sentBg='rgba(0,200,150,.08)';}
+    else if(negV>posV||hasBear){sentiment='📉 利空';sentColor='var(--red2)';sentBg='rgba(255,77,109,.08)';}
+    else{sentiment='📊 中性';sentColor='var(--text3)';sentBg='var(--pink5)';}
+    const coinsHtml=coinList.length>0
+      ?coinList.map(c=>`<span style="font-size:11px;font-weight:900;padding:2px 8px;border-radius:8px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">${c}</span>`).join('')
+      :`<span style="font-size:11px;font-weight:900;padding:2px 8px;border-radius:8px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">市場</span>`;
+    return `<div style="padding:11px 13px;border-bottom:1.5px solid var(--pink4);background:${sentBg};cursor:pointer" onclick="window.open('${n.url}','_blank')">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-size:12px;font-weight:900;padding:3px 10px;border-radius:20px;background:${sentBg};border:1.5px solid ${sentColor};color:${sentColor};font-family:Nunito,sans-serif;white-space:nowrap">${sentiment}</span>
+        ${coinsHtml}
+        <span style="font-size:10px;color:var(--text3);margin-left:auto;white-space:nowrap;font-family:JetBrains Mono,monospace">${agoTxt}</span>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-        ${coins}
-        <span style="font-size:10px;color:var(--text3);font-family:JetBrains Mono,monospace">${n.source?.title||'—'}</span>
-        <span style="font-size:10px;color:var(--text3);margin-left:auto;font-family:JetBrains Mono,monospace">${agoTxt}</span>
-      </div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.6">${n.title}</div>
     </div>`;
   }).join('');
+  document.getElementById('news-list').innerHTML=rows||'<div class="empty">暫無快訊</div>';
 }
 
 function renderOI(){
@@ -1255,42 +1270,63 @@ function renderRecs(){
 
   const makeRow=(c,i,type)=>{
     const sc=type==='long'?c.longScore:c.shortScore;
-    const px=c.current_price||0;
-    const ps=px>=1000?'$'+px.toLocaleString('en-US',{maximumFractionDigits:0}):px>=1?'$'+px.toLocaleString('en-US',{maximumFractionDigits:2}):'$'+px.toFixed(4);
     const vd=vegasData.find(v=>v.sym===c.symbol.toUpperCase());
     const rsi=getRSI(c.symbol);
     const fr=getFR(c.symbol);
-    const wr=estWinRate(c,type);
-    const evObj=computeEV(wr,2.0,0.03);
-    // 指標標籤
+    const oi=oiData.find(o=>o.sym.toLowerCase()===c.symbol.toLowerCase());
+    const volSpike=oi&&oi.vol>5000000;
+    // ── 綜合勝率（所有指標整合）──
+    let wr=0.40;
+    if(vd?.signal==='bull'&&type==='long')  wr+=0.10;
+    if(vd?.signal==='bear'&&type==='short') wr+=0.10;
+    if(vd?.step1&&vd?.step2&&vd?.step3)    wr+=0.08;
+    else if(vd?.step1&&vd?.step2)           wr+=0.04;
+    if(vd?.qqe4h?.isBull&&type==='long')   wr+=0.06;
+    if(vd?.qqe4h?.isBear&&type==='short')  wr+=0.06;
+    if(vd?.resonance>=2)                    wr+=0.05;
+    if(vd?.isPullbackSignal)                wr+=0.07;
+    if(rsi<32&&type==='long')               wr+=0.05;
+    if(rsi>68&&type==='short')              wr+=0.05;
+    if(fr!==null&&parseFloat(fr)<0&&type==='long')    wr+=0.04;
+    if(fr!==null&&parseFloat(fr)>0.01&&type==='short') wr+=0.04;
+    if(oi?.dir==='long'&&type==='long')     wr+=0.03;
+    if(oi?.dir==='short'&&type==='short')   wr+=0.03;
+    if(volSpike)                             wr+=0.03;
+    wr=Math.min(0.85,Math.max(0.35,wr));
+    // RR動態
+    const rr=(vd?.step1&&vd?.step2&&vd?.step3)?3.0:vd?.isPullbackSignal?2.5:2.0;
+    const ev=wr*(0.03*rr)-(1-wr)*0.03;
+    const evColor=ev>0?'var(--green2)':'var(--red2)';
+    const wrColor=wr>=0.70?'var(--green2)':wr>=0.60?'var(--gold)':'var(--text3)';
+    // 指標標籤（精簡）
     const tags=[];
-    if(vd&&vd.signal==='bull'&&type==='long') tags.push({t:'VEGAS✅',c:'var(--green2)'});
-    if(vd&&vd.signal==='bear'&&type==='short') tags.push({t:'VEGAS✅',c:'var(--red2)'});
-    if(vd?.step1&&vd?.step2&&vd?.step3) tags.push({t:'賽克斯3/3',c:'var(--green2)'});
-    else if(vd?.step1&&vd?.step2) tags.push({t:'賽克斯2/3',c:'var(--gold)'});
-    if(vd?.qqe4h?.isBull&&type==='long') tags.push({t:'QQE🔵',c:'var(--green2)'});
-    if(vd?.qqe4h?.isBear&&type==='short') tags.push({t:'QQE🔴',c:'var(--red2)'});
-    if(vd?.resonance>=2) tags.push({t:`共振${vd.resonance}TF`,c:'var(--purple)'});
-    if(rsi<32&&type==='long') tags.push({t:`RSI${rsi}超賣`,c:'var(--green2)'});
-    if(rsi>68&&type==='short') tags.push({t:`RSI${rsi}超買`,c:'var(--red2)'});
-    if(fr!==null&&parseFloat(fr)<0&&type==='long') tags.push({t:'負費率',c:'var(--green2)'});
-    if(fr!==null&&parseFloat(fr)>0.01&&type==='short') tags.push({t:'高費率',c:'var(--red2)'});
-    const evColor=evObj.ev>0?'var(--green2)':'var(--red2)';
-    return `<div style="background:var(--white);border-bottom:1.5px solid var(--pink4);padding:10px 13px;cursor:pointer;transition:background .15s" onclick="openScoreDetail('${c.id}','${type}')" onmouseenter="this.style.background='var(--pink5)'" onmouseleave="this.style.background='var(--white)'">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <span style="font-size:14px">${ranks[i]}</span>
-        <span style="font-family:Nunito,sans-serif;font-size:17px;font-weight:900">${c.symbol.toUpperCase()}</span>
-        <span style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--text3)">${ps}</span>
-        <span style="margin-left:auto;font-family:JetBrains Mono,monospace;font-size:12px;font-weight:700" class="${c.ch>=0?'up':'dn'}">${c.ch>=0?'+':''}${c.ch.toFixed(2)}%</span>
+    if(vd?.signal==='bull'&&type==='long'||vd?.signal==='bear'&&type==='short') tags.push('VEGAS');
+    if(vd?.step1&&vd?.step2&&vd?.step3) tags.push('賽3/3');
+    else if(vd?.step1&&vd?.step2) tags.push('賽2/3');
+    if(vd?.resonance>=2) tags.push(`共振${vd.resonance}TF`);
+    if(vd?.isPullbackSignal) tags.push('回踩');
+    if(rsi<32&&type==='long') tags.push(`RSI${rsi}`);
+    if(rsi>68&&type==='short') tags.push(`RSI${rsi}`);
+    if(volSpike) tags.push('量增');
+    return `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1.5px solid var(--pink4);cursor:pointer;padding:10px 8px;align-items:center;transition:background .15s" onclick="openScoreDetail('${c.id}','${type}')" onmouseenter="this.style.background='var(--pink5)'" onmouseleave="this.style.background=''">
+      <div style="display:flex;align-items:center;gap:5px">
+        <span style="font-size:12px">${ranks[i]}</span>
+        <div>
+          <div style="font-family:Nunito,sans-serif;font-size:15px;font-weight:900">${c.symbol.toUpperCase()}</div>
+          <div style="font-size:10px;font-weight:700" class="${c.ch>=0?'up':'dn'}">${c.ch>=0?'+':''}${c.ch.toFixed(1)}%</div>
+        </div>
       </div>
-      <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
-        <div style="background:${type==='long'?'var(--greenb)':'var(--redb)'};border-radius:20px;padding:2px 10px;font-size:11px;font-weight:900;font-family:Nunito,sans-serif;color:${type==='long'?'var(--green2)':'var(--red2)'}">推薦分 ${sc}</div>
-        <div style="background:${evObj.ev>0?'var(--greenb)':'var(--redb)'};border-radius:20px;padding:2px 10px;font-size:11px;font-weight:900;font-family:Nunito,sans-serif;color:${evColor}">EV ${evObj.ev>=0?'+':''}${(evObj.ev*100).toFixed(1)}%</div>
-        <div style="background:var(--pink4);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:900;font-family:Nunito,sans-serif;color:var(--text2)">勝率 ${(wr*100).toFixed(0)}%</div>
+      <div style="text-align:center">
+        <div style="font-family:Nunito,sans-serif;font-size:17px;font-weight:900;color:${wrColor}">${Math.round(wr*100)}%</div>
       </div>
-      <div style="display:flex;gap:4px;flex-wrap:wrap">
-        ${tags.map(tg=>`<span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;background:rgba(0,0,0,.04);color:${tg.c};font-family:Nunito,sans-serif">${tg.t}</span>`).join('')}
-        ${tags.length===0?'<span style="font-size:10px;color:var(--text3);font-family:Nunito,sans-serif">等待更多確認訊號...</span>':''}
+      <div style="text-align:center">
+        <div style="font-family:Nunito,sans-serif;font-size:14px;font-weight:900;color:${evColor}">${ev>=0?'+':''}${(ev*100).toFixed(1)}%</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-family:Nunito,sans-serif;font-size:15px;font-weight:900;color:var(--gold)">${rr.toFixed(1)}:1</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end">
+        ${tags.slice(0,3).map(t=>`<span style="font-size:9px;font-weight:800;padding:1px 5px;border-radius:5px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">${t}</span>`).join('')}
       </div>
     </div>`;
   };
@@ -1299,7 +1335,14 @@ function renderRecs(){
     <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);margin-bottom:10px">
       <div style="padding:10px 13px;border-bottom:1.5px solid var(--pink4);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--pink5),var(--white))">
         <div style="font-family:Nunito,sans-serif;font-size:14px;font-weight:900;color:${type==='long'?'var(--green2)':'var(--red2)'}">${type==='long'?'🚀 做多推薦 Top5':'📉 做空推薦 Top5'}</div>
-        <div style="font-size:10px;color:var(--text3);font-weight:700">點擊查看詳情 👆</div>
+        <div style="font-size:10px;color:var(--text3);font-weight:700">綜合勝率評比 👆</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1.5px solid var(--pink4);background:var(--pink5)">
+        <div style="padding:5px 8px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif">幣種</div>
+        <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">勝率</div>
+        <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">EV</div>
+        <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">RR</div>
+        <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">指標</div>
       </div>
       ${items.map((c,i)=>makeRow(c,i,type)).join('')}
     </div>`;
