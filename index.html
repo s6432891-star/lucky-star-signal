@@ -1058,28 +1058,62 @@ function scoreAll(){
 // ═══ RECS ═══
 function renderRecs(){
   if(!scoredCoins.length)return;
-  const longs=[...scoredCoins].sort((a,b)=>b.longScore-a.longScore).slice(0,3);
-  const shorts=[...scoredCoins].sort((a,b)=>b.shortScore-a.shortScore).slice(0,3);
-  const ranks=['🥇','🥈','🥉'];
-  const makeSection=(items,type)=>{
-    const rows=items.map((c,i)=>{
-      const sc=type==='long'?c.longScore:c.shortScore,px=c.current_price||0;
-      const ps=px>=1000?'$'+px.toLocaleString('en-US',{maximumFractionDigits:0}):px>=1?'$'+px.toLocaleString('en-US',{maximumFractionDigits:3}):'$'+px.toFixed(5);
-      const bars=Array.from({length:7},(_,j)=>`<div class="sb ${j<Math.round(sc/14.3)?(type==='long'?'g':'r'):'e'}"></div>`).join('');
-      return `<div class="rec-row" onclick="openScoreDetail('${c.id}','${type}')">
-        <div><span style="font-size:13px">${ranks[i]}</span> <span class="rsym">${c.symbol.toUpperCase()}</span></div>
-        <div class="rpx">${ps}</div>
-        <div class="sbars">${bars}</div>
-        <div class="rchg ${c.ch>=0?'up':'dn'}">${c.ch>=0?'+':''}${c.ch.toFixed(2)}%</div>
-      </div>`;
-    }).join('');
-    return `<div class="rec-sec">
-      <div class="rec-sh"><div class="rst ${type}">${type==='long'?'🚀 做多推薦':'📉 做空推薦'}</div><div style="font-size:9px;color:var(--text3);font-weight:700">點擊查看詳情 👆</div></div>
-      <div class="rec-cols"><div class="rch">幣種</div><div class="rch">價格</div><div class="rch">推薦指數</div><div class="rch" style="text-align:right">漲跌</div></div>
-      ${rows}
+  const longs=[...scoredCoins].sort((a,b)=>b.longScore-a.longScore).slice(0,5);
+  const shorts=[...scoredCoins].sort((a,b)=>b.shortScore-a.shortScore).slice(0,5);
+  const ranks=['🥇','🥈','🥉','4️⃣','5️⃣'];
+
+  const makeRow=(c,i,type)=>{
+    const sc=type==='long'?c.longScore:c.shortScore;
+    const px=c.current_price||0;
+    const ps=px>=1000?'$'+px.toLocaleString('en-US',{maximumFractionDigits:0}):px>=1?'$'+px.toLocaleString('en-US',{maximumFractionDigits:2}):'$'+px.toFixed(4);
+    const vd=vegasData.find(v=>v.sym===c.symbol.toUpperCase());
+    const rsi=getRSI(c.symbol);
+    const fr=getFR(c.symbol);
+    const wr=estWinRate(c,type);
+    const evObj=computeEV(wr,2.0,0.03);
+    // 指標標籤
+    const tags=[];
+    if(vd&&vd.signal==='bull'&&type==='long') tags.push({t:'VEGAS✅',c:'var(--green2)'});
+    if(vd&&vd.signal==='bear'&&type==='short') tags.push({t:'VEGAS✅',c:'var(--red2)'});
+    if(vd?.step1&&vd?.step2&&vd?.step3) tags.push({t:'賽克斯3/3',c:'var(--green2)'});
+    else if(vd?.step1&&vd?.step2) tags.push({t:'賽克斯2/3',c:'var(--gold)'});
+    if(vd?.qqe4h?.isBull&&type==='long') tags.push({t:'QQE🔵',c:'var(--green2)'});
+    if(vd?.qqe4h?.isBear&&type==='short') tags.push({t:'QQE🔴',c:'var(--red2)'});
+    if(vd?.resonance>=2) tags.push({t:`共振${vd.resonance}TF`,c:'var(--purple)'});
+    if(rsi<32&&type==='long') tags.push({t:`RSI${rsi}超賣`,c:'var(--green2)'});
+    if(rsi>68&&type==='short') tags.push({t:`RSI${rsi}超買`,c:'var(--red2)'});
+    if(fr!==null&&parseFloat(fr)<0&&type==='long') tags.push({t:'負費率',c:'var(--green2)'});
+    if(fr!==null&&parseFloat(fr)>0.01&&type==='short') tags.push({t:'高費率',c:'var(--red2)'});
+    const evColor=evObj.ev>0?'var(--green2)':'var(--red2)';
+    return `<div style="background:var(--white);border-bottom:1.5px solid var(--pink4);padding:10px 13px;cursor:pointer;transition:background .15s" onclick="openScoreDetail('${c.id}','${type}')" onmouseenter="this.style.background='var(--pink5)'" onmouseleave="this.style.background='var(--white)'">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-size:14px">${ranks[i]}</span>
+        <span style="font-family:Nunito,sans-serif;font-size:17px;font-weight:900">${c.symbol.toUpperCase()}</span>
+        <span style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--text3)">${ps}</span>
+        <span style="margin-left:auto;font-family:JetBrains Mono,monospace;font-size:12px;font-weight:700" class="${c.ch>=0?'up':'dn'}">${c.ch>=0?'+':''}${c.ch.toFixed(2)}%</span>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
+        <div style="background:${type==='long'?'var(--greenb)':'var(--redb)'};border-radius:20px;padding:2px 10px;font-size:11px;font-weight:900;font-family:Nunito,sans-serif;color:${type==='long'?'var(--green2)':'var(--red2)'}">推薦分 ${sc}</div>
+        <div style="background:${evObj.ev>0?'var(--greenb)':'var(--redb)'};border-radius:20px;padding:2px 10px;font-size:11px;font-weight:900;font-family:Nunito,sans-serif;color:${evColor}">EV ${evObj.ev>=0?'+':''}${(evObj.ev*100).toFixed(1)}%</div>
+        <div style="background:var(--pink4);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:900;font-family:Nunito,sans-serif;color:var(--text2)">勝率 ${(wr*100).toFixed(0)}%</div>
+      </div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        ${tags.map(tg=>`<span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;background:rgba(0,0,0,.04);color:${tg.c};font-family:Nunito,sans-serif">${tg.t}</span>`).join('')}
+        ${tags.length===0?'<span style="font-size:10px;color:var(--text3);font-family:Nunito,sans-serif">等待更多確認訊號...</span>':''}
+      </div>
     </div>`;
   };
-  document.getElementById('rec-wrap').innerHTML=makeSection(longs,'long')+makeSection(shorts,'short');
+
+  const makeSection=(items,type)=>`
+    <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);margin-bottom:10px">
+      <div style="padding:10px 13px;border-bottom:1.5px solid var(--pink4);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--pink5),var(--white))">
+        <div style="font-family:Nunito,sans-serif;font-size:14px;font-weight:900;color:${type==='long'?'var(--green2)':'var(--red2)'}">${type==='long'?'🚀 做多推薦 Top5':'📉 做空推薦 Top5'}</div>
+        <div style="font-size:10px;color:var(--text3);font-weight:700">點擊查看詳情 👆</div>
+      </div>
+      ${items.map((c,i)=>makeRow(c,i,type)).join('')}
+    </div>`;
+
+  document.getElementById('rec-wrap').innerHTML=`<div style="display:flex;flex-direction:column;gap:0">${makeSection(longs,'long')}${makeSection(shorts,'short')}</div>`;
 }
 
 // ═══ SAEK SIGNAL ═══
