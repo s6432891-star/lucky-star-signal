@@ -1926,11 +1926,7 @@ function openScoreDetail(coinId, type) {
   openMOVEDetail(sym, type, v, c);
 }
 
-async function openMOVEDetail(sym, type, v, c) {
-  // 即時抓取 FR + L/S（不依賴預載快取）
-  const [frLive, lsLive] = await Promise.all([fetchFR(sym), fetchLS(sym)]);
-  if(frLive!==null) { if(!realInd[sym])realInd[sym]={}; realInd[sym].fr=frLive; }
-  if(lsLive!==null) { if(!realInd[sym])realInd[sym]={}; realInd[sym].lsRatio=lsLive; }
+function openMOVEDetail(sym, type, v, c) {
   const px = c?.current_price || v?.price || 0;
   const ps = px >= 1000 ? '$' + Number(px).toLocaleString('en-US', {maximumFractionDigits:0})
            : px >= 1    ? '$' + Number(px).toLocaleString('en-US', {maximumFractionDigits:3})
@@ -2165,8 +2161,8 @@ async function openMOVEDetail(sym, type, v, c) {
         <div class="tc2"><div class="tc2-n">RSI(14)</div><div class="tc2-v" style="color:${rsiCls==='bull'?'var(--green2)':rsiCls==='bear'?'var(--red2)':'var(--gold)'}">${rsi_val}</div><div class="tc2-s ${rsiCls}">${rsiLbl}</div><div class="tc2-d">${rsi_val<30?'超賣，反彈機率高':rsi_val>70?'超買，小心回調':'動能中性'}</div></div>
         <div class="tc2"><div class="tc2-n">MACD</div><div class="tc2-v" style="color:${macd_obj.cls==='bull'?'var(--green2)':macd_obj.cls==='bear'?'var(--red2)':'var(--gold)'}">${macd_obj.hist}</div><div class="tc2-s ${macd_obj.cls}">${macd_obj.signal}</div><div class="tc2-d">${macd_obj.cls==='bull'?'動能轉多':macd_obj.cls==='bear'?'動能轉空':'整理中'}</div></div>
         <div class="tc2"><div class="tc2-n">布林帶</div><div class="tc2-v" style="font-size:11px;color:${boll_obj.cls==='bull'?'var(--green2)':boll_obj.cls==='bear'?'var(--red2)':'var(--gold)'}">${boll_obj.label}</div><div class="tc2-s ${boll_obj.cls}">${boll_obj.cls==='bull'?'偏多':boll_obj.cls==='bear'?'偏空':'整理'}</div><div class="tc2-d">${boll_obj.desc}</div></div>
-        <div class="tc2"><div class="tc2-n">資金費率 FR</div><div class="tc2-v" style="font-size:11px;color:${frCls==='bull'?'var(--green2)':frCls==='bear'?'var(--red2)':'var(--gold)'}">${frRaw!==null?(parseFloat(frRaw)*100).toFixed(4)+'%':'—'}</div><div class="tc2-s ${frCls}">${frRaw===null?'載入中':parseFloat(frRaw)>0.01?'偏高':parseFloat(frRaw)<0?'負費率':'中性'}</div><div class="tc2-d">${frRaw!==null?(parseFloat(frRaw)>0?'做多方付費':'做空方付費'):'—'}</div></div>
-        <div class="tc2"><div class="tc2-n">多空比 L/S</div><div class="tc2-v" style="font-size:11px;color:${lsCls==='bull'?'var(--green2)':lsCls==='bear'?'var(--red2)':'var(--gold)'}">${lsRaw!==null?`${(lsRaw*100).toFixed(0)}%`:'—'}</div><div class="tc2-s ${lsCls}">${lsRaw===null?'載入中':lsRaw*100>55?'偏多':lsRaw*100<45?'偏空':'均衡'}</div><div class="tc2-d">${lsRaw!==null?`多${(lsRaw*100).toFixed(0)}% / 空${((1-lsRaw)*100).toFixed(0)}%`:'—'}</div></div>
+        <div class="tc2" id="modal-fr-cell"><div class="tc2-n">資金費率 FR</div><div class="tc2-v" style="font-size:11px;color:var(--gold)">—</div><div class="tc2-s neu" style="display:flex;align-items:center;gap:3px"><div class="spin" style="width:8px;height:8px;border-width:1.5px"></div>抓取中</div><div class="tc2-d">—</div></div>
+        <div class="tc2" id="modal-ls-cell"><div class="tc2-n">多空比 L/S</div><div class="tc2-v" style="font-size:11px;color:var(--gold)">—</div><div class="tc2-s neu" style="display:flex;align-items:center;gap:3px"><div class="spin" style="width:8px;height:8px;border-width:1.5px"></div>抓取中</div><div class="tc2-d">—</div></div>
         <div class="tc2"><div class="tc2-n">相對強弱</div><div class="tc2-v" style="font-size:11px;color:${relBTC>=0?'var(--green2)':'var(--red2)'}">${relBTC>=0?'+':''}${relBTC.toFixed(2)}%</div><div class="tc2-s ${relBTC>=0?'bull':'bear'}">${relBTC>=0?'強於BTC':'弱於BTC'}</div><div class="tc2-d">vs BTC 24H</div></div>
       </div>
     </div>
@@ -2194,8 +2190,42 @@ async function openMOVEDetail(sym, type, v, c) {
     </div>`;
 
   document.getElementById('modal').classList.add('open');
-  // 非同步載入該幣種新聞
+  // 非同步載入新聞 + FR + LS
   loadCoinNews(sym);
+  fetchAndUpdateFRLS(sym, type);
+}
+
+async function fetchAndUpdateFRLS(sym, type) {
+  const [fr, ls] = await Promise.all([
+    fetchFR(sym),
+    fetchLS(sym)
+  ]);
+
+  // 更新 FR 格子
+  const frCell = document.getElementById('modal-fr-cell');
+  if (frCell) {
+    const frNum = fr !== null ? parseFloat(fr) : null;
+    const frCls = frNum === null ? 'neu' : frNum > 0.01 ? 'bear' : frNum < 0 ? 'bull' : 'neu';
+    const frColor = frCls==='bull'?'var(--green2)':frCls==='bear'?'var(--red2)':'var(--gold)';
+    frCell.innerHTML = `
+      <div class="tc2-n">資金費率 FR</div>
+      <div class="tc2-v" style="font-size:11px;color:${frColor}">${frNum!==null?(frNum*100).toFixed(4)+'%':'無數據'}</div>
+      <div class="tc2-s ${frCls}">${frNum===null?'無數據':frNum>0.01?'偏高':frNum<0?'負費率':'中性'}</div>
+      <div class="tc2-d">${frNum!==null?(frNum>0?'做多方付費':'做空方付費'):'此幣無合約數據'}</div>`;
+  }
+
+  // 更新 LS 格子
+  const lsCell = document.getElementById('modal-ls-cell');
+  if (lsCell) {
+    const lsNum = ls !== null ? parseFloat(ls) : null;
+    const lsCls = lsNum === null ? 'neu' : lsNum > 0.55 ? 'bull' : lsNum < 0.45 ? 'bear' : 'neu';
+    const lsColor = lsCls==='bull'?'var(--green2)':lsCls==='bear'?'var(--red2)':'var(--gold)';
+    lsCell.innerHTML = `
+      <div class="tc2-n">多空比 L/S</div>
+      <div class="tc2-v" style="font-size:11px;color:${lsColor}">${lsNum!==null?(lsNum*100).toFixed(0)+'%':'無數據'}</div>
+      <div class="tc2-s ${lsCls}">${lsNum===null?'無數據':lsNum>0.55?'偏多':lsNum<0.45?'偏空':'均衡'}</div>
+      <div class="tc2-d">${lsNum!==null?`多 ${(lsNum*100).toFixed(0)}% / 空 ${((1-lsNum)*100).toFixed(0)}%`:'Binance無此幣數據'}</div>`;
+  }
 }
 
 // ── 幣種快訊 + 利多利空指數 ──
