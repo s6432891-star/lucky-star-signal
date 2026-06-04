@@ -735,66 +735,104 @@ async function loadOI(){
   }catch(e){document.getElementById('oitbl').innerHTML='<div class="empty">⚠️ OKX API 錯誤</div>';}
 }
 
+// ═══ 量價型態偵測（6大型態）═══
+function detectVolPattern(a, vd){
+  const pchg=a.pchg, vol=a.vol, pos=a.pos;
+  // 放量突破：漲幅>3% + 大量 + 在高位
+  if(pchg>3&&vol>5000000&&pos>0.7)
+    return{name:'🚀 放量突破',desc:'量價齊升，多頭啟動',signal:'long',wr:0.72,rr:2.5,color:'var(--green2)',bg:'rgba(0,200,150,.08)'};
+  // 爆量長黑：跌幅>5% + 極大量
+  if(pchg<-5&&vol>8000000)
+    return{name:'💥 爆量長黑',desc:'空方極強，避免追空，等反彈',signal:'watch',wr:0.45,rr:1.5,color:'var(--red2)',bg:'rgba(255,77,109,.08)'};
+  // 天量天價：極大量 + 接近高點 → 可能反轉
+  if(vol>20000000&&pos>0.85&&pchg>2)
+    return{name:'⚠️ 天量天價',desc:'可能見頂，分批獲利，注意反轉',signal:'exit',wr:0.55,rr:1.5,color:'var(--gold)',bg:'var(--goldb)'};
+  // 縮量整理：小幅變動 + 量縮 → 蓄勢
+  if(Math.abs(pchg)<2&&vol<2000000&&vol>500000)
+    return{name:'⏸ 縮量整理',desc:'蓄勢待發，等放量突破方向再進',signal:'wait',wr:0.50,rr:2.0,color:'var(--text3)',bg:'var(--pink5)'};
+  // 價跌量縮：跌幅<-2% + 量也縮 → 接近底部
+  if(pchg<-2&&pchg>-5&&vol<3000000&&pos<0.3)
+    return{name:'📉 價跌量縮',desc:'賣壓減弱，接近底部，等反彈確認',signal:'watch_long',wr:0.62,rr:2.0,color:'var(--gold)',bg:'var(--goldb)'};
+  // 放量上漲：漲幅>2% + 一般量
+  if(pchg>2&&vol>3000000)
+    return{name:'📈 量增價漲',desc:'有量支撐，多頭延續',signal:'long',wr:0.65,rr:2.0,color:'var(--green2)',bg:'rgba(0,200,150,.06)'};
+  // 放量下跌
+  if(pchg<-2&&vol>3000000)
+    return{name:'📉 量增價跌',desc:'有量支撐空方，空頭延續',signal:'short',wr:0.63,rr:2.0,color:'var(--red2)',bg:'rgba(255,77,109,.06)'};
+  return null;
+}
+
 // ═══ 成交量暴增偵測 ═══
 function renderVolSpike(){
-  // 從 oiData 找出成交量異常大的幣（對比基準：score高+vol大）
-  const spikes = oiData
-    .filter(a=>a.vol>2000000) // 24H量>200萬U才計算
+  const results = oiData
+    .filter(a=>a.vol>500000)
     .map(a=>{
       const vd = vegasData.find(v=>v.sym===a.sym);
-      const vegasAlign = vd && ((a.dir==='long'&&vd.signal==='bull')||(a.dir==='short'&&vd.signal==='bear'));
-      const qqeAlign = vd && ((a.dir==='long'&&vd.qqe4h?.isBull)||(a.dir==='short'&&vd.qqe4h?.isBear));
+      const pat = detectVolPattern(a, vd);
+      if(!pat)return null;
+      const vegasAlign = vd && (
+        (pat.signal==='long'&&vd.signal==='bull')||
+        (pat.signal==='short'&&vd.signal==='bear')
+      );
+      const qqeAlign = vd && (
+        (pat.signal==='long'&&vd.qqe4h?.isBull)||
+        (pat.signal==='short'&&vd.qqe4h?.isBear)
+      );
       const pullback = vd?.isPullbackSignal;
-      // 勝率估算
-      let wr = 0.45;
-      if(vegasAlign) wr+=0.12;
-      if(qqeAlign)   wr+=0.08;
-      if(pullback)   wr+=0.10;
-      if(Math.abs(a.pchg)>5) wr+=0.05;
-      if(a.dir!=='neu') wr+=0.05;
-      wr = Math.min(0.82, wr);
-      // RR 建議（基於成交量動能）
-      const rr = Math.abs(a.pchg)>8?3.0:Math.abs(a.pchg)>5?2.5:2.0;
-      // EV
-      const q=1-wr, ev=wr*(0.03*rr)-q*0.03;
-      // 成交量等級
-      const volB = a.vol>=50000000?'🔥🔥🔥 巨量':a.vol>=10000000?'🔥🔥 大量':a.vol>=2000000?'🔥 放量':'正常';
-      return{...a,wr,rr,ev,vegasAlign,qqeAlign,pullback,volB};
+      // 勝率加成
+      let wr = pat.wr;
+      if(vegasAlign) wr+=0.06;
+      if(qqeAlign)   wr+=0.04;
+      if(pullback&&pat.signal==='long') wr+=0.05;
+      wr=Math.min(0.85,wr);
+      const ev=wr*(0.03*pat.rr)-(1-wr)*0.03;
+      return{...a,pat,vegasAlign,qqeAlign,pullback,wr,ev};
     })
-    .filter(a=>a.dir!=='neu'&&a.ev>0)
+    .filter(Boolean)
+    .filter(a=>a.pat.signal!=='watch')
     .sort((a,b)=>b.wr-a.wr)
     .slice(0,20);
 
-  document.getElementById('flash-cnt').textContent=spikes.length;
+  document.getElementById('flash-cnt').textContent=results.length;
   document.getElementById('vol-time').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
 
-  if(!spikes.length){
-    document.getElementById('vol-list').innerHTML='<div class="empty">目前無成交量異常訊號</div>';
+  if(!results.length){
+    document.getElementById('vol-list').innerHTML='<div class="empty">目前無成交量訊號</div>';
     return;
   }
-  document.getElementById('vol-list').innerHTML=spikes.map(s=>{
-    const isLong=s.dir==='long';
-    const typeColor=isLong?'var(--green2)':'var(--red2)';
-    const typeBg=isLong?'rgba(0,200,150,.06)':'rgba(255,77,109,.06)';
-    const wrColor=s.wr>=0.70?'var(--green2)':s.wr>=0.60?'var(--gold)':'var(--text2)';
-    const evColor=s.ev>0?'var(--green2)':'var(--red2)';
+  document.getElementById('vol-list').innerHTML=results.map(s=>{
+    const p=s.pat;
+    const wrColor=s.wr>=0.70?'var(--green2)':s.wr>=0.60?'var(--gold)':'var(--text3)';
     const tags=[];
     if(s.vegasAlign) tags.push({t:'VEGAS✅',c:'var(--green2)'});
-    if(s.qqeAlign)   tags.push({t:'QQE同步',c:isLong?'var(--green2)':'var(--red2)'});
+    if(s.qqeAlign)   tags.push({t:'QQE✅',c:'var(--green2)'});
     if(s.pullback)   tags.push({t:'通道回踩',c:'var(--purple)'});
-    return `<div style="border-bottom:1.5px solid var(--pink4);padding:12px 14px;background:${typeBg}">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+    if(s.pat.signal==='long') tags.push({t:'做多',c:'var(--green2)'});
+    if(s.pat.signal==='short') tags.push({t:'做空',c:'var(--red2)'});
+    return `<div style="border-bottom:1.5px solid var(--pink4);padding:12px 14px;background:${p.bg};cursor:pointer" onclick="openVegasDetail('${s.sym}')">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
         <span style="font-family:Nunito,sans-serif;font-size:18px;font-weight:900">${s.sym}</span>
-        <span style="padding:3px 9px;border-radius:12px;font-size:11px;font-weight:900;font-family:Nunito,sans-serif;background:${isLong?'var(--greenb)':'var(--redb)'};color:${typeColor}">${isLong?'🚀 做多':'📉 做空'}</span>
+        <span style="font-size:12px;font-weight:900;padding:3px 9px;border-radius:12px;background:${p.bg};border:1.5px solid ${p.color};color:${p.color};font-family:Nunito,sans-serif">${p.name}</span>
         <span style="margin-left:auto;font-family:Nunito,sans-serif;font-size:13px;font-weight:800" class="${s.pchg>=0?'up':'dn'}">${s.pchg>=0?'+':''}${s.pchg.toFixed(2)}%</span>
       </div>
-      <!-- 成交量 + 標籤 -->
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:9px;padding:5px 11px;font-size:12px;color:var(--text2)">
-          ${s.volB} &nbsp;｜&nbsp; <strong style="font-family:JetBrains Mono,monospace">${(s.vol/1e6).toFixed(1)}M</strong> U
+      <div style="font-size:12px;color:var(--text2);margin-bottom:7px;line-height:1.5">${p.desc}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:7px">
+        <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:8px;padding:6px;text-align:center">
+          <div style="font-size:9px;color:var(--text3);font-family:Nunito;font-weight:700">勝率</div>
+          <div style="font-family:Nunito,sans-serif;font-size:17px;font-weight:900;color:${wrColor}">${Math.round(s.wr*100)}%</div>
         </div>
-        ${tags.map(tg=>`<span style="font-size:10px;font-weight:800;padding:3px 8px;border-radius:8px;background:rgba(0,0,0,.05);color:${tg.c};font-family:Nunito,sans-serif">${tg.t}</span>`).join('')}
-        <span style="font-size:10px;color:var(--text3);margin-left:auto;font-family:JetBrains Mono,monospace">${new Date().toLocaleTimeString('zh-TW',{hour12:false})}</span>
+        <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:8px;padding:6px;text-align:center">
+          <div style="font-size:9px;color:var(--text3);font-family:Nunito;font-weight:700">RR</div>
+          <div style="font-family:Nunito,sans-serif;font-size:17px;font-weight:900;color:var(--gold)">${p.rr}:1</div>
+        </div>
+        <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:8px;padding:6px;text-align:center">
+          <div style="font-size:9px;color:var(--text3);font-family:Nunito;font-weight:700">24H量</div>
+          <div style="font-family:Nunito,sans-serif;font-size:14px;font-weight:900;color:${p.color}">${(s.vol/1e6).toFixed(0)}M</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+        ${tags.map(t=>`<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:6px;background:rgba(0,0,0,.05);color:${t.c};font-family:Nunito">${t.t}</span>`).join('')}
+        <span style="font-size:10px;color:var(--text3);margin-left:auto;font-family:JetBrains Mono">${new Date().toLocaleTimeString('zh-TW',{hour12:false})}</span>
       </div>
     </div>`;
   }).join('');
