@@ -1507,9 +1507,10 @@ function renderRecs(){
         if(type==='long')  wr -= 0.08;
         if(type==='short') wr += 0.05; // 做空反而有利
       }
-      if(volPat.signal==='watch'&&type==='long'){
-        // 爆量長黑：空方極強，做多危險
-        wr -= 0.07;
+      if(volPat.signal==='watch'){
+        // 爆量長黑：空方極強
+        if(type==='long')  wr -= 0.07; // 做多危險
+        if(type==='short') wr += 0.07; // 做空順勢加分
       }
       // 縮量整理：中性，等方向確認
       // 低量上漲：做多不加分（缺支撐）
