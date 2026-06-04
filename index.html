@@ -1915,7 +1915,11 @@ function openScoreDetail(coinId, type) {
   openMOVEDetail(sym, type, v, c);
 }
 
-function openMOVEDetail(sym, type, v, c) {
+async function openMOVEDetail(sym, type, v, c) {
+  // 即時抓取 FR + L/S（不依賴預載快取）
+  const [frLive, lsLive] = await Promise.all([fetchFR(sym), fetchLS(sym)]);
+  if(frLive!==null) { if(!realInd[sym])realInd[sym]={}; realInd[sym].fr=frLive; }
+  if(lsLive!==null) { if(!realInd[sym])realInd[sym]={}; realInd[sym].lsRatio=lsLive; }
   const px = c?.current_price || v?.price || 0;
   const ps = px >= 1000 ? '$' + Number(px).toLocaleString('en-US', {maximumFractionDigits:0})
            : px >= 1    ? '$' + Number(px).toLocaleString('en-US', {maximumFractionDigits:3})
