@@ -830,45 +830,51 @@ async function loadNews(){
 function renderNews(items){
   if(!items||!items.length){renderNewsFromMarket();return;}
   document.getElementById('news-time').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
-  window._newsCache=[];
-  const bullWords=['surge','rally','bullish','buy','launch','partnership','approve','etf','adoption','record','upgrade','pump','breakout','high'];
-  const bearWords=['crash','dump','bear','sell','hack','ban','fraud','liquidate','fear','drop','plunge','collapse','low','bearish'];
-  const rows=items.slice(0,30).map((n,idx)=>{
+  const bullWords=['surge','rally','bullish','buy','launch','approve','etf','adoption','record','upgrade','pump','breakout'];
+  const bearWords=['crash','dump','bear','sell','hack','ban','fraud','liquidate','fear','drop','plunge','collapse','bearish'];
+  // 全域儲存
+  window._NC=items.slice(0,30).map(n=>{
+    const coinList=(n.currencies||[]).map(c=>c.code||c).filter(c=>c.length<=8).slice(0,4);
+    const tl=(n.title||'').toLowerCase();
+    const posV=n.votes?.positive||0,negV=n.votes?.negative||0;
+    const hasBull=bullWords.some(w=>tl.includes(w))||posV>negV;
+    const hasBear=bearWords.some(w=>tl.includes(w))||negV>posV;
     const t=new Date(n.published_at||n.created_at||Date.now());
     const ago=Math.round((Date.now()-t)/60000);
-    const agoTxt=ago<60?`${ago}分前`:`${Math.floor(ago/60)}小時前`;
-    const coinList=(n.currencies||[]).map(c=>c.code||c).slice(0,4);
-    const posV=n.votes?.positive||0, negV=n.votes?.negative||0;
-    const titleLow=(n.title||'').toLowerCase();
-    const hasBull=bullWords.some(w=>titleLow.includes(w))||posV>negV;
-    const hasBear=bearWords.some(w=>titleLow.includes(w))||negV>posV;
-    let sentiment, sentColor, sentBg;
-    if(hasBull&&!hasBear){sentiment='📈 利多';sentColor='var(--green2)';sentBg='rgba(0,200,150,.08)';}
-    else if(hasBear&&!hasBull){sentiment='📉 利空';sentColor='var(--red2)';sentBg='rgba(255,77,109,.08)';}
-    else{sentiment='📊 中性';sentColor='var(--gold)';sentBg='var(--pink5)';}
-    // 存入快取
-    window._newsCache[idx]={title:n.title,url:n.url||'#',coins:coinList,sentiment,sentColor,sentBg,agoTxt,source:n.source?.title||''};
-    const coinsHtml=coinList.length>0
-      ?coinList.map(c=>`<span style="font-size:11px;font-weight:900;padding:2px 8px;border-radius:8px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">${c}</span>`).join('')
-      :`<span style="font-size:11px;font-weight:900;padding:2px 8px;border-radius:8px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">市場</span>`;
-    return `<div style="padding:11px 13px;border-bottom:1.5px solid var(--pink4);background:${sentBg};cursor:pointer" onclick="openNewsSummary(${idx})">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <span style="font-size:12px;font-weight:900;padding:3px 10px;border-radius:20px;background:${sentBg};border:1.5px solid ${sentColor};color:${sentColor};font-family:Nunito,sans-serif;white-space:nowrap">${sentiment}</span>
-        ${coinsHtml}
-        <span style="font-size:10px;color:var(--text3);margin-left:auto;white-space:nowrap;font-family:JetBrains Mono,monospace">${agoTxt}</span>
+    return{
+      title:n.title||'',url:n.url||'#',
+      coins:coinList,
+      sentiment:hasBull&&!hasBear?'📈 利多':hasBear&&!hasBull?'📉 利空':'📊 中性',
+      sentColor:hasBull&&!hasBear?'var(--green2)':hasBear&&!hasBull?'var(--red2)':'var(--gold)',
+      sentBg:hasBull&&!hasBear?'rgba(0,200,150,.08)':hasBear&&!hasBull?'rgba(255,77,109,.08)':'var(--pink5)',
+      agoTxt:ago<60?ago+'分前':Math.floor(ago/60)+'小時前',
+      source:n.source?.title||''
+    };
+  });
+  // 渲染 HTML（純靜態，不含 onclick）
+  const el=document.getElementById('news-list');
+  el.innerHTML=window._NC.map((n,i)=>`
+    <div data-ni="${i}" style="padding:11px 13px;border-bottom:1.5px solid var(--pink4);background:${n.sentBg};cursor:pointer">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;pointer-events:none">
+        <span style="font-size:11px;font-weight:900;padding:3px 9px;border-radius:20px;border:1.5px solid ${n.sentColor};color:${n.sentColor};font-family:Nunito,sans-serif;white-space:nowrap;background:${n.sentBg}">${n.sentiment}</span>
+        ${n.coins.map(c=>`<span style="font-size:11px;font-weight:900;padding:2px 7px;border-radius:7px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">${c}</span>`).join('')||'<span style="font-size:11px;padding:2px 7px;border-radius:7px;background:var(--pink4);color:var(--text3);font-family:Nunito,sans-serif">市場</span>'}
+        <span style="font-size:10px;color:var(--text3);margin-left:auto;font-family:JetBrains Mono,monospace">${n.agoTxt}</span>
       </div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.6">${n.title}</div>
-      <div style="font-size:10px;color:var(--pink3);margin-top:4px;font-family:Nunito,sans-serif;font-weight:700">點擊查看 AI 新聞總結 →</div>
-    </div>`;
-  }).join('');
-  document.getElementById('news-list').innerHTML=rows||'<div class="empty">暫無快訊</div>';
+      <div style="font-size:12px;color:var(--text2);line-height:1.6;pointer-events:none">${n.title}</div>
+      <div style="font-size:10px;color:var(--pink3);margin-top:3px;font-family:Nunito,sans-serif;font-weight:700;pointer-events:none">點擊查看 AI 新聞總結 →</div>
+    </div>`).join('');
+  // 用事件委派綁定點擊
+  el.onclick=function(e){
+    const row=e.target.closest('[data-ni]');
+    if(!row)return;
+    openNewsSummary(parseInt(row.dataset.ni));
+  };
 }
 
 // ═══ 新聞總結彈窗 ═══
 function openNewsSummary(idx){
-  const n=(window._newsCache||[])[idx];
-  if(!n){console.warn('newsCache miss',idx,window._newsCache);showToast('⚠️ 資料載入中，請稍候再試');return;}
-  console.log('openNewsSummary',n.title);
+  const n=(window._NC||[])[idx];
+  if(!n){showToast('⚠️ 資料載入中，請稍候再試');return;}
   try{
     // 建立底部彈窗
     const overlay=document.createElement('div');
@@ -974,7 +980,8 @@ function renderNewsFromMarket(){
       votes:{positive:v.signal==='bull'?5:0,negative:v.signal==='bear'?5:0}
     });
   });
-  renderNews(items.slice(0,20));
+  if(items.length) renderNews(items.slice(0,20));
+  else document.getElementById('news-list').innerHTML='<div class="empty">市場資料載入中...</div>';
 }
 
 function renderOI(){
