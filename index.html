@@ -808,21 +808,22 @@ function renderVolSpike(){
 // ═══ 即時新聞 ═══
 async function loadNews(){
   try{
-    // 使用 CryptoPanic 免費 API
-    const r=await fetch('https://cryptopanic.com/api/free/v1/posts/?auth_token=free&public=true&currencies=BTC,ETH,SOL,BNB&filter=hot');
+    // CryptoCompare - 免費且支援 CORS
+    const r=await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN&sortOrder=popular');
     if(!r.ok)throw new Error();
     const j=await r.json();
-    renderNews(j.results||[]);
+    const items=(j.Data||[]).map(n=>({
+      title:n.title,
+      url:n.url,
+      published_at:new Date(n.published_on*1000).toISOString(),
+      source:{title:n.source_info?.name||n.source},
+      currencies:(n.categories||'').split('|').filter(c=>c&&c.length<=6).slice(0,4).map(c=>({code:c})),
+      votes:{positive:n.upvotes||0,negative:0}
+    }));
+    renderNews(items);
   }catch(e){
-    // fallback：使用 CoinGecko 新聞
-    try{
-      const r2=await fetch('https://api.coingecko.com/api/v3/news');
-      if(!r2.ok)throw new Error();
-      const j2=await r2.json();
-      renderNews((j2.data||[]).map(n=>({title:n.title,url:n.url,published_at:n.updated_at,source:{title:n.news_site},currencies:[]})));
-    }catch(e2){
-      document.getElementById('news-list').innerHTML='<div class="empty">📡 新聞載入中，請稍後...</div>';
-    }
+    // fallback：用市場資料生成快訊
+    renderNewsFromMarket();
   }
 }
 
@@ -945,6 +946,38 @@ async function summarizeNews(title, coins, sentiment){
       ${coins.length>0?`相關幣種：<strong>${coins.join('、')}</strong><br>`:''}
       ${title}<br><br><span style="font-size:11px;color:var(--text3)">（AI分析失敗，請檢查API Key及餘額）</span>`;
   }
+}
+
+// fallback：從市場資料生成快訊
+function renderNewsFromMarket(){
+  window._newsCache=[];
+  const items=[];
+  const now=new Date().toISOString();
+  // 從 OI 資料生成
+  oiData.slice(0,10).forEach(a=>{
+    const isLong=a.dir==='long';
+    const big=Math.abs(a.pchg)>5;
+    items.push({
+      title:`${a.sym}/USDT ${big?'大幅':'小幅'}${a.pchg>0?'上漲':'下跌'} ${Math.abs(a.pchg).toFixed(2)}%，${a.dirLabel}，24H量 ${(a.vol/1e6).toFixed(1)}M U`,
+      url:`https://www.okx.com/trade-swap/${a.sym.toLowerCase()}-usdt-swap`,
+      published_at:now,
+      source:{title:'OKX 即時數據'},
+      currencies:[{code:a.sym}],
+      votes:{positive:isLong?5:0,negative:isLong?0:5}
+    });
+  });
+  // 從 VEGAS 資料生成
+  vegasData.filter(v=>v.signal!=='neutral').slice(0,5).forEach(v=>{
+    items.push({
+      title:`${v.sym} VEGAS通道${v.signal==='bull'?'做多訊號，EMA12突破通道上方':'做空訊號，EMA12跌破通道下方'}，評分 ${v.score}分${v.resonance>=2?`，${v.resonance}TF 共振`:''}`,
+      url:`https://www.tradingview.com/chart/?symbol=BINANCE:${v.sym}USDT.P`,
+      published_at:now,
+      source:{title:'MOVE通道訊號'},
+      currencies:[{code:v.sym}],
+      votes:{positive:v.signal==='bull'?5:0,negative:v.signal==='bear'?5:0}
+    });
+  });
+  renderNews(items.slice(0,20));
 }
 
 function renderOI(){
