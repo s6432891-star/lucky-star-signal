@@ -2126,8 +2126,9 @@ function openMOVEDetail(sym, type, v, c) {
           <div style="font-size:9px;color:var(--text3);margin-top:2px">${tp1Desc}</div>
         </div>
       </div>
-      <div style="background:var(--pink5);border-radius:8px;padding:8px 11px;margin-top:8px;font-size:10px;color:var(--text2);line-height:1.7">
-        RR ${rr}:1 &nbsp;|&nbsp; 估算勝率 ${(winRate*100).toFixed(0)}% &nbsp;|&nbsp; EV <strong style="color:${ev>0?'var(--green2)':'var(--red2)'}">${ev>=0?'+':''}${(ev*100).toFixed(2)}%</strong> &nbsp;|&nbsp; 凱利倉位 ${(kelly*50).toFixed(0)}%（半凱利）
+      <div id="modal-ev-row" style="background:var(--pink5);border-radius:8px;padding:8px 11px;margin-top:8px;font-size:10px;color:var(--text2);line-height:1.7"
+        data-rr="${rr}" data-sl="${slPct}" data-tp="${tpPct}" data-base-wr="${winRate.toFixed(4)}" data-type="${type}">
+        RR ${rr}:1 &nbsp;|&nbsp; 估算勝率 <span id="modal-wr-val">${(winRate*100).toFixed(0)}%</span> &nbsp;|&nbsp; EV <strong id="modal-ev-val" style="color:${ev>0?'var(--green2)':'var(--red2)'}">${ev>=0?'+':''}${(ev*100).toFixed(2)}%</strong> &nbsp;|&nbsp; 凱利 <span id="modal-kelly-val">${(kelly*50).toFixed(0)}%</span>（半凱利）
         ${tp2Desc?`<br>💡 ${tp2Desc}`:''}
       </div>
     </div>
@@ -2226,6 +2227,39 @@ async function fetchAndUpdateFRLS(sym, type) {
       <div class="tc2-s ${lsCls}">${lsNum===null?'無數據':lsNum>0.55?'偏多':lsNum<0.45?'偏空':'均衡'}</div>
       <div class="tc2-d">${lsNum!==null?`多 ${(lsNum*100).toFixed(0)}% / 空 ${((1-lsNum)*100).toFixed(0)}%`:'Binance無此幣數據'}</div>`;
   }
+
+  // ── 重算勝率/EV/Kelly ──
+  const evRow = document.getElementById('modal-ev-row');
+  if (!evRow) return;
+  const baseWR = parseFloat(evRow.dataset.baseWr) || 0.50;
+  const rr     = parseFloat(evRow.dataset.rr) || 2.0;
+  const slPct  = parseFloat(evRow.dataset.sl) || 3;
+  const tpPct  = parseFloat(evRow.dataset.tp) || 6;
+  const mType  = evRow.dataset.type || 'long';
+  const frNum  = fr !== null ? parseFloat(fr) : null;
+  const lsNum  = ls !== null ? parseFloat(ls) : null;
+
+  let wr = baseWR;
+  if (frNum !== null && mType==='long'  && frNum < 0)    wr += 0.03;
+  if (frNum !== null && mType==='short' && frNum > 0.01) wr += 0.03;
+  if (frNum !== null && mType==='long'  && frNum > 0.01) wr -= 0.02;
+  if (frNum !== null && mType==='short' && frNum < 0)    wr -= 0.02;
+  if (lsNum !== null && mType==='long'  && lsNum < 0.4)  wr += 0.03;
+  if (lsNum !== null && mType==='short' && lsNum > 0.65) wr += 0.03;
+  if (lsNum !== null && mType==='long'  && lsNum > 0.7)  wr -= 0.02;
+  if (lsNum !== null && mType==='short' && lsNum < 0.35) wr -= 0.02;
+  wr = Math.min(0.82, Math.max(0.30, wr));
+
+  const ev    = wr * (tpPct/100) - (1-wr) * (slPct/100);
+  const kelly = Math.max(0, (wr * rr - (1-wr)) / rr);
+  const evColor = ev > 0 ? 'var(--green2)' : 'var(--red2)';
+
+  const wrEl = document.getElementById('modal-wr-val');
+  const evEl = document.getElementById('modal-ev-val');
+  const klEl = document.getElementById('modal-kelly-val');
+  if (wrEl) wrEl.textContent = Math.round(wr*100) + '%';
+  if (evEl) { evEl.textContent = (ev>=0?'+':'') + (ev*100).toFixed(2) + '%'; evEl.style.color = evColor; }
+  if (klEl) klEl.textContent = (kelly*50).toFixed(0) + '%';
 }
 
 // ── 幣種快訊 + 利多利空指數 ──
