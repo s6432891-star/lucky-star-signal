@@ -1146,7 +1146,12 @@ const IND_SYMS = ['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','LINK','LTC'
   'DOT','ARB','OP','SUI','APT','TRX','TON','INJ','PEPE','WIF'];
 
 async function loadRealIndicators() {
-  await Promise.all(IND_SYMS.map(s => loadRealForSym(s)));
+  const batchSize = 3; // 每批3個幣，避免 rate limit
+  for(let i=0;i<IND_SYMS.length;i+=batchSize){
+    const batch=IND_SYMS.slice(i,i+batchSize);
+    await Promise.all(batch.map(s=>loadRealForSym(s)));
+    if(i+batchSize<IND_SYMS.length) await sleep(400);
+  }
 }
 
 async function loadRealForSym(sym) {
@@ -1162,10 +1167,11 @@ async function loadRealForSym(sym) {
       obj.rsi  = realRSI14(klines);
       obj.macd = realMACD1226(klines);
       obj.boll = realBoll20(klines);
+      obj.qqe  = calcQQEMOD(klines); // QQE MOD 也存入 realInd
     }
-    if (fr     !== null) obj.fr      = fr;
-    if (ls     !== null) obj.lsRatio = ls;
-    if (oiChg  !== null) obj.oiChg   = oiChg;
+    if (fr    !== null) obj.fr      = fr;
+    if (ls    !== null) obj.lsRatio = ls;
+    if (oiChg !== null) obj.oiChg   = oiChg;
     realInd[sym.toUpperCase()] = obj;
   } catch(e) {}
 }
@@ -1214,14 +1220,18 @@ async function fetchFR(sym) {
 
 async function fetchLS(sym) {
   try {
-    // OKX 真實多空比（依規格）
-    const r = await fetch(`https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio?instId=${sym}-USDT-SWAP&period=1H`);
+    // 解法A：OKX taker volume（不被 CORS 擋）
+    // buyVol / (buyVol + sellVol) ≈ 多頭比例
+    const r = await fetch(`https://www.okx.com/api/v5/rubik/stat/taker-volume?instId=${sym}-USDT-SWAP&period=1H`);
     if (!r.ok) return null;
     const j = await r.json();
     if (j.code!=='0'||!j.data?.length) return null;
-    const ls = parseFloat(j.data[0].longShortRatio);
-    if (isNaN(ls)) return null;
-    return ls / (1 + ls); // 轉換為多頭比例 0~1
+    const [, sellVol, buyVol] = j.data[0];
+    const buy  = parseFloat(buyVol);
+    const sell = parseFloat(sellVol);
+    const total = buy + sell;
+    if (!total) return null;
+    return buy / total; // 0~1，多頭比例
   } catch(e) { return null; }
 }
 
@@ -1261,25 +1271,50 @@ function computeEV(winRate, rr, slPct) {
   return { ev, kelly, winRate, rr, slPct };
 }
 
+// ═══ estWinRate（新規格版）═══
 function estWinRate(c, type) {
-  const sc = type==='long' ? c.longScore : c.shortScore;
-  let wr = 0.42 + (sc/100)*0.28; // 42-70%
-  const rsi = getRSI(c.symbol);
-  const fr = getFR(c.symbol);
-  const ls = getLS(c.symbol);
-  const vd = vegasData.find(v=>v.sym===c.symbol.toUpperCase());
-  if(type==='long'){
-    if(rsi<30)wr+=0.05; if(rsi>70)wr-=0.05;
-    if(fr!==null&&fr<0)wr+=0.03; if(fr!==null&&fr>0.01)wr-=0.02;
-    if(ls!==null&&ls<0.4)wr+=0.03; // crowd short = fade
-    if(vd&&vd.signal==='bull')wr+=0.04;
-  } else {
-    if(rsi>70)wr+=0.05; if(rsi<30)wr-=0.05;
-    if(fr!==null&&fr>0.01)wr+=0.03; if(fr!==null&&fr<0)wr-=0.02;
-    if(ls!==null&&ls>0.7)wr+=0.03; // crowd long = fade
-    if(vd&&vd.signal==='bear')wr+=0.04;
+  let wr = 0.40;
+  const sym = c.symbol.toUpperCase();
+  const ri  = realInd[sym] || {};
+  const rsi  = ri.rsi  ?? 50;
+  const fr   = ri.fr   != null ? parseFloat(ri.fr) : null;
+  const ls   = ri.lsRatio ?? null;
+  const qqe  = ri.qqe  ?? null;
+  const vd   = vegasData.find(v => v.sym === sym);
+  const sc   = type === 'long' ? c.longScore : c.shortScore;
+  // ① VEGAS
+  if(vd){
+    const match=(type==='long'&&vd.signal==='bull')||(type==='short'&&vd.signal==='bear');
+    const opp  =(type==='long'&&vd.signal==='bear')||(type==='short'&&vd.signal==='bull');
+    if(match)wr+=0.08; else if(opp)wr-=0.10;
+    else if(vd.dailyTrend===(type==='long'?'bull':'bear'))wr+=0.03;
   }
-  return Math.min(0.75, Math.max(0.28, wr));
+  // ② RSI
+  if(type==='long'){
+    if(rsi<30)wr+=0.03; else if(rsi<=50)wr+=0.01; else if(rsi>70)wr-=0.04;
+  } else {
+    if(rsi>70)wr+=0.03; else if(rsi>=50)wr+=0.01; else if(rsi<30)wr-=0.04;
+  }
+  // ③ FR
+  if(fr!==null){
+    if(type==='long'){if(fr<-0.0001)wr+=0.04;else if(fr>0.0005)wr-=0.04;}
+    else{if(fr>0.0005)wr+=0.04;else if(fr<-0.0001)wr-=0.04;}
+  }
+  // ④ L/S 逆向
+  if(ls!==null){
+    if(type==='long'){if(ls<0.35)wr+=0.04;else if(ls>0.72)wr-=0.03;}
+    else{if(ls>0.72)wr+=0.04;else if(ls<0.35)wr-=0.03;}
+  }
+  // ⑤ QQE MOD
+  if(qqe){
+    if(type==='long'&&qqe.isBull)wr+=0.04;
+    else if(type==='short'&&qqe.isBear)wr+=0.04;
+    else if(type==='long'&&qqe.isBear)wr-=0.04;
+    else if(type==='short'&&qqe.isBull)wr-=0.04;
+  }
+  // ⑥ 評分加權
+  if(sc>=80)wr+=0.03; else if(sc>=70)wr+=0.01;
+  return Math.min(0.75, Math.max(0.30, wr));
 }
 
 function calcRSI(c){return getRSI(c.symbol||'');}
@@ -1478,22 +1513,24 @@ function scoreAll(){
     const pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5;
     const pats=detectPats(c);
     const oi=oiData.find(o=>o.sym.toLowerCase()===c.symbol.toLowerCase());
-    const rsi=calcRSI(c);
+    // 真實RSI優先，無則用0（不估算）
+    const ri=realInd[c.symbol.toUpperCase()]||{};
+    const rsi=ri.rsi??null;
     const vd=vegasData.find(v=>v.sym===c.symbol.toUpperCase());
-    const vegasBonus=vd&&vd.signal==='bull'?8:vd&&vd.signal==='bear'?0:0;
+    const vegasBonus=vd&&vd.signal==='bull'?8:0;
     const vegasShortBonus=vd&&vd.signal==='bear'?8:0;
     const lM=ch>5?28:ch>3?22:ch>1?14:ch>0?7:0;
     const lV=vol>5e9?22:vol>2e9?17:vol>1e9?12:vol>5e8?8:4;
     const lP=Math.floor(pos*18);
     const lPat=pats.filter(p=>p.bull).reduce((a,p)=>a+p.score,0);
     const lOI=oi&&oi.dir==='long'?8:0;
-    const rsiB=rsi<30?8:rsi>70?-4:0;
+    const rsiB=rsi!==null?(rsi<30?8:rsi>70?-4:0):0; // null=0，不影響分數
     const longScore=Math.min(100,lM+lV+lP+Math.min(20,lPat)+lOI+rsiB+vegasBonus);
     const sM=ch<-5?28:ch<-3?22:ch<-1?14:ch<0?7:0;
     const sP=Math.floor((1-pos)*18);
     const sPat=pats.filter(p=>!p.bull).reduce((a,p)=>a+p.score,0);
     const sOI=oi&&oi.dir==='short'?8:0;
-    const rsiSB=rsi>70?8:rsi<30?-4:0;
+    const rsiSB=rsi!==null?(rsi>70?8:rsi<30?-4:0):0;
     const shortScore=Math.min(100,sM+lV+sP+Math.min(20,sPat)+sOI+rsiSB+vegasShortBonus);
     const btc=coins['bitcoin'],btcCh=btc?btc.price_change_percentage_24h||0:0;
     return{...c,ch,longScore,shortScore,pats,oi,relBTC:ch-btcCh,rsi,vegasData:vd,
@@ -1726,27 +1763,114 @@ function renderRecs(){
   document.getElementById('rec-wrap').innerHTML=`<div style="display:flex;flex-direction:column;gap:0">${makeSection(longs,'long')}${makeSection(shorts,'short')}</div>`;
 }
 
-// ═══ SAEK SIGNAL ═══
-const TF_LIST=['5分鐘','15分鐘','1小時'],TF_KEYS=['5m','15m','1h'];
+// ═══ 賽克斯訊號分數計算（固定加權，無亂數）═══
+function calcSaekScore(coin, type, ind){
+  const ri = realInd[coin.symbol.toUpperCase()]||{};
+  const rsi  = ri.rsi  ?? 50;
+  const macd = ri.macd?.value ?? 0;
+  const qqe  = ri.qqe  ?? null;
+  let score = 60;
+  // RSI 加權
+  if(type==='long'){
+    if(rsi<30)score+=20; else if(rsi<45)score+=10; else if(rsi>70)score-=10;
+  } else {
+    if(rsi>70)score+=20; else if(rsi>55)score+=10; else if(rsi<30)score-=10;
+  }
+  // MACD 加權
+  if(type==='long'&&macd>0) score+=10;
+  if(type==='short'&&macd<0) score+=10;
+  // QQE MOD 加權
+  if(qqe){
+    if(type==='long'&&qqe.isBull)  score+=10;
+    if(type==='short'&&qqe.isBear) score+=10;
+  }
+  // 指標類型加權
+  if(ind==='OI異常') score+=5;
+  if(ind==='VEGAS')  score+=5;
+  if(ind==='QQE MOD') score+=8;
+  return Math.min(98,Math.max(50,score));
+}
+
+// ═══ SAEK SIGNAL（真實指標，無 Math.random）═══
+const TF_LIST=['5分鐘','1小時','4小時'],TF_KEYS=['5m','1h','4h'];
 function buildSaek(){
   const data=Object.values(coins);if(!data.length)return[];
   const sigs=[];
   data.forEach(c=>{
-    const rsi=calcRSI(c),macd=calcMACD(c),ma=calcMA(c),boll=calcBoll(c),vol=calcVol(c);
+    const sym=c.symbol.toUpperCase();
+    const ri=realInd[sym]||{};
+    // 真實指標（realInd優先）
+    const rsi  = ri.rsi  ?? null;
+    const macd = ri.macd ?? null;
+    const boll = ri.boll ?? null;
+    const qqe  = ri.qqe  ?? null;
+    const isReal = ri.rsi!==undefined;
+    const tag  = isReal?'✅真實':'⚠️估算';
+
     const oi=oiData.find(o=>o.sym.toLowerCase()===c.symbol.toLowerCase());
-    const vd=vegasData.find(v=>v.sym===c.symbol.toUpperCase());
-    TF_LIST.forEach((tf,tfi)=>{
-      if(rsi<=32)sigs.push({coin:c,type:'long',tf,tfKey:TF_KEYS[tfi],ind:'RSI',score:82+Math.floor(Math.random()*8),desc:`<strong>RSI ${rsi}</strong> 超賣，高勝率反彈點`,detail:`RSI=${rsi} 超賣<30`});
-      else if(rsi>=68)sigs.push({coin:c,type:'short',tf,tfKey:TF_KEYS[tfi],ind:'RSI',score:78+Math.floor(Math.random()*8),desc:`<strong>RSI ${rsi}</strong> 超買，注意回調`,detail:`RSI=${rsi} 超買>70`});
-      if(macd.signal==='黃金交叉')sigs.push({coin:c,type:'long',tf,tfKey:TF_KEYS[tfi],ind:'MACD',score:75+Math.floor(Math.random()*12),desc:`MACD <strong>黃金交叉</strong>，動能轉多`,detail:`MACD柱:${macd.hist} 黃金交叉`});
-      else if(macd.signal==='死亡交叉')sigs.push({coin:c,type:'short',tf,tfKey:TF_KEYS[tfi],ind:'MACD',score:74+Math.floor(Math.random()*12),desc:`MACD <strong>死亡交叉</strong>，動能轉空`,detail:`MACD柱:${macd.hist} 死亡交叉`});
-      if(boll.label==='觸下軌')sigs.push({coin:c,type:'long',tf,tfKey:TF_KEYS[tfi],ind:'布林帶',score:76+Math.floor(Math.random()*10),desc:`布林帶<strong>觸下軌</strong>，超賣反彈機率高`,detail:boll.desc});
-      if(vol.label==='量價齊升')sigs.push({coin:c,type:'long',tf,tfKey:TF_KEYS[tfi],ind:'量能',score:80+Math.floor(Math.random()*10),desc:`<strong>${vol.val}</strong> 放量上漲，多頭確認`,detail:vol.desc});
-      else if(vol.label==='放量下跌')sigs.push({coin:c,type:'short',tf,tfKey:TF_KEYS[tfi],ind:'量能',score:78+Math.floor(Math.random()*10),desc:`<strong>${vol.val}</strong> 放量下跌，空頭確認`,detail:vol.desc});
-      if(oi&&Math.abs(oi.pchg)>3&&tfi===0)sigs.push({coin:c,type:oi.dir==='long'?'long':'short',tf:'5分鐘',tfKey:'5m',ind:'OI異常',score:85+Math.floor(Math.random()*10),desc:`OI異常 <strong>${oi.dirLabel}</strong>，主力資金進場`,detail:`OI 24H:${oi.pchg>=0?'+':''}${oi.pchg.toFixed(2)}%`});
-      if(vd&&vd.signal==='bull'&&tfi===1)sigs.push({coin:c,type:'long',tf:'15分鐘',tfKey:'15m',ind:'VEGAS',score:78+Math.floor(Math.random()*12),desc:`VEGAS通道 <strong>突破向上</strong>，EMA12站上通道`,detail:`日線${vd.dailyTrend==='bull'?'多頭':'空頭'}+4H突破，評分${vd.score}`});
-      else if(vd&&vd.signal==='bear'&&tfi===1)sigs.push({coin:c,type:'short',tf:'15分鐘',tfKey:'15m',ind:'VEGAS',score:76+Math.floor(Math.random()*12),desc:`VEGAS通道 <strong>跌破向下</strong>，EMA12跌破通道`,detail:`日線${vd.dailyTrend==='bull'?'多頭':'空頭'}+4H跌破，評分${vd.score}`});
-    });
+    const vd=vegasData.find(v=>v.sym===sym);
+    const vol=calcVol(c);
+
+    // RSI 訊號（需真實數據）
+    if(rsi!==null){
+      if(rsi<=32) sigs.push({coin:c,type:'long', tf:'4小時',tfKey:'4h',ind:'RSI',
+        score:calcSaekScore(c,'long','RSI'),
+        desc:`<strong>RSI ${rsi}</strong> 超賣，高勝率反彈點`,
+        detail:`RSI=${rsi} 超賣<30 ${tag}`});
+      else if(rsi>=68) sigs.push({coin:c,type:'short',tf:'4小時',tfKey:'4h',ind:'RSI',
+        score:calcSaekScore(c,'short','RSI'),
+        desc:`<strong>RSI ${rsi}</strong> 超買，注意回調`,
+        detail:`RSI=${rsi} 超買>70 ${tag}`});
+    }
+    // MACD 訊號（需真實數據）
+    if(macd){
+      if(macd.signal==='黃金交叉') sigs.push({coin:c,type:'long', tf:'4小時',tfKey:'4h',ind:'MACD',
+        score:calcSaekScore(c,'long','MACD'),
+        desc:`MACD <strong>黃金交叉</strong>，動能轉多`,detail:`MACD柱:${macd.hist} ${tag}`});
+      else if(macd.signal==='死亡交叉') sigs.push({coin:c,type:'short',tf:'4小時',tfKey:'4h',ind:'MACD',
+        score:calcSaekScore(c,'short','MACD'),
+        desc:`MACD <strong>死亡交叉</strong>，動能轉空`,detail:`MACD柱:${macd.hist} ${tag}`});
+    }
+    // 布林帶訊號（需真實數據）
+    if(boll){
+      if(boll.label==='觸下軌') sigs.push({coin:c,type:'long', tf:'4小時',tfKey:'4h',ind:'布林帶',
+        score:calcSaekScore(c,'long','布林帶'),
+        desc:`布林帶<strong>觸下軌</strong>，反彈機率高`,detail:`${boll.desc} ${tag}`});
+      if(boll.label==='觸上軌') sigs.push({coin:c,type:'short',tf:'4小時',tfKey:'4h',ind:'布林帶',
+        score:calcSaekScore(c,'short','布林帶'),
+        desc:`布林帶<strong>觸上軌</strong>，回調風險高`,detail:`${boll.desc} ${tag}`});
+    }
+    // QQE MOD 訊號（真實）
+    if(qqe?.isBull) sigs.push({coin:c,type:'long', tf:'4小時',tfKey:'4h',ind:'QQE MOD',
+      score:calcSaekScore(c,'long','QQE MOD'),
+      desc:`QQE MOD <strong>藍柱啟動</strong>，動能轉多`,
+      detail:`SRSI=${qqe.srsi} Signal=${qqe.signal} ✅真實`});
+    if(qqe?.isBear) sigs.push({coin:c,type:'short',tf:'4小時',tfKey:'4h',ind:'QQE MOD',
+      score:calcSaekScore(c,'short','QQE MOD'),
+      desc:`QQE MOD <strong>紅柱啟動</strong>，動能轉空`,
+      detail:`SRSI=${qqe.srsi} Signal=${qqe.signal} ✅真實`});
+    // 量能訊號（估算可接受）
+    if(vol.label==='量價齊升') sigs.push({coin:c,type:'long', tf:'1小時',tfKey:'1h',ind:'量能',
+      score:calcSaekScore(c,'long','量能'),
+      desc:`<strong>${vol.val}</strong> 放量上漲，多頭確認`,detail:`${vol.desc}`});
+    else if(vol.label==='放量下跌') sigs.push({coin:c,type:'short',tf:'1小時',tfKey:'1h',ind:'量能',
+      score:calcSaekScore(c,'short','量能'),
+      desc:`<strong>${vol.val}</strong> 放量下跌，空頭確認`,detail:`${vol.desc}`});
+    // OI 異常訊號
+    if(oi&&Math.abs(oi.pchg)>3) sigs.push({coin:c,type:oi.dir==='long'?'long':'short',
+      tf:'5分鐘',tfKey:'5m',ind:'OI異常',
+      score:calcSaekScore(c,oi.dir==='long'?'long':'short','OI異常'),
+      desc:`OI異常 <strong>${oi.dirLabel}</strong>，主力資金進場`,
+      detail:`OI 24H:${oi.pchg>=0?'+':''}${oi.pchg.toFixed(2)}%`});
+    // VEGAS 訊號
+    if(vd?.signal==='bull') sigs.push({coin:c,type:'long', tf:'4小時',tfKey:'4h',ind:'VEGAS',
+      score:calcSaekScore(c,'long','VEGAS'),
+      desc:`VEGAS通道 <strong>突破向上</strong>，EMA12站上通道`,
+      detail:`日線${vd.dailyTrend==='bull'?'多頭':'空頭'}+4H突破，評分${vd.score}`});
+    else if(vd?.signal==='bear') sigs.push({coin:c,type:'short',tf:'4小時',tfKey:'4h',ind:'VEGAS',
+      score:calcSaekScore(c,'short','VEGAS'),
+      desc:`VEGAS通道 <strong>跌破向下</strong>，EMA12跌破通道`,
+      detail:`日線${vd.dailyTrend==='bull'?'多頭':'空頭'}+4H跌破，評分${vd.score}`});
   });
   const seen=new Set();
   return sigs.filter(s=>{const k=`${s.coin.symbol}-${s.type}-${s.tfKey}-${s.ind}`;if(seen.has(k))return false;seen.add(k);return true;})
@@ -1878,16 +2002,20 @@ async function fetchKlinesOHLCV(sym,bar,limit){
   }catch(e){return null;}
 }
 
-// OI 24H 變化（真實 OKX API）
+// OI 變化（用 ticker openInterest + 快取比較，不被 CORS 擋）
+const _oiCache = {};
 async function fetchOIChange(sym){
   try{
-    const r=await fetch(`https://www.okx.com/api/v5/rubik/stat/contracts/open-interest-volume?instId=${sym}-USDT-SWAP&period=1H`);
+    const r=await fetch(`https://www.okx.com/api/v5/market/ticker?instId=${sym}-USDT-SWAP`);
     if(!r.ok)return null;
     const j=await r.json();
-    if(j.code!=='0'||!j.data||j.data.length<2)return null;
-    const curr=parseFloat(j.data[0].oi),prev=parseFloat(j.data[1].oi);
-    if(!prev)return null;
-    return (curr-prev)/prev*100; // OI 變化 %
+    if(j.code!=='0'||!j.data?.length)return null;
+    const curr=parseFloat(j.data[0].openInterest);
+    if(isNaN(curr))return null;
+    const prev=_oiCache[sym];
+    _oiCache[sym]=curr;
+    if(prev==null)return null; // 第一次沒有基準
+    return (curr-prev)/prev*100;
   }catch(e){return null;}
 }
 
