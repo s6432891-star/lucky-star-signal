@@ -1140,12 +1140,10 @@ function renderOI(){
 
 // ═══ REAL INDICATOR CACHE (from OKX 4H klines + FR + LS) ═══
 const realInd = {}; // sym -> {rsi, macd, boll, fr, lsRatio}
-// 預載指標幣種（Top50，啟動時載入真實RSI/MACD/布林/FR/LS/OI）
-let IND_SYMS = ['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','LINK','LTC',
-  'DOT','UNI','NEAR','MATIC','ARB','OP','SUI','APT','TRX','TON',
-  'ATOM','INJ','TIA','SEI','WLD','JUP','RENDER','FET','ENA','PEPE',
-  'WIF','BONK','NOT','ORDI','FLOKI','OM','PYTH','JTO','DYM','NTRN',
-  'ICP','EIGEN','ZK','IO','SAGA','ENA','ETHFI','BRETT','POPCAT','MEW'];
+// 預載指標幣種（Top20，避免啟動時過多 API 請求）
+// 其他幣種在點開詳情時即時抓取
+const IND_SYMS = ['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','LINK','LTC',
+  'DOT','ARB','OP','SUI','APT','TRX','TON','INJ','PEPE','WIF'];
 
 async function loadRealIndicators() {
   await Promise.all(IND_SYMS.map(s => loadRealForSym(s)));
@@ -1795,20 +1793,25 @@ function calcEMA(prices,period){
   return ema;
 }
 
-// ═══ QQE MOD 動能指標（依規格精確公式）═══
-// 賽克斯指標核心：藍柱=多頭強勁，紅柱=空頭強勁
+// ═══ QQE MOD 動能指標（O(n) 高效版，保留規格精神）═══
+// 藍柱=多頭強勁，紅柱=空頭強勁
 function calcQQEMOD(closes, rsiPeriod=14, smoothPeriod=5, qqeFactor=4.238){
-  if(!closes||closes.length<rsiPeriod+smoothPeriod+10)return null;
+  if(!closes||closes.length<rsiPeriod+smoothPeriod+20)return null;
 
-  // Step1：計算完整 RSI 序列
+  // Step1：O(n) EMA 方式計算 RSI 序列
   const rsiArr=[];
+  let ag=0,al=0;
+  for(let i=1;i<=rsiPeriod;i++){
+    const d=closes[i]-closes[i-1];
+    if(d>0)ag+=d;else al-=d;
+  }
+  ag/=rsiPeriod;al/=rsiPeriod;
   for(let i=rsiPeriod;i<closes.length;i++){
-    let g=0,l=0;
-    for(let j=i-rsiPeriod+1;j<=i;j++){
-      const d=closes[j]-closes[j-1];
-      if(d>0)g+=d;else l-=d;
+    if(i>rsiPeriod){
+      const d=closes[i]-closes[i-1];
+      ag=(ag*(rsiPeriod-1)+Math.max(0,d))/rsiPeriod;
+      al=(al*(rsiPeriod-1)+Math.max(0,-d))/rsiPeriod;
     }
-    const ag=g/rsiPeriod,al=l/rsiPeriod;
     rsiArr.push(al===0?100:100-100/(1+ag/al));
   }
   if(rsiArr.length<smoothPeriod+5)return null;
@@ -1822,23 +1825,20 @@ function calcQQEMOD(closes, rsiPeriod=14, smoothPeriod=5, qqeFactor=4.238){
     srsiArr.push(srsi);
   }
 
-  // Step3：ATR of smoothed RSI
-  const deltaArr=[];
-  for(let i=1;i<srsiArr.length;i++)
-    deltaArr.push(Math.abs(srsiArr[i]-srsiArr[i-1]));
+  // Step3：ATR of smoothed RSI（EMA方式）
   const k2=2/(smoothPeriod+1);
-  let atrRsi=deltaArr.slice(0,smoothPeriod).reduce((a,b)=>a+b,0)/smoothPeriod;
-  for(let i=smoothPeriod;i<deltaArr.length;i++)
-    atrRsi=deltaArr[i]*k2+atrRsi*(1-k2);
+  let atrRsi=Math.abs(srsiArr[1]-srsiArr[0]);
+  for(let i=1;i<srsiArr.length;i++)
+    atrRsi=Math.abs(srsiArr[i]-srsiArr[i-1])*k2+atrRsi*(1-k2);
   const dar=atrRsi*qqeFactor;
 
-  // Step4：Signal Line 追蹤
+  // Step4：Signal Line 追蹤（規格公式）
   const last=srsiArr[srsiArr.length-1];
   const prev=srsiArr[srsiArr.length-2]??last;
   const qqeUpper=prev+dar,qqeLower=prev-dar;
   const signal=last>prev?Math.max(prev,qqeLower):Math.min(prev,qqeUpper);
 
-  // Step5：藍柱/紅柱判斷（依規格）
+  // Step5：藍柱/紅柱
   const blue=last>signal&&last>50;
   const red =last<signal&&last<50;
 
