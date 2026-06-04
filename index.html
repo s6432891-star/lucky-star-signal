@@ -1489,37 +1489,40 @@ function renderRecs(){
     if(fr!==null&&parseFloat(fr)>0.01&&type==='long')  wr-=0.02; // 高費率做多不利
     if(fr!==null&&parseFloat(fr)<0&&type==='short')    wr-=0.02;
 
-    // 8. OANDA 量價型態（核心）
+    // 8. OANDA 量價型態（對稱加扣分）
     if(volPat){
-      if(volPat.signal==='long'&&type==='long'){
-        // 放量突破 > 量增價漲
-        wr += volPat.name.includes('突破')?0.08:0.05;
+      const isLongPat  = volPat.signal==='long';
+      const isShortPat = volPat.signal==='short';
+      const isBreakout = volPat.name.includes('突破');
+
+      // 放量突破 / 量增價漲：多加空扣
+      if(isLongPat){
+        wr += type==='long' ? (isBreakout?0.08:0.05) : -(isBreakout?0.08:0.05);
       }
-      if(volPat.signal==='short'&&type==='short'){
-        wr += volPat.name.includes('突破')?0.08:0.05;
+      // 量增價跌：空加多扣
+      if(isShortPat){
+        wr += type==='short' ? (isBreakout?0.08:0.06) : -(isBreakout?0.08:0.06);
       }
-      if(volPat.signal==='short'&&type==='long'){
-        // 量增價跌：空方主導，做多危險
-        wr -= 0.06;
+      // 價跌量縮（賣壓減弱，接近底部）：多加空扣
+      if(volPat.signal==='watch_long'){
+        wr += type==='long' ? 0.03 : -0.03;
       }
-      if(volPat.signal==='watch_long'&&type==='long'){
-        // 價跌量縮：賣壓減弱，接近底部，做多小加
-        wr += 0.03;
-      }
+      // 天量天價（可能反轉）：多扣空加
       if(volPat.signal==='exit'){
-        // 天量天價：可能反轉，做多降勝率
-        if(type==='long')  wr -= 0.08;
-        if(type==='short') wr += 0.05; // 做空反而有利
+        wr += type==='long' ? -0.08 : 0.08;
       }
+      // 爆量長黑（空方極強）：空加多扣
       if(volPat.signal==='watch'){
-        // 爆量長黑：空方極強
-        if(type==='long')  wr -= 0.07; // 做多危險
-        if(type==='short') wr += 0.07; // 做空順勢加分
+        wr += type==='short' ? 0.07 : -0.07;
       }
-      // 縮量整理：中性，等方向確認
-      // 低量上漲：做多不加分（缺支撐）
-      if(volPat.name.includes('縮量')&&type==='long')  wr -= 0.02;
-      if(volPat.name.includes('低量')&&type==='long')  wr -= 0.03;
+      // 縮量整理（不確定）：多空都小扣
+      if(volPat.signal==='wait'){
+        wr -= 0.02;
+      }
+      // 低量上漲（缺乏支撐）：多扣空加
+      if(volPat.name.includes('低量')){
+        wr += type==='long' ? -0.03 : 0.03;
+      }
     }
 
     wr=Math.min(0.85,Math.max(0.30,wr));
