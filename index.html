@@ -1498,6 +1498,10 @@ function renderRecs(){
       if(volPat.signal==='short'&&type==='short'){
         wr += volPat.name.includes('突破')?0.08:0.05;
       }
+      if(volPat.signal==='short'&&type==='long'){
+        // 量增價跌：空方主導，做多危險
+        wr -= 0.06;
+      }
       if(volPat.signal==='watch_long'&&type==='long'){
         // 價跌量縮：賣壓減弱，接近底部，做多小加
         wr += 0.03;
