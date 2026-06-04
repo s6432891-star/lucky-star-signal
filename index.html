@@ -1467,10 +1467,12 @@ function renderRecs(){
     const crit3 = srList.length  > 0; // 篩選3：支撐壓力
     const critCount = [crit1,crit2,crit3].filter(Boolean).length;
 
-    // ── 綜合勝率 ──
+    // ══════════════════════════════════════
+    //  綜合勝率 — 兩大系統 + 共用 VEGAS 基礎
+    // ══════════════════════════════════════
     let wr = 0.40;
 
-    // 1. MOVE 核心：VEGAS通道方向（必要條件）
+    // ── VEGAS 共同基礎 ──
     const vegasAligned = vd && (
       (vd.signal==='bull'&&type==='long') ||
       (vd.signal==='bear'&&type==='short')
@@ -1479,43 +1481,53 @@ function renderRecs(){
       (vd.signal==='bull'&&type==='short') ||
       (vd.signal==='bear'&&type==='long')
     );
-    if(vegasAligned)  wr += 0.10;
-    if(vegasAgainst)  wr -= 0.12; // 逆勢風險高
-    if(vd?.h4InTunnel) wr -= 0.03; // 通道內整理，方向未定
+    if(vegasAligned)    wr += 0.08;  // VEGAS 方向吻合
+    if(vegasAgainst)    wr -= 0.10;  // 逆 VEGAS 高風險
+    if(vd?.h4InTunnel)  wr -= 0.03;  // 通道整理中，方向未定
 
-    // 2. MOVE 三篩選標準（核心邏輯：越多符合勝率越高）
-    // 每多一個篩選標準 +5%，三個都中額外再+5%
-    wr += critCount * 0.05;
-    if(critCount >= 3) wr += 0.05; // 三篩選全中獎勵
+    // ── MOVE 交易系統（篩選1+2+3）──
+    // 每個篩選 +4%，三全中額外 +5%（獎勵完整共振）
+    wr += critCount * 0.04;
+    if(critCount >= 3) wr += 0.05;
+    // 逆向：篩選都沒過反而扣
+    if(critCount === 0 && vegasAligned) wr -= 0.03;
 
-    // 3. 賽克斯進場三步驟（MOVE + 賽克斯共振）
-    if(vd?.step1&&vd?.step2&&vd?.step3) wr += 0.06;
-    else if(vd?.step1&&vd?.step2)        wr += 0.03;
+    // ── 賽克斯系統（三步驟 + QQE MOD）──
+    // 步驟1+2+3
+    const saekFull    = vd?.step1 && vd?.step2 && vd?.step3;
+    const saekPartial = vd?.step1 && vd?.step2;
+    if(saekFull)    wr += 0.07;
+    else if(saekPartial) wr += 0.03;
+    // QQE MOD 同向加分，逆向扣分
+    const qqeBull = vd?.qqe4h?.isBull;
+    const qqeBear = vd?.qqe4h?.isBear;
+    if(qqeBull && type==='long')  wr += 0.05;
+    if(qqeBear && type==='short') wr += 0.05;
+    if(qqeBear && type==='long')  wr -= 0.04;
+    if(qqeBull && type==='short') wr -= 0.04;
+    // 多週期共振
+    if(vd?.resonance >= 3)     wr += 0.06;
+    else if(vd?.resonance >= 2) wr += 0.03;
+    // 通道回踩（賽克斯步驟2精準位置）
+    if(vd?.isPullbackSignal) wr += 0.05;
 
-    // 4. QQE MOD（方向確認）
-    if(vd?.qqe4h?.isBull&&type==='long')  wr += 0.05;
-    if(vd?.qqe4h?.isBear&&type==='short') wr += 0.05;
-    if(vd?.qqe4h?.isBear&&type==='long')  wr -= 0.04;
-    if(vd?.qqe4h?.isBull&&type==='short') wr -= 0.04;
+    // ── 兩系統共振獎勵 ──
+    // MOVE 有篩選 + 賽克斯步驟滿足 = 額外加分
+    const moveOK = critCount >= 2;
+    const saekOK = saekFull || saekPartial;
+    if(moveOK && saekOK && vegasAligned) wr += 0.05;
 
-    // 5. 多週期共振
-    if(vd?.resonance>=3) wr += 0.07;
-    else if(vd?.resonance>=2) wr += 0.04;
+    // ── RSI（輔助確認）──
+    if(rsi < 32 && type==='long')  wr += 0.04;
+    if(rsi > 68 && type==='short') wr += 0.04;
+    if(rsi > 72 && type==='long')  wr -= 0.03;
+    if(rsi < 28 && type==='short') wr -= 0.03;
 
-    // 6. 通道回踩（找位精準）
-    if(vd?.isPullbackSignal) wr += 0.06;
-
-    // 7. RSI
-    if(rsi<32&&type==='long')  wr += 0.05;
-    if(rsi>68&&type==='short') wr += 0.05;
-    if(rsi>70&&type==='long')  wr -= 0.04;
-    if(rsi<30&&type==='short') wr -= 0.04;
-
-    // 8. 資金費率（預載10幣有效）
-    if(fr!==null&&parseFloat(fr)<0&&type==='long')     wr += 0.04;
-    if(fr!==null&&parseFloat(fr)>0.01&&type==='short') wr += 0.04;
-    if(fr!==null&&parseFloat(fr)>0.01&&type==='long')  wr -= 0.03;
-    if(fr!==null&&parseFloat(fr)<0&&type==='short')    wr -= 0.03;
+    // ── 資金費率 ──
+    if(fr!==null && parseFloat(fr)<0    && type==='long')  wr += 0.04;
+    if(fr!==null && parseFloat(fr)>0.01 && type==='short') wr += 0.04;
+    if(fr!==null && parseFloat(fr)>0.01 && type==='long')  wr -= 0.03;
+    if(fr!==null && parseFloat(fr)<0    && type==='short') wr -= 0.03;
 
     // 8. OANDA 量價型態（對稱加扣分）
     if(volPat){
@@ -1567,13 +1579,18 @@ function renderRecs(){
     const wrColor=wr>=0.70?'var(--green2)':wr>=0.60?'var(--gold)':'var(--text3)';
     // 指標標籤（精簡）
     const tags=[];
-    if(vegasAligned) tags.push('MOVE✅');
-    if(vegasAgainst) tags.push('逆MOVE⚠️');
-    if(critCount>=3) tags.push('篩選3/3🏆');
-    else if(critCount===2) tags.push('篩選2/3');
-    else if(critCount===1) tags.push('篩選1/3');
-    if(vd?.step1&&vd?.step2&&vd?.step3) tags.push('賽3/3');
-    else if(vd?.step1&&vd?.step2) tags.push('賽2/3');
+    // VEGAS 基礎
+    if(vegasAligned) tags.push('VEGAS✅');
+    if(vegasAgainst) tags.push('逆VEGAS⚠️');
+    // MOVE 系統
+    if(critCount>=3) tags.push('MOVE3/3🏆');
+    else if(critCount===2) tags.push('MOVE2/3');
+    else if(critCount===1) tags.push('MOVE1/3');
+    // 賽克斯系統
+    if(saekFull) tags.push('賽克斯✅');
+    else if(saekPartial) tags.push('賽克斯2/3');
+    // 兩系統共振
+    if(moveOK&&saekOK&&vegasAligned) tags.push('雙系統共振⭐');
     if(vd?.resonance>=2) tags.push(`共振${vd.resonance}TF`);
     if(vd?.isPullbackSignal) tags.push('回踩');
     if(rsi<32&&type==='long') tags.push(`RSI${rsi}`);
