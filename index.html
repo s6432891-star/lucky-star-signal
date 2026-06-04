@@ -828,16 +828,12 @@ async function loadNews(){
 }
 
 function renderNews(items){
-  if(!items.length){document.getElementById('news-list').innerHTML='<div class="empty">暫無快訊</div>';return;}
+  if(!items||!items.length){renderNewsFromMarket();return;}
   document.getElementById('news-time').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
-
-  // 只顯示有幣種標記的新聞，並判斷利多/利空
-  const filtered=items.filter(n=>(n.currencies||[]).length>0||(n.title||'').match(/BTC|ETH|SOL|BNB|XRP|crypto|bitcoin|ethereum/i));
-  // 用全域陣列儲存，避免 onclick 引號問題
   window._newsCache=[];
-  const bullWords=['surge','rally','bullish','buy','launch','partnership','approve','etf','adoption','all-time','record','upgrade'];
-  const bearWords=['crash','dump','bear','sell','hack','ban','fraud','liquidate','fear','drop','plunge','collapse'];
-  const rows=filtered.slice(0,30).map((n,idx)=>{
+  const bullWords=['surge','rally','bullish','buy','launch','partnership','approve','etf','adoption','record','upgrade','pump','breakout','high'];
+  const bearWords=['crash','dump','bear','sell','hack','ban','fraud','liquidate','fear','drop','plunge','collapse','low','bearish'];
+  const rows=items.slice(0,30).map((n,idx)=>{
     const t=new Date(n.published_at||n.created_at||Date.now());
     const ago=Math.round((Date.now()-t)/60000);
     const agoTxt=ago<60?`${ago}分前`:`${Math.floor(ago/60)}小時前`;
@@ -870,8 +866,9 @@ function renderNews(items){
 
 // ═══ 新聞總結彈窗 ═══
 function openNewsSummary(idx){
-  const n=window._newsCache?.[idx];
-  if(!n)return;
+  const n=(window._newsCache||[])[idx];
+  if(!n){console.warn('newsCache miss',idx,window._newsCache);showToast('⚠️ 資料載入中，請稍候再試');return;}
+  console.log('openNewsSummary',n.title);
   try{
     // 建立底部彈窗
     const overlay=document.createElement('div');
