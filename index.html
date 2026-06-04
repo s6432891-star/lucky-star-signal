@@ -2287,11 +2287,13 @@ function openMOVEDetail(sym, type, v, c) {
     (fr_val!==null && ((type==='long'&&parseFloat(fr_val)<0)||(type==='short'&&parseFloat(fr_val)>0.01)) ? 5 : 0)
   ));
 
-  // ── RSI / MACD / Boll ──
-  const macd_obj = c ? getMACDObj(c.symbol) : {hist:'—', signal:'—', cls:'neu'};
-  const boll_obj = c ? getBoll(c.symbol) : {label:'—', cls:'neu', desc:'—'};
-  const ma_obj   = c ? getMA(c.symbol)   : {label:'—', cls:'neu', desc:'—'};
-  const vol_obj  = c ? getVol(c.symbol)  : {label:'—', cls:'neu', val:'—', desc:'—'};
+  // ── RSI / MACD / Boll（null = 真實數據載入中）──
+  const _macd = c ? getMACDObj(c.symbol) : null;
+  const _boll = c ? getBoll(c.symbol)    : null;
+  const macd_obj = _macd || {hist:'—', signal:'載入中', cls:'neu'};
+  const boll_obj = _boll || {label:'載入中', cls:'neu', desc:'4H數據載入中'};
+  const ma_obj   = c ? getMA(c.symbol)  : {label:'—', cls:'neu', desc:'—'};
+  const vol_obj  = c ? getVol(c.symbol) : {label:'—', cls:'neu', val:'—', desc:'—'};
   const rsiCls   = rsi_val===null?'neu':rsi_val<30?'bull':rsi_val>70?'bear':'neu';
   const rsiLbl   = rsi_val===null?'載入中':rsi_val<30?'超賣':rsi_val>70?'超買':'中性';
 
@@ -2480,7 +2482,7 @@ function openMOVEDetail(sym, type, v, c) {
     <div class="m-sec">
       <div class="m-sec-t">📈 技術指標輔助確認</div>
       <div class="tech-grid">
-        <div class="tc2"><div class="tc2-n">RSI(14)</div><div class="tc2-v" style="color:${rsiCls==='bull'?'var(--green2)':rsiCls==='bear'?'var(--red2)':'var(--gold)'}">${rsi_val}</div><div class="tc2-s ${rsiCls}">${rsiLbl}</div><div class="tc2-d">${rsi_val<30?'超賣，反彈機率高':rsi_val>70?'超買，小心回調':'動能中性'}</div></div>
+        <div class="tc2"><div class="tc2-n">RSI(14)</div><div class="tc2-v" style="color:${rsiCls==='bull'?'var(--green2)':rsiCls==='bear'?'var(--red2)':'var(--gold)'}">${rsi_val!==null?rsi_val:'—'}</div><div class="tc2-s ${rsiCls}">${rsiLbl}</div><div class="tc2-d">${rsi_val===null?'4H數據載入中':rsi_val<30?'超賣，反彈機率高':rsi_val>70?'超買，小心回調':'動能中性'}</div></div>
         <div class="tc2"><div class="tc2-n">MACD</div><div class="tc2-v" style="color:${macd_obj.cls==='bull'?'var(--green2)':macd_obj.cls==='bear'?'var(--red2)':'var(--gold)'}">${macd_obj.hist}</div><div class="tc2-s ${macd_obj.cls}">${macd_obj.signal}</div><div class="tc2-d">${macd_obj.cls==='bull'?'動能轉多':macd_obj.cls==='bear'?'動能轉空':'整理中'}</div></div>
         <div class="tc2"><div class="tc2-n">布林帶</div><div class="tc2-v" style="font-size:11px;color:${boll_obj.cls==='bull'?'var(--green2)':boll_obj.cls==='bear'?'var(--red2)':'var(--gold)'}">${boll_obj.label}</div><div class="tc2-s ${boll_obj.cls}">${boll_obj.cls==='bull'?'偏多':boll_obj.cls==='bear'?'偏空':'整理'}</div><div class="tc2-d">${boll_obj.desc}</div></div>
         <div class="tc2" id="modal-fr-cell"><div class="tc2-n">資金費率 FR</div><div class="tc2-v" style="font-size:11px;color:var(--gold)">—</div><div class="tc2-s neu" style="display:flex;align-items:center;gap:3px"><div class="spin" style="width:8px;height:8px;border-width:1.5px"></div>抓取中</div><div class="tc2-d">—</div></div>
