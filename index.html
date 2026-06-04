@@ -2022,14 +2022,13 @@ async function fetchOIChange(sym){
 async function computeVEGAS(sym){
   try{
     // 同時抓 日線、4H、1H、15M（賽克斯多週期共振）
-    const[daily,h4raw,h1,m15]=await Promise.all([
+    const[daily,h4,h1,m15]=await Promise.all([
       fetchKlines(sym,'1D',700),
-      fetchKlinesOHLCV(sym,'4H',700), // OHLCV for volume patterns
+      fetchKlines(sym,'4H',700),
       fetchKlines(sym,'1H',200),
       fetchKlines(sym,'15m',200)
     ]);
-    if(!daily||daily.length<100||!h4raw||h4raw.length<100)return null;
-    const h4=h4raw.map(d=>d.close); // close prices for EMA calculation
+    if(!daily||daily.length<100||!h4||h4.length<100)return null;
 
     // ── VEGAS EMA ──
     const d12=calcEMA(daily,12),d144=calcEMA(daily,144),d169=calcEMA(daily,169);
@@ -2158,8 +2157,8 @@ async function computeVEGAS(sym){
     if(isPullbackSignal)score+=Math.round(pullbackWR*15);
     score=Math.min(100,Math.round(score));
 
-    // ── 真實量價型態（用4H OHLCV + 20根均量）──
-    const volPat4H = calcRealVolPattern(h4raw);
+    // 量價型態由 OI 資料計算（OHLCV 改為按需抓取）
+    const volPat4H = null;
 
     const cgId=symToCG(sym),cgCoin=cgId?coins[cgId]:null;
     return{
