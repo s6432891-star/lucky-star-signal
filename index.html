@@ -2055,8 +2055,6 @@ async function computeVEGAS(sym){
     const nearTunnel = priceNearTunnel_long || priceNearTunnel_short;
 
     // ── 通道回踩精確距離（核心勝率計算）──
-    const lastPrice=h4[h4.length-1];
-    const prevPrice=h4[h4.length-2]||lastPrice;
     let pullbackDist=null, pullbackSide=null, pullbackWR=0;
     if(dailyTrend==='bull'){
       // 做多：價格從上方回踩EMA144
