@@ -1637,11 +1637,15 @@ function scoreAll(){
 // ═══ RECS ═══
 function renderRecs(){
   if(!scoredCoins.length)return;
-  const longs=[...scoredCoins].sort((a,b)=>b.longScore-a.longScore).slice(0,5);
-  const shorts=[...scoredCoins].sort((a,b)=>b.shortScore-a.shortScore).slice(0,5);
+  const _getVd=c=>vegasData.find(v=>v.sym===c.symbol.toUpperCase());
+  const longs=[...scoredCoins].filter(c=>{const vd=_getVd(c);return !(vd&&vd.signal==='bear');}).sort((a,b)=>b.longScore-a.longScore).slice(0,5);
+  const longsWatch=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bear';}).sort((a,b)=>b.longScore-a.longScore).slice(0,3);
+  const shorts=[...scoredCoins].filter(c=>{const vd=_getVd(c);return !(vd&&vd.signal==='bull');}).sort((a,b)=>b.shortScore-a.shortScore).slice(0,5);
+  const shortsWatch=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bull';}).sort((a,b)=>b.shortScore-a.shortScore).slice(0,3);
   const ranks=['🥇','🥈','🥉','4️⃣','5️⃣'];
+  const watchRanks=['①','②','③'];
 
-  const makeRow=(c,i,type)=>{
+  const makeRow=(c,i,type,isWatch=false)=>{
     const sc=type==='long'?c.longScore:c.shortScore;
     const vd=vegasData.find(v=>v.sym===c.symbol.toUpperCase());
     const rsi=getRSI(c.symbol);
@@ -1821,9 +1825,11 @@ function renderRecs(){
     if(rsi<32&&type==='long') tags.push(`RSI${rsi}`);
     if(rsi>68&&type==='short') tags.push(`RSI${rsi}`);
     if(volTag) tags.push(volTag);
-    return `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1.5px solid var(--pink4);cursor:pointer;padding:10px 8px;align-items:center;transition:background .15s" onclick="openScoreDetail('${c.id}','${type}')" onmouseenter="this.style.background='var(--pink5)'" onmouseleave="this.style.background=''">
+    const _rank=isWatch?(watchRanks[i]||`${i+1}`):(ranks[i]||`${i+1}`);
+    const _hov=isWatch?'rgba(245,158,11,0.10)':'var(--pink5)';
+    return `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1.5px solid var(--pink4);cursor:pointer;padding:10px 8px;align-items:center;transition:background .15s" onclick="openScoreDetail('${c.id}','${type}')" onmouseenter="this.style.background='${_hov}'" onmouseleave="this.style.background=''">
       <div style="display:flex;align-items:center;gap:5px">
-        <span style="font-size:12px">${ranks[i]}</span>
+        <span style="font-size:12px">${_rank}</span>
         <div>
           <div style="font-family:Nunito,sans-serif;font-size:15px;font-weight:900">${c.symbol.toUpperCase()}</div>
           <div style="font-size:10px;font-weight:700" class="${c.ch>=0?'up':'dn'}">${c.ch>=0?'+':''}${c.ch.toFixed(1)}%</div>
@@ -1860,7 +1866,23 @@ function renderRecs(){
       ${items.map((c,i)=>makeRow(c,i,type)).join('')}
     </div>`;
 
-  document.getElementById('rec-wrap').innerHTML=`<div style="display:flex;flex-direction:column;gap:0">${makeSection(longs,'long')}${makeSection(shorts,'short')}</div>`;
+  const makeWatchSection=(items,type)=>items.length===0?'':
+    `<div style="background:var(--white);border:1.5px solid #f59e0b;border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);margin-bottom:10px">
+      <div style="padding:10px 13px;border-bottom:1.5px solid #f59e0b;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,rgba(245,158,11,0.10),var(--white))">
+        <div style="font-family:Nunito,sans-serif;font-size:14px;font-weight:900;color:#d97706">⚠️ 高度觀察 — 逆VEGAS，不建議操作</div>
+        <div style="font-size:10px;color:var(--text3);font-weight:700">${type==='long'?'VEGAS看空':'VEGAS看多'}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1.5px solid rgba(245,158,11,0.3);background:rgba(245,158,11,0.06)">
+        <div style="padding:5px 8px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif">幣種</div>
+        <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">勝率</div>
+        <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">EV</div>
+        <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">RR</div>
+        <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">指標</div>
+      </div>
+      ${items.map((c,i)=>makeRow(c,i,type,true)).join('')}
+    </div>`;
+
+  document.getElementById('rec-wrap').innerHTML=`<div style="display:flex;flex-direction:column;gap:0">${makeSection(longs,'long')}${makeWatchSection(longsWatch,'long')}${makeSection(shorts,'short')}${makeWatchSection(shortsWatch,'short')}</div>`;
 }
 
 // ═══ 賽克斯訊號分數計算（固定加權，無亂數）═══
