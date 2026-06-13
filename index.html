@@ -1002,6 +1002,12 @@ async function loadNews(){
 
 function renderNews(items){
   if(!items||!items.length){renderNewsFromMarket();return;}
+  // 過濾市場數據 fallback，快訊 tab 只顯示真實新聞
+  items=items.filter(n=>!n.isMarket);
+  if(!items.length){
+    document.getElementById('news-list').innerHTML='<div class="empty" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">暫無即時新聞，請稍後再試</div>';
+    return;
+  }
   document.getElementById('news-time').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
   const ncnt=document.getElementById('news-cnt');if(ncnt)ncnt.textContent=items.length;
   const bullWords=['surge','rally','bullish','buy','launch','approve','etf','adoption','record','upgrade','pump','breakout'];
@@ -1081,7 +1087,7 @@ function openNewsSummary(idx){
             <div style="display:flex;align-items:center;gap:6px;color:var(--text3)"><div class="spin"></div>AI 分析中...</div>
           </div>
           <div style="display:flex;gap:8px;margin-top:10px">
-            <a href="${n.url}" target="_blank" style="flex:1;background:linear-gradient(135deg,var(--pink3),var(--pink2));color:white;border:none;border-radius:12px;padding:11px;font-size:12px;font-weight:900;font-family:Nunito,sans-serif;text-align:center;cursor:pointer;text-decoration:none;display:block">${n.isMarket?'📊 查看圖表':'📖 閱讀原文'}</a>
+            <a href="${n.url}" target="_blank" style="flex:1;background:linear-gradient(135deg,var(--pink3),var(--pink2));color:white;border:none;border-radius:12px;padding:11px;font-size:12px;font-weight:900;font-family:Nunito,sans-serif;text-align:center;cursor:pointer;text-decoration:none;display:block">📖 閱讀原文</a>
           </div>
         </div>
       </div>`;
@@ -2613,7 +2619,11 @@ function openMOVEDetail(sym, type, v, c) {
           &nbsp;<span style="color:var(--text3);font-size:9px;font-family:'JetBrains Mono',monospace">RSI ${rsi_val}</span>
         </div>
       </div>
-      <button class="mclose" onclick="closeMod()">✕</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <a href="https://www.tradingview.com/chart/?symbol=OKX:${sym}USDTSWAP" target="_blank"
+           style="font-size:11px;font-weight:900;padding:6px 11px;border-radius:10px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif;text-decoration:none;white-space:nowrap">📊 查看圖表</a>
+        <button class="mclose" onclick="closeMod()">✕</button>
+      </div>
     </div>
 
     <!-- MOVE 評分 + 建議倉位 -->
@@ -2750,6 +2760,11 @@ function openMOVEDetail(sym, type, v, c) {
         <div style="display:inline-flex;align-items:center;gap:6px"><div class="spin"></div>載入快訊中...</div>
       </div>
       <div id="modal-news-content"></div>
+      <!-- 查看圖表快捷 -->
+      <a href="https://www.tradingview.com/chart/?symbol=OKX:${sym}USDTSWAP" target="_blank"
+         style="display:block;margin:10px 0 2px;padding:11px;background:linear-gradient(135deg,var(--pink5),var(--white));border:1.5px solid var(--pink4);border-radius:10px;text-align:center;font-size:12px;font-weight:900;font-family:Nunito,sans-serif;color:var(--text2);text-decoration:none">
+        📊 ${sym}/USDT 永續合約 — TradingView 查看圖表
+      </a>
     </div>`;
 
   document.getElementById('modal').classList.add('open');
