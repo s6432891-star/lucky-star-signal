@@ -694,6 +694,7 @@ async function loadFast(){
   await Promise.all([loadCoins(),loadOI()]);
   scoredCoins=scoreAll();
   saekSigs=buildSaek();
+  renderOverviewStats(Object.values(coins)); // oiData 已就緒，更新為60幣總覽
   renderRecs();renderSaek();renderSectors();
   document.getElementById('stime').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
 }
@@ -765,8 +766,12 @@ function renderTicker(data){
 }
 
 function renderOverviewStats(data){
-  let lng=0,sht=0;data.forEach(c=>{const ch=c.price_change_percentage_24h||0;if(ch>1)lng++;else if(ch<-1)sht++;});
-  const total=data.length,pct=Math.round(lng/total*100);
+  // 優先用 oiData（OKX 30幣 pchg），其次 CoinGecko data
+  const src=oiData.length>=10?oiData:data;
+  const getChg=c=>c.pchg!==undefined?c.pchg:(c.price_change_percentage_24h||0);
+  let lng=0,sht=0;src.forEach(c=>{const ch=getChg(c);if(ch>1)lng++;else if(ch<-1)sht++;});
+  const total=SYMS.length>10?SYMS.length:data.length;
+  const pct=Math.round(lng/(lng+sht||1)*100);
   document.getElementById('s-total').textContent=total;
   document.getElementById('s-long').textContent=lng;
   document.getElementById('s-short').textContent=sht;
@@ -960,20 +965,41 @@ const NEWS_RSS_SOURCES = [
   { url:'https://www.newsbtc.com/feed/',                    name:'NewsBTC' },
 ];
 
+const _COIN_NAMES = {bitcoin:'BTC',ethereum:'ETH',solana:'SOL',ripple:'XRP',dogecoin:'DOGE',
+  cardano:'ADA',avalanche:'AVAX',polkadot:'DOT',chainlink:'LINK',litecoin:'LTC',
+  polygon:'POL',matic:'POL','shiba inu':'SHIB',pepe:'PEPE',tron:'TRX',near:'NEAR',
+  arbitrum:'ARB',optimism:'OP',injective:'INJ',celestia:'TIA',jupiter:'JUP',
+  aptos:'APT',algorand:'ALGO',stellar:'XLM',uniswap:'UNI',aave:'AAVE',
+  cosmos:'ATOM',lido:'LDO',stacks:'STX',filecoin:'FIL','bitcoin cash':'BCH',
+  kaspa:'KAS',hedera:'HBAR','internet computer':'ICP',vechain:'VET',theta:'THETA',
+  sui:'SUI',ton:'TON','the graph':'GRT',axie:'AXS',floki:'FLOKI',bonk:'BONK',
+  render:'RENDER',fetch:'FET','world coin':'WLD',sei:'SEI'};
+
+function _extractCoins(title){
+  const up=title.toUpperCase(),lo=title.toLowerCase();
+  const found=new Set();
+  SYMS.forEach(sym=>{if(new RegExp(`\\b${sym}\\b`).test(up))found.add(sym);});
+  Object.entries(_COIN_NAMES).forEach(([name,sym])=>{if(lo.includes(name))found.add(sym);});
+  return [...found].slice(0,4).map(sym=>({code:sym}));
+}
+
 async function fetchRSSItems(feedUrl, sourceName) {
   try {
     const r = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(feedUrl)}`, { signal: AbortSignal.timeout(8000) });
     if (!r.ok) return [];
     const xml = await r.text();
     const doc = new DOMParser().parseFromString(xml, 'text/xml');
-    return Array.from(doc.querySelectorAll('item')).map(item => ({
-      title: item.querySelector('title')?.textContent?.trim() || '',
-      url: item.querySelector('link')?.textContent?.trim() || item.querySelector('guid')?.textContent?.trim() || '',
-      published_at: item.querySelector('pubDate')?.textContent || new Date().toISOString(),
-      source: { title: sourceName },
-      currencies: [],
-      votes: { positive: 0, negative: 0 }
-    })).filter(n => n.title);
+    return Array.from(doc.querySelectorAll('item')).map(item => {
+      const title = item.querySelector('title')?.textContent?.trim() || '';
+      return {
+        title,
+        url: item.querySelector('link')?.textContent?.trim() || item.querySelector('guid')?.textContent?.trim() || '',
+        published_at: item.querySelector('pubDate')?.textContent || new Date().toISOString(),
+        source: { title: sourceName },
+        currencies: _extractCoins(title),
+        votes: { positive: 0, negative: 0 }
+      };
+    }).filter(n => n.title);
   } catch(e) { return []; }
 }
 
