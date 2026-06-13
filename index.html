@@ -1015,6 +1015,9 @@ function renderNews(items){
     if(!row)return;
     openNewsSummary(parseInt(row.dataset.ni));
   };
+  // 建立幣種情緒緩存，刷新推薦（新聞情緒納入勝率）
+  buildNewsSentBySym();
+  if(scoredCoins.length) renderRecs();
 }
 
 // ═══ 新聞總結彈窗 ═══
@@ -1303,6 +1306,32 @@ function getLS(sym){
 function getOIChg(sym){
   const ri=realInd[sym.toUpperCase()]||{};
   return ri.oiChg!==undefined?ri.oiChg:null;
+}
+// ── 新聞情緒快取（由 buildNewsSentBySym 填充）──
+function buildNewsSentBySym(){
+  const map={};
+  (window._NC||[]).forEach(n=>{
+    const isBull=n.sentiment.includes('利多');
+    const isBear=n.sentiment.includes('利空');
+    if(!isBull&&!isBear)return;
+    (n.coins||[]).forEach(sym=>{
+      if(!sym)return;
+      const k=sym.toUpperCase();
+      if(!map[k])map[k]={bull:0,bear:0};
+      if(isBull)map[k].bull++;
+      if(isBear)map[k].bear++;
+    });
+  });
+  window._newsSentBySym=map;
+}
+function getNewsSent(sym){
+  const s=(window._newsSentBySym||{})[sym.toUpperCase()];
+  if(!s||(s.bull+s.bear)===0)return null;
+  const total=s.bull+s.bear;
+  const bullPct=s.bull/total;
+  if(bullPct>=0.60)return{label:'📰利多',color:'var(--green2)',bull:true,bear:false};
+  if(bullPct<=0.40)return{label:'📰利空',color:'var(--red2)',bull:false,bear:true};
+  return null; // 中性不顯示標籤
 }
 function getMA(sym){const c=Object.values(coins).find(x=>x.symbol.toLowerCase()===sym.toLowerCase());return c?calcMA(c):{label:'—',cls:'neu',desc:'—'};}
 function getVol(sym){const c=Object.values(coins).find(x=>x.symbol.toLowerCase()===sym.toLowerCase());return c?calcVol(c):{label:'—',cls:'neu',val:'—',desc:'—'};}
@@ -1734,6 +1763,13 @@ function renderRecs(){
       }
     }
 
+    // ── 新聞情緒（全域快訊緩存，null=尚未載入或中性）──
+    const newsSent = getNewsSent(c.symbol);
+    if(newsSent){
+      if(newsSent.bull) wr += type==='long'  ?  0.03 : -0.02;
+      if(newsSent.bear) wr += type==='short' ?  0.03 : -0.02;
+    }
+
     wr=Math.min(0.75,Math.max(0.30,wr)); // 上限75%，下限30%
 
     // 指標標籤補充量價型態
@@ -1748,6 +1784,8 @@ function renderRecs(){
     const wrColor=wr>=0.70?'var(--green2)':wr>=0.60?'var(--gold)':'var(--text3)';
     // 指標標籤（精簡）
     const tags=[];
+    // 新聞情緒（優先顯示）
+    if(newsSent) tags.push(newsSent.label);
     // VEGAS 基礎
     if(vegasAligned) tags.push('VEGAS✅');
     if(vegasAgainst) tags.push('逆VEGAS⚠️');
@@ -2584,7 +2622,7 @@ function openMOVEDetail(sym, type, v, c) {
         </div>
       </div>
       <div id="modal-ev-row" style="background:var(--pink5);border-radius:8px;padding:8px 11px;margin-top:8px;font-size:10px;color:var(--text2);line-height:1.7"
-        data-rr="${rr}" data-sl="${slPct}" data-tp="${tpPct}" data-base-wr="${winRate.toFixed(4)}" data-type="${type}">
+        data-rr="${rr}" data-sl="${slPct}" data-tp="${tpPct}" data-base-wr="${winRate.toFixed(4)}" data-type="${type}" data-sym="${sym}">
         RR ${rr}:1 &nbsp;|&nbsp; 估算勝率 <span id="modal-wr-val">${(winRate*100).toFixed(0)}%</span> &nbsp;|&nbsp; EV <strong id="modal-ev-val" style="color:${ev>0?'var(--green2)':'var(--red2)'}">${ev>=0?'+':''}${(ev*100).toFixed(2)}%</strong> &nbsp;|&nbsp; 凱利 <span id="modal-kelly-val">${(kelly*50).toFixed(0)}%</span>（半凱利）
         ${tp2Desc?`<br>💡 ${tp2Desc}`:''}
       </div>
@@ -2745,6 +2783,12 @@ async function fetchAndUpdateFRLS(sym, type) {
   if (lsNum !== null && mType==='short' && lsNum > 0.65) wr += 0.03;
   if (lsNum !== null && mType==='long'  && lsNum > 0.7)  wr -= 0.02;
   if (lsNum !== null && mType==='short' && lsNum < 0.35) wr -= 0.02;
+  // 新聞情緒
+  const modalNewsSent = getNewsSent(evRow.dataset.sym || '');
+  if (modalNewsSent){
+    if (modalNewsSent.bull) wr += mType==='long'  ?  0.03 : -0.02;
+    if (modalNewsSent.bear) wr += mType==='short' ?  0.03 : -0.02;
+  }
   wr = Math.min(0.82, Math.max(0.30, wr));
 
   const ev    = wr * (tpPct/100) - (1-wr) * (slPct/100);
@@ -2763,6 +2807,19 @@ async function fetchAndUpdateFRLS(sym, type) {
 async function loadCoinNews(sym){
   const bullWords=['surge','rally','bullish','buy','launch','partnership','approve','etf','adoption','record','upgrade','moon','pump','breakout','high'];
   const bearWords=['crash','dump','bear','sell','hack','ban','fraud','liquidat','fear','drop','plunge','collapse','low','short','bearish'];
+
+  // ── 優先從全域快訊緩存快速顯示（0延遲）──
+  const symU=sym.toUpperCase();
+  const cached=(window._NC||[]).filter(n=>(n.coins||[]).some(s=>s.toUpperCase()===symU));
+  if(cached.length>=2){
+    const quick=cached.map(n=>({
+      title:n.title, url:n.url,
+      published_at:new Date(Date.now()-(n.agoTxt.includes('小時')?(parseInt(n.agoTxt)||2)*3600000:(parseInt(n.agoTxt)||30)*60000)).toISOString(),
+      source:{title:n.source}, votes:{positive:n.sentiment.includes('利多')?3:0,negative:n.sentiment.includes('利空')?3:0}
+    }));
+    renderCoinNews(sym, quick, bullWords, bearWords);
+  }
+
   try{
     // CryptoCompare 幣種分類篩選（免費、CORS 友善）
     const [ccRes, cgRes] = await Promise.allSettled([
