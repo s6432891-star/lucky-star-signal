@@ -330,6 +330,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
     <div class="tab"        onclick="sw('saek')"   id="tab-saek">⚡ 技術訊號 <span class="tbadge" id="scnt">0</span></div>
     <div class="tab"        onclick="sw('oi')"     id="tab-oi">🔥 OI異常 <span class="tbadge" id="ocnt">0</span></div>
     <div class="tab"        onclick="sw('flash')"  id="tab-flash">📊 成交量 <span class="tbadge" id="flash-cnt">0</span></div>
+    <div class="tab"        onclick="sw('news')"   id="tab-news">📰 快訊 <span class="tbadge" id="news-cnt">0</span></div>
     <div class="tab"        onclick="sw('overview')" id="tab-overview">🌸 總覽</div>
     <div class="tab"        onclick="sw('sectors')"  id="tab-sectors">🏆 板塊</div>
     <div class="tab"        onclick="sw('calc')"   id="tab-calc">🧮 計算機</div>
@@ -485,6 +486,20 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
       <div class="cb" id="vol-rank-time">24H</div>
     </div>
     <div id="vol-rank-list"><div class="loading"><div class="spin"></div>載入中...</div></div>
+  </div>
+</div>
+
+<!-- 新聞快訊 -->
+<div class="panel" id="panel-news">
+  <div class="card">
+    <div class="ch">
+      <div class="ct">📰 加密貨幣即時快訊</div>
+      <div class="cb" id="news-time">載入中...</div>
+    </div>
+    <div style="background:linear-gradient(135deg,rgba(192,132,252,.07),var(--white));border-bottom:1.5px solid var(--pink4);padding:9px 13px;font-size:11px;color:var(--text2);line-height:1.7">
+      🔔 點擊任一則新聞 → AI 自動分析<strong style="color:var(--purple)">利多/利空</strong>並給出短線交易建議
+    </div>
+    <div id="news-list"><div class="loading"><div class="spin"></div>新聞載入中...</div></div>
   </div>
 </div>
 
@@ -665,10 +680,14 @@ document.addEventListener('DOMContentLoaded',()=>{
       loadRealIndicators().then(()=>calcSignalEVs());
     });
   });
+  // 4. 新聞快訊（獨立載入，不阻塞主流程）
+  loadNews();
   // 價格/OI/EV 每60秒更新
   setInterval(()=>{loadFast();loadRealIndicators().then(()=>calcSignalEVs());},60000);
   // VEGAS 全幣掃描每3分鐘更新
   setInterval(()=>{loadAllSymbols().then(()=>loadVEGAS());},180000);
+  // 新聞每5分鐘更新
+  setInterval(()=>loadNews(),300000);
 });
 
 async function loadFast(){
@@ -918,21 +937,37 @@ function renderVolSpike(){
 // ═══ 即時新聞 ═══
 async function loadNews(){
   try{
-    // CryptoCompare - 免費且支援 CORS
-    const r=await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN&sortOrder=popular');
-    if(!r.ok)throw new Error();
-    const j=await r.json();
-    const items=(j.Data||[]).map(n=>({
-      title:n.title,
-      url:n.url,
-      published_at:new Date(n.published_on*1000).toISOString(),
-      source:{title:n.source_info?.name||n.source},
-      currencies:(n.categories||'').split('|').filter(c=>c&&c.length<=6).slice(0,4).map(c=>({code:c})),
-      votes:{positive:n.upvotes||0,negative:0}
-    }));
-    renderNews(items);
+    // CryptoCompare（主要）+ CoinGecko（補充），並行抓取
+    const [ccRes, cgRes] = await Promise.allSettled([
+      fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN&sortOrder=latest&extraParams=lucky_star'),
+      fetch('https://api.coingecko.com/api/v3/news?per_page=30')
+    ]);
+    let items=[];
+    if(ccRes.status==='fulfilled'&&ccRes.value.ok){
+      const j=await ccRes.value.json();
+      items=(j.Data||[]).map(n=>({
+        title:n.title, url:n.url,
+        published_at:new Date(n.published_on*1000).toISOString(),
+        source:{title:n.source_info?.name||n.source},
+        currencies:(n.categories||'').split('|').filter(c=>c&&c.length<=6&&c!=='').slice(0,4).map(c=>({code:c})),
+        votes:{positive:n.upvotes||0,negative:0}
+      }));
+    }
+    if(cgRes.status==='fulfilled'&&cgRes.value.ok){
+      const j2=await cgRes.value.json();
+      const cgItems=(j2.data||[]).map(n=>({
+        title:n.title, url:n.url,
+        published_at:n.updated_at,
+        source:{title:n.news_site},
+        currencies:[], votes:{positive:0,negative:0}
+      }));
+      // 合併去重（以標題前50字元判斷）
+      const seen=new Set(items.map(n=>n.title.slice(0,50)));
+      cgItems.forEach(n=>{ if(!seen.has(n.title.slice(0,50))) items.push(n); });
+    }
+    if(items.length) renderNews(items.slice(0,40));
+    else renderNewsFromMarket();
   }catch(e){
-    // fallback：用市場資料生成快訊
     renderNewsFromMarket();
   }
 }
@@ -940,6 +975,7 @@ async function loadNews(){
 function renderNews(items){
   if(!items||!items.length){renderNewsFromMarket();return;}
   document.getElementById('news-time').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
+  const ncnt=document.getElementById('news-cnt');if(ncnt)ncnt.textContent=items.length;
   const bullWords=['surge','rally','bullish','buy','launch','approve','etf','adoption','record','upgrade','pump','breakout'];
   const bearWords=['crash','dump','bear','sell','hack','ban','fraud','liquidate','fear','drop','plunge','collapse','bearish'];
   // 全域儲存
@@ -2728,23 +2764,31 @@ async function loadCoinNews(sym){
   const bullWords=['surge','rally','bullish','buy','launch','partnership','approve','etf','adoption','record','upgrade','moon','pump','breakout','high'];
   const bearWords=['crash','dump','bear','sell','hack','ban','fraud','liquidat','fear','drop','plunge','collapse','low','short','bearish'];
   try{
-    // 嘗試 CryptoPanic
-    const r=await fetch(`https://cryptopanic.com/api/free/v1/posts/?auth_token=free&public=true&currencies=${sym}&kind=news`);
+    // CryptoCompare 幣種分類篩選（免費、CORS 友善）
+    const [ccRes, cgRes] = await Promise.allSettled([
+      fetch(`https://min-api.cryptocompare.com/data/v2/news/?categories=${sym}&lang=EN&sortOrder=latest`),
+      fetch(`https://api.coingecko.com/api/v3/news?per_page=50`)
+    ]);
     let items=[];
-    if(r.ok){
-      const j=await r.json();
-      items=(j.results||[]).slice(0,10);
+    if(ccRes.status==='fulfilled'&&ccRes.value.ok){
+      const j=await ccRes.value.json();
+      items=(j.Data||[]).slice(0,10).map(n=>({
+        title:n.title, url:n.url,
+        published_at:new Date(n.published_on*1000).toISOString(),
+        source:{title:n.source_info?.name||n.source},
+        votes:{positive:n.upvotes||0,negative:0}
+      }));
     }
-    // fallback：CoinGecko news
-    if(!items.length){
-      const r2=await fetch('https://api.coingecko.com/api/v3/news?per_page=50');
-      if(r2.ok){
-        const j2=await r2.json();
-        items=(j2.data||[])
-          .filter(n=>(n.title||'').toLowerCase().includes(sym.toLowerCase()))
-          .slice(0,8)
-          .map(n=>({title:n.title,url:n.url,published_at:n.updated_at,source:{title:n.news_site},votes:{positive:0,negative:0}}));
-      }
+    // CoinGecko 補充（關鍵字過濾）
+    if(cgRes.status==='fulfilled'&&cgRes.value.ok){
+      const j2=await cgRes.value.json();
+      const symLow=sym.toLowerCase();
+      const extra=(j2.data||[])
+        .filter(n=>(n.title||'').toLowerCase().includes(symLow))
+        .slice(0,5)
+        .map(n=>({title:n.title,url:n.url,published_at:n.updated_at,source:{title:n.news_site},votes:{positive:0,negative:0}}));
+      const seen=new Set(items.map(n=>n.title.slice(0,50)));
+      extra.forEach(n=>{ if(!seen.has(n.title.slice(0,50))) items.push(n); });
     }
     renderCoinNews(sym, items, bullWords, bearWords);
   }catch(e){
