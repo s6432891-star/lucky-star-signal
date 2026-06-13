@@ -1300,15 +1300,8 @@ async function fetchFR(sym) {
 }
 
 async function fetchLS(sym) {
-  try {
-    // taker volume（long-short-account-ratio 被 CORS 封鎖）
-    const j = await okxFetch(`https://www.okx.com/api/v5/rubik/stat/taker-volume?ccy=${sym}&instType=CONTRACTS&period=1H`);
-    if (!j||j.code!=='0'||!j.data?.length) return null;
-    const [, sellVol, buyVol] = j.data[0];
-    const buy = parseFloat(buyVol), sell = parseFloat(sellVol), total = buy + sell;
-    if (!total) return null;
-    return buy / total;
-  } catch(e) { return null; }
+  // OKX /rubik/stat/ 路徑整體被 CORS 封鎖（GitHub Pages 前端無法呼叫）
+  return null;
 }
 
 // ── 真實指標 Getter（null = 數據載入中，禁止估算）──
