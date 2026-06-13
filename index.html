@@ -2620,7 +2620,7 @@ function openMOVEDetail(sym, type, v, c) {
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
-        <a href="https://www.tradingview.com/chart/?symbol=OKX:${sym}USDTSWAP" target="_blank"
+        <a href="https://www.tradingview.com/chart/?symbol=OKX:${sym}USDT.P" target="_blank"
            style="font-size:11px;font-weight:900;padding:6px 11px;border-radius:10px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif;text-decoration:none;white-space:nowrap">📊 查看圖表</a>
         <button class="mclose" onclick="closeMod()">✕</button>
       </div>
@@ -2755,13 +2755,13 @@ function openMOVEDetail(sym, type, v, c) {
 
     <!-- 新聞快訊 + 利多利空指數 -->
     <div class="m-sec" style="border-top:1.5px solid var(--pink4)">
-      <div class="m-sec-t">📰 ${sym} 相關快訊 — 利多/利空指數</div>
+      <div class="m-sec-t">📰 ${sym} 相關快訊</div>
       <div id="modal-news-loading" style="text-align:center;padding:14px;color:var(--text3);font-size:11px">
         <div style="display:inline-flex;align-items:center;gap:6px"><div class="spin"></div>載入快訊中...</div>
       </div>
       <div id="modal-news-content"></div>
       <!-- 查看圖表快捷 -->
-      <a href="https://www.tradingview.com/chart/?symbol=OKX:${sym}USDTSWAP" target="_blank"
+      <a href="https://www.tradingview.com/chart/?symbol=OKX:${sym}USDT.P" target="_blank"
          style="display:block;margin:10px 0 2px;padding:11px;background:linear-gradient(135deg,var(--pink5),var(--white));border:1.5px solid var(--pink4);border-radius:10px;text-align:center;font-size:12px;font-weight:900;font-family:Nunito,sans-serif;color:var(--text2);text-decoration:none">
         📊 ${sym}/USDT 永續合約 — TradingView 查看圖表
       </a>
@@ -2932,21 +2932,6 @@ function renderCoinNews(sym, items, bullWords, bearWords){
 
   // 渲染
   content.innerHTML=`
-    <!-- 利多利空指數 -->
-    <div style="background:var(--pink5);border-radius:10px;padding:11px 13px;margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
-        <div style="font-family:Nunito,sans-serif;font-size:13px;font-weight:900;color:${sentColor}">${sentiment}</div>
-        <div style="font-size:10px;color:var(--text3)">${items.length} 則新聞分析</div>
-      </div>
-      <div style="display:flex;height:10px;border-radius:8px;overflow:hidden;gap:2px">
-        <div style="width:${bullPct}%;background:var(--green2);border-radius:8px 0 0 8px;transition:width 1s ease"></div>
-        <div style="width:${bearPct}%;background:var(--red2);border-radius:0 8px 8px 0"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-top:5px">
-        <div style="font-size:11px;font-weight:800;font-family:Nunito,sans-serif;color:var(--green2)">📈 利多 ${bullPct}%</div>
-        <div style="font-size:11px;font-weight:800;font-family:Nunito,sans-serif;color:var(--red2)">📉 利空 ${bearPct}%</div>
-      </div>
-    </div>
     <!-- 新聞列表 -->
     ${items.length===0
       ? `<div style="text-align:center;padding:12px;color:var(--text3);font-size:11px">暫無 ${sym} 相關快訊</div>`
