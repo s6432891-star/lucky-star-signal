@@ -701,16 +701,16 @@ async function loadFast(){
 async function loadVEGAS(){
   document.getElementById('vlist').innerHTML=`<div class="loading"><div class="spin"></div>掃描 ${SYMS.length} 個幣種中，請稍候...</div>`;
   vegasData=[];
-  const batchSize=4;
+  const batchSize=2;
   for(let i=0;i<SYMS.length;i+=batchSize){
-    const done=i+batchSize,pct=Math.round(done/SYMS.length*100);
+    const done=i+batchSize;
     document.getElementById('vcnt').textContent=`${Math.min(done,SYMS.length)}/${SYMS.length}`;
     const batch=SYMS.slice(i,i+batchSize);
     const res=await Promise.all(batch.map(s=>computeVEGAS(s)));
     res.forEach(r=>{if(r)vegasData.push(r);});
     vegasData.sort((a,b)=>b.score-a.score);
-    renderVegas(); // update progressively
-    if(i+batchSize<SYMS.length) await sleep(250);
+    renderVegas();
+    if(i+batchSize<SYMS.length) await sleep(500);
   }
   const done=vegasData.filter(v=>v.signal!=='neutral').length;
   document.getElementById('vcnt').textContent=done;
@@ -724,6 +724,24 @@ function sw(t){
   document.getElementById('panel-'+t).classList.add('active');
 }
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// 全域 OKX API 限速器（最多同時 3 個請求，429 自動退讓重試）
+const _okxRL = { running: 0, max: 3 };
+async function okxFetch(url) {
+  while (_okxRL.running >= _okxRL.max) await sleep(120);
+  _okxRL.running++;
+  try {
+    for (let i = 0; i < 3; i++) {
+      try {
+        const r = await fetch(url);
+        if (r.status === 429) { await sleep(700 * (i + 1)); continue; }
+        if (!r.ok) return null;
+        return await r.json();
+      } catch(e) { return null; }
+    }
+    return null;
+  } finally { _okxRL.running--; }
+}
 
 // ═══ COINGECKO ═══
 async function loadCoins(){
@@ -934,68 +952,49 @@ function renderVolSpike(){
   }).join('');
 }
 
-// ═══ 即時新聞 ═══
-// RSS 來源透過 rss2json 代理（CORS 友善，免費無需 key）
-const RSS2JSON = 'https://api.rss2json.com/v1/api.json?count=20&rss_url=';
-const RSS_SOURCES = [
-  { url:'https://cointelegraph.com/rss',           name:'Cointelegraph' },
-  { url:'https://decrypt.co/feed',                 name:'Decrypt' },
+// ═══ 即時新聞 — corsproxy.io + DOMParser（無需 API key）═══
+const NEWS_RSS_SOURCES = [
+  { url:'https://cointelegraph.com/rss',                    name:'Cointelegraph' },
+  { url:'https://decrypt.co/feed',                          name:'Decrypt' },
+  { url:'https://www.coindesk.com/arc/outboundfeeds/rss/', name:'CoinDesk' },
+  { url:'https://www.newsbtc.com/feed/',                    name:'NewsBTC' },
 ];
+
+async function fetchRSSItems(feedUrl, sourceName) {
+  try {
+    const r = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(feedUrl)}`, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return [];
+    const xml = await r.text();
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    return Array.from(doc.querySelectorAll('item')).map(item => ({
+      title: item.querySelector('title')?.textContent?.trim() || '',
+      url: item.querySelector('link')?.textContent?.trim() || item.querySelector('guid')?.textContent?.trim() || '',
+      published_at: item.querySelector('pubDate')?.textContent || new Date().toISOString(),
+      source: { title: sourceName },
+      currencies: [],
+      votes: { positive: 0, negative: 0 }
+    })).filter(n => n.title);
+  } catch(e) { return []; }
+}
 
 async function loadNews(){
   try{
-    // 四來源並行：CryptoCompare、CoinGecko、Cointelegraph、Decrypt
-    const fetches = [
-      fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN&sortOrder=latest&extraParams=lucky_star'),
-      fetch('https://api.coingecko.com/api/v3/news?per_page=30'),
-      ...RSS_SOURCES.map(s=>fetch(RSS2JSON+encodeURIComponent(s.url)))
-    ];
-    const results = await Promise.allSettled(fetches);
-    let items = [];
+    const results = await Promise.allSettled(
+      NEWS_RSS_SOURCES.map(s => fetchRSSItems(s.url, s.name))
+    );
+    let items = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
 
-    // CryptoCompare
-    if(results[0].status==='fulfilled'&&results[0].value.ok){
-      const j=await results[0].value.json();
-      (j.Data||[]).forEach(n=>{
-        items.push({
-          title:n.title, url:n.url,
-          published_at:new Date(n.published_on*1000).toISOString(),
-          source:{title:n.source_info?.name||n.source},
-          currencies:(n.categories||'').split('|').filter(c=>c&&c.length<=6&&c!=='').slice(0,4).map(c=>({code:c})),
-          votes:{positive:n.upvotes||0,negative:0}
-        });
-      });
-    }
-    // CoinGecko
-    if(results[1].status==='fulfilled'&&results[1].value.ok){
-      const j=await results[1].value.json();
-      (j.data||[]).forEach(n=>{
-        items.push({title:n.title,url:n.url,published_at:n.updated_at,
-          source:{title:n.news_site},currencies:[],votes:{positive:0,negative:0}});
-      });
-    }
-    // RSS 來源（Cointelegraph、Decrypt）
-    for(let i=0;i<RSS_SOURCES.length;i++){
-      const r=results[2+i];
-      if(r.status==='fulfilled'&&r.value.ok){
-        const j=await r.value.json();
-        (j.items||[]).forEach(n=>{
-          items.push({title:n.title,url:n.link,published_at:n.pubDate,
-            source:{title:RSS_SOURCES[i].name},currencies:[],votes:{positive:0,negative:0}});
-        });
-      }
-    }
     // 去重（標題前60字元）+ 按時間排序（最新在前）
-    const seen=new Set();
-    items=items.filter(n=>{
-      const k=n.title.slice(0,60).toLowerCase();
-      if(seen.has(k))return false;
-      seen.add(k);return true;
-    }).sort((a,b)=>new Date(b.published_at)-new Date(a.published_at));
+    const seen = new Set();
+    items = items.filter(n => {
+      const k = n.title.slice(0, 60).toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k); return true;
+    }).sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
 
-    if(items.length) renderNews(items.slice(0,50));
+    if (items.length) renderNews(items.slice(0, 50));
     else renderNewsFromMarket();
-  }catch(e){
+  } catch(e) {
     renderNewsFromMarket();
   }
 }
@@ -1222,11 +1221,11 @@ const IND_SYMS = ['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','LINK','LTC'
   'DOT','ARB','OP','SUI','APT','TRX','TON','INJ','PEPE','WIF'];
 
 async function loadRealIndicators() {
-  const batchSize = 3; // 每批3個幣，避免 rate limit
+  const batchSize = 2;
   for(let i=0;i<IND_SYMS.length;i+=batchSize){
     const batch=IND_SYMS.slice(i,i+batchSize);
     await Promise.all(batch.map(s=>loadRealForSym(s)));
-    if(i+batchSize<IND_SYMS.length) await sleep(400);
+    if(i+batchSize<IND_SYMS.length) await sleep(700);
   }
 }
 
@@ -1294,34 +1293,19 @@ function realBoll20(closes) {
 
 async function fetchFR(sym) {
   try {
-    const r = await fetch(`https://www.okx.com/api/v5/public/funding-rate?instId=${sym}-USDT-SWAP`);
-    if (!r.ok) return null;
-    const j = await r.json();
-    if (j.code!=='0'||!j.data?.length) return null;
+    const j = await okxFetch(`https://www.okx.com/api/v5/public/funding-rate?instId=${sym}-USDT-SWAP`);
+    if (!j||j.code!=='0'||!j.data?.length) return null;
     return j.data[0].fundingRate;
   } catch(e) { return null; }
 }
 
 async function fetchLS(sym) {
   try {
-    // Primary: OKX 多空帳戶比率 (ccy=幣種, 回傳 longShortRatio = 多/空)
-    const r = await fetch(`https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio?ccy=${sym}&period=1H`);
-    if (r.ok) {
-      const j = await r.json();
-      if (j.code==='0' && j.data?.length) {
-        const ratio = parseFloat(j.data[0][1]);
-        if (!isNaN(ratio) && ratio > 0) return ratio / (1 + ratio); // 轉為 0~1 多頭比例
-      }
-    }
-    // Fallback: OKX taker volume（買壓 / 總成交量）
-    const r2 = await fetch(`https://www.okx.com/api/v5/rubik/stat/taker-volume?ccy=${sym}&instType=CONTRACTS&period=1H`);
-    if (!r2.ok) return null;
-    const j2 = await r2.json();
-    if (j2.code!=='0'||!j2.data?.length) return null;
-    const [, sellVol, buyVol] = j2.data[0];
-    const buy  = parseFloat(buyVol);
-    const sell = parseFloat(sellVol);
-    const total = buy + sell;
+    // taker volume（long-short-account-ratio 被 CORS 封鎖）
+    const j = await okxFetch(`https://www.okx.com/api/v5/rubik/stat/taker-volume?ccy=${sym}&instType=CONTRACTS&period=1H`);
+    if (!j||j.code!=='0'||!j.data?.length) return null;
+    const [, sellVol, buyVol] = j.data[0];
+    const buy = parseFloat(buyVol), sell = parseFloat(sellVol), total = buy + sell;
     if (!total) return null;
     return buy / total;
   } catch(e) { return null; }
@@ -2103,10 +2087,8 @@ function calcQQEMOD(closes, rsiPeriod=14, smoothPeriod=5, qqeFactor=4.238){
 // 只回傳收盤價（close）
 async function fetchKlines(sym,bar,limit){
   try{
-    const r=await fetch(`https://www.okx.com/api/v5/market/candles?instId=${sym}-USDT-SWAP&bar=${bar}&limit=${limit}`);
-    if(!r.ok)return null;
-    const j=await r.json();
-    if(j.code!=='0'||!j.data?.length)return null;
+    const j=await okxFetch(`https://www.okx.com/api/v5/market/candles?instId=${sym}-USDT-SWAP&bar=${bar}&limit=${limit}`);
+    if(!j||j.code!=='0'||!j.data?.length)return null;
     return j.data.reverse().map(d=>parseFloat(d[4]));
   }catch(e){return null;}
 }
@@ -2114,10 +2096,8 @@ async function fetchKlines(sym,bar,limit){
 // 回傳完整 OHLCV（供量價型態計算）
 async function fetchKlinesOHLCV(sym,bar,limit){
   try{
-    const r=await fetch(`https://www.okx.com/api/v5/market/candles?instId=${sym}-USDT-SWAP&bar=${bar}&limit=${limit}`);
-    if(!r.ok)return null;
-    const j=await r.json();
-    if(j.code!=='0'||!j.data?.length)return null;
+    const j=await okxFetch(`https://www.okx.com/api/v5/market/candles?instId=${sym}-USDT-SWAP&bar=${bar}&limit=${limit}`);
+    if(!j||j.code!=='0'||!j.data?.length)return null;
     return j.data.reverse().map(d=>({
       ts:parseInt(d[0]),open:parseFloat(d[1]),high:parseFloat(d[2]),
       low:parseFloat(d[3]),close:parseFloat(d[4]),vol:parseFloat(d[5])
@@ -2125,19 +2105,17 @@ async function fetchKlinesOHLCV(sym,bar,limit){
   }catch(e){return null;}
 }
 
-// OI 變化（用 ticker openInterest + 快取比較，不被 CORS 擋）
+// OI 變化（用 ticker openInterest + 快取比較）
 const _oiCache = {};
 async function fetchOIChange(sym){
   try{
-    const r=await fetch(`https://www.okx.com/api/v5/market/ticker?instId=${sym}-USDT-SWAP`);
-    if(!r.ok)return null;
-    const j=await r.json();
-    if(j.code!=='0'||!j.data?.length)return null;
+    const j=await okxFetch(`https://www.okx.com/api/v5/market/ticker?instId=${sym}-USDT-SWAP`);
+    if(!j||j.code!=='0'||!j.data?.length)return null;
     const curr=parseFloat(j.data[0].openInterest);
     if(isNaN(curr))return null;
     const prev=_oiCache[sym];
     _oiCache[sym]=curr;
-    if(prev==null)return null; // 第一次沒有基準
+    if(prev==null)return null;
     return (curr-prev)/prev*100;
   }catch(e){return null;}
 }
@@ -2618,6 +2596,33 @@ function openMOVEDetail(sym, type, v, c) {
   // Verdict color
   const verdictCls = type==='long' ? 'bull' : 'bear';
 
+  // ── 評分依據 ──
+  const sb_vol = (() => {
+    const vol = c?.total_volume ?? 0;
+    return vol > 5e9 ? 22 : vol > 2e9 ? 17 : vol > 1e9 ? 12 : vol > 5e8 ? 8 : 4;
+  })();
+  const sb_mom = (() => {
+    const ch = c?.price_change_percentage_24h ?? chg24;
+    if (type === 'long') return ch > 5 ? 28 : ch > 3 ? 22 : ch > 1 ? 14 : ch > 0 ? 7 : 0;
+    return ch < -5 ? 28 : ch < -3 ? 22 : ch < -1 ? 14 : ch < 0 ? 7 : 0;
+  })();
+  const sb_pos = (() => {
+    const hi = c?.high_24h ?? 0, lo = c?.low_24h ?? 0, pxc = c?.current_price ?? v?.price ?? 0;
+    const pos = (hi - lo) > 0 ? (pxc - lo) / (hi - lo) : 0.5;
+    return type === 'long' ? Math.max(0, Math.floor(pos * 18)) : Math.max(0, Math.floor((1 - pos) * 18));
+  })();
+  const sb_pat = c ? Math.min(20, (c.pats || []).filter(p => type === 'long' ? p.bull : !p.bull).reduce((a, p) => a + p.score, 0)) : 0;
+  const sb_oi  = type === 'long' ? (c?.oi?.dir === 'long' ? 8 : 0) : (c?.oi?.dir === 'short' ? 8 : 0);
+  const sb_tech = (() => {
+    const rsiB = rsi_val !== null ? (type === 'long' ? (rsi_val < 30 ? 8 : rsi_val > 70 ? -4 : 0) : (rsi_val > 70 ? 8 : rsi_val < 30 ? -4 : 0)) : 0;
+    return Math.max(0, rsiB + (vegasOK ? 8 : 0));
+  })();
+  const allTags   = [...paList, ...patList, ...srList].map(p => p.name);
+  const relCoins  = c ? [...scoredCoins]
+    .filter(x => x.id !== c.id && (type === 'long' ? x.longScore > 45 : x.shortScore > 45))
+    .sort((a, b) => type === 'long' ? b.longScore - a.longScore : b.shortScore - a.shortScore)
+    .slice(0, 4) : [];
+
   document.getElementById('mbody').innerHTML = `
     <!-- 頭部 -->
     <div class="mhdr">
@@ -2744,6 +2749,50 @@ function openMOVEDetail(sym, type, v, c) {
       </div>
     </div>
 
+    <!-- 評分依據 -->
+    <div class="m-sec">
+      <div class="m-sec-t">📊 評分依據</div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        ${[
+          {n:'勁能',    v:sb_mom,  mx:28, cl:'var(--green2)'},
+          {n:'成交量',  v:sb_vol,  mx:22, cl:'var(--pink3)'},
+          {n:'位置',    v:sb_pos,  mx:18, cl:'var(--gold)'},
+          {n:'K線型態', v:sb_pat,  mx:20, cl:'var(--purple)'},
+          {n:'OI加成',  v:sb_oi,   mx:8,  cl:'var(--gold)'},
+          {n:'技術指標',v:sb_tech, mx:16, cl:'var(--gold)'},
+        ].map(({n,v,mx,cl})=>{
+          const pct=Math.max(0,Math.min(100,Math.round(v/mx*100)));
+          return `<div style="display:flex;align-items:center;gap:8px">
+            <div style="width:52px;font-size:10px;font-weight:700;color:var(--text2);font-family:Nunito,sans-serif;flex-shrink:0">${n}</div>
+            <div style="flex:1;height:8px;border-radius:6px;background:var(--pink4);overflow:hidden">
+              <div style="width:${pct}%;height:100%;background:${cl};border-radius:6px"></div>
+            </div>
+            <div style="font-size:11px;font-weight:900;font-family:'JetBrains Mono',monospace;color:${v>0?cl:'var(--text3)'};min-width:20px;text-align:right">${v}</div>
+            <div style="font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;min-width:22px">/${mx}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      ${allTags.length ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:10px">
+        ${allTags.map(tag=>`<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;background:var(--pink5);border:1px solid var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">${tag}</span>`).join('')}
+      </div>` : ''}
+    </div>
+
+    ${relCoins.length ? `<!-- 同期相關幣種 -->
+    <div class="m-sec">
+      <div class="m-sec-t">🔗 同期相關幣種</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${relCoins.map(rc=>{
+          const rcCh=rc.price_change_percentage_24h??0;
+          const rcSc=type==='long'?rc.longScore:rc.shortScore;
+          return `<div style="background:var(--pink5);border:1.5px solid var(--pink4);border-radius:9px;padding:7px 13px;text-align:center;cursor:pointer;transition:background .15s" onclick="openScoreDetail('${rc.id}','${type}')" onmouseenter="this.style.background='var(--pink4)'" onmouseleave="this.style.background='var(--pink5)'">
+            <div style="font-size:11px;font-weight:900;font-family:Nunito,sans-serif;color:var(--text)">${rc.symbol.toUpperCase()}</div>
+            <div style="font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;color:${rcCh>=0?'var(--green2)':'var(--red2)'}">${rcCh>=0?'+':''}${rcCh.toFixed(1)}%</div>
+            <div style="font-size:9px;color:var(--text3);margin-top:1px">評分 ${rcSc}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : ''}
+
     <!-- 天使建議 -->
     <div class="abub" style="margin-bottom:0">
       <div class="aico">⭐</div>
@@ -2865,50 +2914,19 @@ async function loadCoinNews(sym){
   }
 
   try{
-    // 四來源並行：CryptoCompare（分類）、CoinGecko、Cointelegraph RSS、Decrypt RSS
     const symLow = sym.toLowerCase();
-    const fetches = [
-      fetch(`https://min-api.cryptocompare.com/data/v2/news/?categories=${sym}&lang=EN&sortOrder=latest`),
-      fetch(`https://api.coingecko.com/api/v3/news?per_page=50`),
-      fetch(RSS2JSON+encodeURIComponent('https://cointelegraph.com/rss')),
-      fetch(RSS2JSON+encodeURIComponent('https://decrypt.co/feed'))
-    ];
-    const results = await Promise.allSettled(fetches);
-    let items = [];
+    const results = await Promise.allSettled(
+      NEWS_RSS_SOURCES.map(s => fetchRSSItems(s.url, s.name))
+    );
+    let items = results.flatMap(r => r.status === 'fulfilled' ? r.value : [])
+      .filter(n => (n.title||'').toLowerCase().includes(symLow));
 
-    // CryptoCompare（幣種分類）
-    if(results[0].status==='fulfilled'&&results[0].value.ok){
-      const j=await results[0].value.json();
-      (j.Data||[]).slice(0,10).forEach(n=>{
-        items.push({title:n.title,url:n.url,
-          published_at:new Date(n.published_on*1000).toISOString(),
-          source:{title:n.source_info?.name||n.source},votes:{positive:n.upvotes||0,negative:0}});
-      });
-    }
-    // CoinGecko（關鍵字過濾）
-    if(results[1].status==='fulfilled'&&results[1].value.ok){
-      const j=await results[1].value.json();
-      (j.data||[]).filter(n=>(n.title||'').toLowerCase().includes(symLow)).slice(0,5).forEach(n=>{
-        items.push({title:n.title,url:n.url,published_at:n.updated_at,source:{title:n.news_site},votes:{positive:0,negative:0}});
-      });
-    }
-    // RSS 來源（Cointelegraph、Decrypt）— 關鍵字過濾
-    const rssSrcNames=['Cointelegraph','Decrypt'];
-    for(let i=0;i<2;i++){
-      const r=results[2+i];
-      if(r.status==='fulfilled'&&r.value.ok){
-        const j=await r.value.json();
-        (j.items||[]).filter(n=>(n.title||'').toLowerCase().includes(symLow)).slice(0,4).forEach(n=>{
-          items.push({title:n.title,url:n.link,published_at:n.pubDate,source:{title:rssSrcNames[i]},votes:{positive:0,negative:0}});
-        });
-      }
-    }
     // 去重 + 按時間排序
-    const seen=new Set();
-    items=items.filter(n=>{
-      const k=n.title.slice(0,60).toLowerCase();
-      if(seen.has(k))return false; seen.add(k); return true;
-    }).sort((a,b)=>new Date(b.published_at)-new Date(a.published_at));
+    const seen = new Set();
+    items = items.filter(n => {
+      const k = n.title.slice(0, 60).toLowerCase();
+      if (seen.has(k)) return false; seen.add(k); return true;
+    }).sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
 
     renderCoinNews(sym, items, bullWords, bearWords);
   }catch(e){
