@@ -1177,13 +1177,21 @@ async function loadRealForSym(sym) {
 }
 
 function realRSI14(closes) {
-  const n = 14; if (closes.length < n+1) return null;
-  let g=0,l=0;
-  for (let i = closes.length-n; i < closes.length; i++) {
-    const d = closes[i] - closes[i-1]; if(d>0) g+=d; else l-=d;
+  const n = 14;
+  if (closes.length < n + 2) return null;
+  let ag = 0, al = 0;
+  for (let i = 1; i <= n; i++) {
+    const d = closes[i] - closes[i-1];
+    if (d > 0) ag += d; else al -= d;
   }
-  const ag=g/n, al=l/n; if(al===0) return 100;
-  return Math.round(100 - 100/(1+ag/al));
+  ag /= n; al /= n;
+  for (let i = n + 1; i < closes.length; i++) {
+    const d = closes[i] - closes[i-1];
+    ag = (ag * (n - 1) + Math.max(0, d)) / n;
+    al = (al * (n - 1) + Math.max(0, -d)) / n;
+  }
+  if (al === 0) return 100;
+  return Math.round(100 - 100 / (1 + ag / al));
 }
 
 function realMACD1226(closes) {
@@ -2022,13 +2030,14 @@ async function fetchOIChange(sym){
 async function computeVEGAS(sym){
   try{
     // 同時抓 日線、4H、1H、15M（賽克斯多週期共振）
-    const[daily,h4,h1,m15]=await Promise.all([
+    const[daily,h4raw,h1,m15]=await Promise.all([
       fetchKlines(sym,'1D',700),
-      fetchKlines(sym,'4H',300),
+      fetchKlinesOHLCV(sym,'4H',300),
       fetchKlines(sym,'1H',150),
       fetchKlines(sym,'15m',150)
     ]);
-    if(!daily||daily.length<100||!h4||h4.length<100)return null;
+    if(!daily||daily.length<100||!h4raw||h4raw.length<100)return null;
+    const h4 = h4raw.map(d=>d.close);
 
     // ── VEGAS EMA ──
     const d12=calcEMA(daily,12),d144=calcEMA(daily,144),d169=calcEMA(daily,169);
@@ -2156,7 +2165,7 @@ async function computeVEGAS(sym){
     score=Math.min(100,Math.round(score));
 
     // 量價型態由 OI 資料計算（OHLCV 改為按需抓取）
-    const volPat4H = null;
+    const volPat4H = h4raw.length >= 21 ? calcRealVolPattern(h4raw) : null;
 
     const cgId=symToCG(sym),cgCoin=cgId?coins[cgId]:null;
     return{
@@ -2396,8 +2405,8 @@ function openMOVEDetail(sym, type, v, c) {
   const ls_val  = c ? getLS(c.symbol) : null;
   if (type==='long'  && rsi_val < 30) winRate += 0.04;
   if (type==='short' && rsi_val > 70) winRate += 0.04;
-  if (fr_val !== null && type==='long'  && parseFloat(fr_val) < 0) winRate += 0.03;
-  if (fr_val !== null && type==='short' && parseFloat(fr_val) > 0.01) winRate += 0.03;
+  if (fr_val !== null && type==='long'  && parseFloat(fr_val) < -0.0001) winRate += 0.03;
+  if (fr_val !== null && type==='short' && parseFloat(fr_val) > 0.0005)  winRate += 0.03;
   if (ls_val !== null && type==='long'  && ls_val < 0.4) winRate += 0.03;
   if (ls_val !== null && type==='short' && ls_val > 0.7) winRate += 0.03;
   winRate = Math.min(0.78, Math.max(0.32, winRate));
@@ -2409,7 +2418,7 @@ function openMOVEDetail(sym, type, v, c) {
     (vegasOK?40:v?.h4InTunnel?15:0) +
     criteriaCount*15 +
     (rsi_val < 30 && type==='long' ? 8 : rsi_val > 70 && type==='short' ? 8 : 0) +
-    (fr_val!==null && ((type==='long'&&parseFloat(fr_val)<0)||(type==='short'&&parseFloat(fr_val)>0.01)) ? 5 : 0)
+    (fr_val!==null && ((type==='long'&&parseFloat(fr_val)<-0.0001)||(type==='short'&&parseFloat(fr_val)>0.0005)) ? 5 : 0)
   ));
 
   // ── RSI / MACD / Boll（null = 真實數據載入中）──
@@ -2658,12 +2667,12 @@ async function fetchAndUpdateFRLS(sym, type) {
   const frCell = document.getElementById('modal-fr-cell');
   if (frCell) {
     const frNum = fr !== null ? parseFloat(fr) : null;
-    const frCls = frNum === null ? 'neu' : frNum > 0.01 ? 'bear' : frNum < 0 ? 'bull' : 'neu';
+    const frCls = frNum === null ? 'neu' : frNum > 0.0005 ? 'bear' : frNum < -0.0001 ? 'bull' : 'neu';
     const frColor = frCls==='bull'?'var(--green2)':frCls==='bear'?'var(--red2)':'var(--gold)';
     frCell.innerHTML = `
       <div class="tc2-n">資金費率 FR</div>
       <div class="tc2-v" style="font-size:11px;color:${frColor}">${frNum!==null?(frNum*100).toFixed(4)+'%':'無數據'}</div>
-      <div class="tc2-s ${frCls}">${frNum===null?'無數據':frNum>0.01?'偏高':frNum<0?'負費率':'中性'}</div>
+      <div class="tc2-s ${frCls}">${frNum===null?'無數據':frNum>0.0005?'偏高':frNum<-0.0001?'負費率':'中性'}</div>
       <div class="tc2-d">${frNum!==null?(frNum>0?'做多方付費':'做空方付費'):'此幣無合約數據'}</div>`;
   }
 
@@ -2692,10 +2701,10 @@ async function fetchAndUpdateFRLS(sym, type) {
   const lsNum  = ls !== null ? parseFloat(ls) : null;
 
   let wr = baseWR;
-  if (frNum !== null && mType==='long'  && frNum < 0)    wr += 0.03;
-  if (frNum !== null && mType==='short' && frNum > 0.01) wr += 0.03;
-  if (frNum !== null && mType==='long'  && frNum > 0.01) wr -= 0.02;
-  if (frNum !== null && mType==='short' && frNum < 0)    wr -= 0.02;
+  if (frNum !== null && mType==='long'  && frNum < -0.0001) wr += 0.03;
+  if (frNum !== null && mType==='short' && frNum > 0.0005)  wr += 0.03;
+  if (frNum !== null && mType==='long'  && frNum > 0.0005)  wr -= 0.02;
+  if (frNum !== null && mType==='short' && frNum < -0.0001) wr -= 0.02;
   if (lsNum !== null && mType==='long'  && lsNum < 0.4)  wr += 0.03;
   if (lsNum !== null && mType==='short' && lsNum > 0.65) wr += 0.03;
   if (lsNum !== null && mType==='long'  && lsNum > 0.7)  wr -= 0.02;
@@ -2850,7 +2859,7 @@ async function sendMsg(){
 
 function buildCtx(){
   const top=['bitcoin','ethereum','solana','binancecoin'].map(id=>{const c=coins[id];if(!c)return '';return `${c.symbol.toUpperCase()}=$${c.current_price?.toLocaleString()} (${(c.price_change_percentage_24h||0).toFixed(2)}%)`;}).filter(Boolean).join(' | ');
-  const top3=scoredCoins.sort((a,b)=>Math.max(b.longScore,b.shortScore)-Math.max(a.longScore,a.shortScore)).slice(0,3).map(c=>`${c.symbol.toUpperCase()}: 多${c.longScore}分 空${c.shortScore}分 RSI=${c.rsi}`).join('; ');
+  const top3=[...scoredCoins].sort((a,b)=>Math.max(b.longScore,b.shortScore)-Math.max(a.longScore,a.shortScore)).slice(0,3).map(c=>`${c.symbol.toUpperCase()}: 多${c.longScore}分 空${c.shortScore}分 RSI=${c.rsi}`).join('; ');
   const oi=oiData.slice(0,3).map(a=>`${a.sym}${a.dirLabel}(${a.pchg.toFixed(1)}%)`).join('; ');
   const vegas=vegasData.filter(v=>v.signal!=='neutral').slice(0,3).map(v=>`${v.sym} ${v.signal==='bull'?'做多':'做空'}(日線${v.dailyTrend==='bull'?'多頭':'空頭'}+4H${v.h4AboveTunnel?'突破':'跌破'}通道,${v.score}分)`).join('; ');
   return `主流幣: ${top}\n評分Top3: ${top3}\nOI異常: ${oi||'無'}\nVEGAS真實EMA: ${vegas||'計算中'}\n時間: ${new Date().toLocaleTimeString('zh-TW')}`;
@@ -2955,12 +2964,12 @@ function calcSLTP(){
   const isLong = calcDir === 'long';
   const slPct  = 0.03; // 固定止損 3%
 
-  // MOVE 四個方案
+  // MOVE 四個方案（勝率：底40% + VEGAS+8% + 每個篩選+4%）
   const plans = [
-    { label:'VEGAS only', icon:'⏳', pos:0.25, tp:0.06, rr:'2:1',   color:'var(--text3)',   bg:'var(--pink5)',           border:'var(--pink4)',  note:'等待篩選確認' },
-    { label:'1個篩選',    icon:'🌱', pos:0.50, tp:0.06, rr:'2:1',   color:'var(--gold)',    bg:'rgba(245,166,35,.08)',   border:'var(--gold)',   note:'半倉 — 保守進場' },
-    { label:'2個篩選',    icon:'🚀', pos:1.00, tp:0.08, rr:'2.7:1', color:'var(--green2)',  bg:'rgba(0,200,150,.08)',    border:'var(--green2)', note:'滿倉 — 移動止損至成本後加碼' },
-    { label:'3個篩選',    icon:'💎', pos:2.00, tp:0.10, rr:'3.3:1', color:'var(--purple)',  bg:'rgba(192,132,252,.1)',   border:'var(--purple)', note:'加槓桿 — 50%在+6%止盈，50%在+10%' },
+    { label:'VEGAS only', wr:0.48, icon:'⏳', pos:0.25, tp:0.06, rr:'2:1',   color:'var(--text3)',   bg:'var(--pink5)',           border:'var(--pink4)',  note:'等待篩選確認' },
+    { label:'1個篩選',    wr:0.52, icon:'🌱', pos:0.50, tp:0.06, rr:'2:1',   color:'var(--gold)',    bg:'rgba(245,166,35,.08)',   border:'var(--gold)',   note:'半倉 — 保守進場' },
+    { label:'2個篩選',    wr:0.56, icon:'🚀', pos:1.00, tp:0.08, rr:'2.7:1', color:'var(--green2)',  bg:'rgba(0,200,150,.08)',    border:'var(--green2)', note:'滿倉 — 移動止損至成本後加碼' },
+    { label:'3個篩選',    wr:0.65, icon:'💎', pos:2.00, tp:0.10, rr:'3.3:1', color:'var(--purple)',  bg:'rgba(192,132,252,.1)',   border:'var(--purple)', note:'加槓桿 — 50%在+6%止盈，50%在+10%' },
   ];
 
   const fmt = (p) => p >= 1000 ? '$'+p.toLocaleString('en-US',{maximumFractionDigits:0}) : p >= 1 ? '$'+p.toLocaleString('en-US',{maximumFractionDigits:4}) : '$'+p.toFixed(6);
@@ -2971,7 +2980,7 @@ function calcSLTP(){
     const posAmt   = capital * p.pos;
     const maxLoss  = posAmt * slPct;
     const maxGain  = posAmt * p.tp;
-    const ev       = 0.55 * maxGain - 0.45 * maxLoss; // 預估55%勝率
+    const ev       = p.wr * maxGain - (1 - p.wr) * maxLoss;
     const tp1Price = isLong ? price*(1+0.06) : price*(1-0.06); // 第一目標
     const tp2Price = isLong ? price*(1+p.tp) : price*(1-p.tp); // 最終目標
     const showDual = p.pos >= 1.0;
@@ -3006,6 +3015,8 @@ function calcSLTP(){
       <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:9px;padding:8px 11px;margin-bottom:8px;font-size:11px;color:var(--text2);line-height:1.8">
         ${p.pos===2.0?`🎯 分批止盈：50% 在 <strong style="color:var(--green2)">${fmt(tp1Price)}</strong>（+6%），50% 在 <strong style="color:var(--purple)">${fmt(tp2Price)}</strong>（+10%）`:`📌 達到 1:1（${fmt(tp1Price)}）後 → 移動止損至成本，剩餘部位抱至 ${fmt(tp2Price)}`}
       </div>`:''}
+      <!-- 勝率 & EV -->
+      <div style="font-size:11px;color:${ev>0?'var(--green2)':'var(--red2)'};font-weight:700;font-family:Nunito,sans-serif;margin-bottom:4px">勝率 ${Math.round(p.wr*100)}%${capital>0?` ｜ EV: ${ev>=0?'+':''}$${ev.toFixed(0)}`:'（輸入本金後顯示EV）'}</div>
       <!-- 備註 -->
       <div style="font-size:11px;color:${p.color};font-weight:700;font-family:Nunito,sans-serif">${p.note}</div>
     </div>`;
