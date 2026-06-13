@@ -1304,18 +1304,26 @@ async function fetchFR(sym) {
 
 async function fetchLS(sym) {
   try {
-    // 解法A：OKX taker volume（不被 CORS 擋）
-    // buyVol / (buyVol + sellVol) ≈ 多頭比例
-    const r = await fetch(`https://www.okx.com/api/v5/rubik/stat/taker-volume?instId=${sym}-USDT-SWAP&period=1H`);
-    if (!r.ok) return null;
-    const j = await r.json();
-    if (j.code!=='0'||!j.data?.length) return null;
-    const [, sellVol, buyVol] = j.data[0];
+    // Primary: OKX 多空帳戶比率 (ccy=幣種, 回傳 longShortRatio = 多/空)
+    const r = await fetch(`https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio?ccy=${sym}&period=1H`);
+    if (r.ok) {
+      const j = await r.json();
+      if (j.code==='0' && j.data?.length) {
+        const ratio = parseFloat(j.data[0][1]);
+        if (!isNaN(ratio) && ratio > 0) return ratio / (1 + ratio); // 轉為 0~1 多頭比例
+      }
+    }
+    // Fallback: OKX taker volume（買壓 / 總成交量）
+    const r2 = await fetch(`https://www.okx.com/api/v5/rubik/stat/taker-volume?ccy=${sym}&instType=CONTRACTS&period=1H`);
+    if (!r2.ok) return null;
+    const j2 = await r2.json();
+    if (j2.code!=='0'||!j2.data?.length) return null;
+    const [, sellVol, buyVol] = j2.data[0];
     const buy  = parseFloat(buyVol);
     const sell = parseFloat(sellVol);
     const total = buy + sell;
     if (!total) return null;
-    return buy / total; // 0~1，多頭比例
+    return buy / total;
   } catch(e) { return null; }
 }
 
@@ -2802,7 +2810,7 @@ async function fetchAndUpdateFRLS(sym, type) {
       <div class="tc2-n">多空比 L/S</div>
       <div class="tc2-v" style="font-size:11px;color:${lsColor}">${lsNum!==null?(lsNum*100).toFixed(0)+'%':'無數據'}</div>
       <div class="tc2-s ${lsCls}">${lsNum===null?'無數據':lsNum>0.55?'偏多':lsNum<0.45?'偏空':'均衡'}</div>
-      <div class="tc2-d">${lsNum!==null?`多 ${(lsNum*100).toFixed(0)}% / 空 ${((1-lsNum)*100).toFixed(0)}%`:'Binance無此幣數據'}</div>`;
+      <div class="tc2-d">${lsNum!==null?`多 ${(lsNum*100).toFixed(0)}% / 空 ${((1-lsNum)*100).toFixed(0)}%`:'OKX無此幣數據'}</div>`;
   }
 
   // ── 重算勝率/EV/Kelly ──
