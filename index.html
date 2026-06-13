@@ -1578,6 +1578,11 @@ function calcMOVE(c, type, vd) {
   // VEGAS 核心是否滿足
   const vegasOK = vd && ((type==='long'&&vd.signal==='bull')||(type==='short'&&vd.signal==='bear'));
   const vegasPartial = vd && vd.h4InTunnel;
+  // 日線趨勢確認（但4H尚未突破通道 → 輕倉等待）
+  const dailyConfirmed = vd && (
+    (type==='long'&&vd.dailyTrend==='bull') ||
+    (type==='short'&&vd.dailyTrend==='bear')
+  );
 
   // 建議倉位（講義邏輯）
   let positionPct = 0;
@@ -1588,6 +1593,8 @@ function calcMOVE(c, type, vd) {
     else positionPct=25; // VEGAS alone, wait for confirmation
   } else if(vegasPartial && criteriaCount>=2){
     positionPct=50; // VEGAS整理中但有2個篩選，小倉等待
+  } else if(dailyConfirmed){
+    positionPct=25; // 日線確認，等4H突破通道再加倉
   }
 
   // MOVE 評分（0-100）
@@ -2503,6 +2510,10 @@ function openMOVEDetail(sym, type, v, c) {
   const criteriaCount = [crit1, crit2, crit3].filter(Boolean).length;
 
   // ── 建議倉位（MOVE法則）──
+  const _dailyOK = v && (
+    (type==='long'  && v.dailyTrend==='bull') ||
+    (type==='short' && v.dailyTrend==='bear')
+  );
   let positionPct = 0, posLabel = '', posColor = 'var(--text3)';
   if (vegasOK) {
     if (criteriaCount >= 3)      { positionPct=200; posLabel='加槓桿200%'; posColor='var(--purple)'; }
@@ -2511,6 +2522,8 @@ function openMOVEDetail(sym, type, v, c) {
     else                         { positionPct=25;  posLabel='輕倉25%（等待確認）'; posColor='var(--text3)'; }
   } else if (v?.h4InTunnel && criteriaCount >= 2) {
     positionPct = 30; posLabel = '輕倉30%（VEGAS整理中）'; posColor = 'var(--text3)';
+  } else if (_dailyOK) {
+    positionPct = 25; posLabel = '輕倉25%（日線確認，等4H突破）'; posColor = 'var(--text3)';
   }
 
   // ── 止損/止盈建議 ──
