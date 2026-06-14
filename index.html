@@ -1592,7 +1592,7 @@ function calcMOVE(c, type, vd) {
     else if(criteriaCount>=1) positionPct=50;
     else positionPct=25; // VEGAS alone, wait for confirmation
   } else if(vegasPartial && criteriaCount>=2){
-    positionPct=50; // VEGAS整理中但有2個篩選，小倉等待
+    positionPct=30; // VEGAS整理中但有2個篩選，輕倉等待
   } else if(dailyConfirmed){
     positionPct=25; // 日線確認，等4H突破通道再加倉
   }
@@ -1737,6 +1737,7 @@ function computeWR(c, type) {
     if(volPat.name.includes('低量')) wr += type==='long'?-0.03: 0.03;
   }
   const wrFinal = Math.min(0.75, Math.max(0.30, wr));
+  const moveOK = vegasAligned && critCount >= 1;
   return { wr: wrFinal, critCount, vegasAligned, vegasAgainst, saekFull, saekPartial, saekOK, moveOK };
 }
 
@@ -1816,7 +1817,8 @@ function renderRecs(){
         <div style="font-family:Nunito,sans-serif;font-size:15px;font-weight:900;color:var(--gold)">${rr.toFixed(1)}:1</div>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end">
-        ${tags.slice(0,3).map(t=>`<span style="font-size:9px;font-weight:800;padding:1px 5px;border-radius:5px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">${t}</span>`).join('')}
+        ${vd?.isFakeBreakout?`<span style="font-size:9px;font-weight:800;padding:1px 5px;border-radius:5px;background:rgba(255,77,109,.12);color:var(--red2);border:1px solid rgba(255,77,109,.3);font-family:Nunito,sans-serif">假突破⚠️</span>`:''}
+        ${tags.slice(0,vd?.isFakeBreakout?2:3).map(t=>`<span style="font-size:9px;font-weight:800;padding:1px 5px;border-radius:5px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">${t}</span>`).join('')}
       </div>
     </div>`;
   };
@@ -2081,7 +2083,7 @@ async function fetchOIChange(sym){
   try{
     const j=await okxFetch(`https://www.okx.com/api/v5/market/ticker?instId=${sym}-USDT-SWAP`);
     if(!j||j.code!=='0'||!j.data?.length)return null;
-    const curr=parseFloat(j.data[0].openInterest);
+    const curr=parseFloat(j.data[0].oi);
     if(isNaN(curr))return null;
     const prev=_oiCache[sym];
     _oiCache[sym]=curr;
