@@ -1667,14 +1667,86 @@ function scoreAll(){
   });
 }
 
+// ═══ 全指標綜合勝率計算（供 Top5 排序使用）═══
+function computeWR(c, type) {
+  const vd  = vegasData.find(v=>v.sym===c.symbol.toUpperCase());
+  const rsi = getRSI(c.symbol);
+  const fr  = getFR(c.symbol);
+  const oi  = oiData.find(o=>o.sym.toLowerCase()===c.symbol.toLowerCase());
+  const volPat = vd?.volPat4H || (oi?detectVolPattern(oi,vd):null);
+  const oiChg  = getOIChg(c.symbol);
+  const paList  = detectPA(c, type);
+  const patList = detectPattern(c, type);
+  const srList  = detectSR(c, type, vegasData);
+  const critCount = [paList.length>0, patList.length>0, srList.length>0].filter(Boolean).length;
+
+  let wr = 0.40;
+  const vegasAligned = vd&&((vd.signal==='bull'&&type==='long')||(vd.signal==='bear'&&type==='short'));
+  const vegasAgainst = vd&&((vd.signal==='bull'&&type==='short')||(vd.signal==='bear'&&type==='long'));
+  if(vegasAligned) wr+=0.08; if(vegasAgainst) wr-=0.10;
+  if(vd?.h4InTunnel) wr-=0.03;
+  wr += critCount*0.04; if(critCount>=3) wr+=0.05;
+  if(critCount===0&&vegasAligned) wr-=0.03;
+  const saekBull=vd?.dailyTrend==='bull', saekBear=vd?.dailyTrend==='bear';
+  const saekFull    = type==='long'?(vd?.step1_long&&vd?.step2_long&&vd?.step3_long):(vd?.step1_short&&vd?.step2_short&&vd?.step3_short);
+  const saekPartial = type==='long'?(vd?.step1_long&&vd?.step2_long):(vd?.step1_short&&vd?.step2_short);
+  const saekOK = saekFull||saekPartial;
+  const saekDir = (saekBull&&type==='long')||(saekBear&&type==='short');
+  if(saekFull)    wr += saekDir? 0.07:-0.07;
+  else if(saekPartial) wr += saekDir? 0.03:-0.03;
+  const qqeBull=vd?.qqe4h?.isBull, qqeBear=vd?.qqe4h?.isBear;
+  if(qqeBull) wr += type==='long'? 0.05:-0.05;
+  if(qqeBear) wr += type==='short'? 0.05:-0.05;
+  const resAligned=(saekBull&&type==='long')||(saekBear&&type==='short');
+  if(vd?.resonance>=3)      wr += resAligned? 0.06:-0.06;
+  else if(vd?.resonance>=2) wr += resAligned? 0.03:-0.03;
+  if(vd?.isPullbackSignal){
+    const pbLong=vd?.pullbackSide==='bull_pullback'||vd?.pullbackSide==='bull_bounce';
+    wr += (pbLong&&type==='long')||(!pbLong&&type==='short')? 0.05:-0.05;
+  }
+  if(critCount>=2&&saekOK) wr += vegasAligned? 0.05:-0.05;
+  if(rsi!==null){
+    if(rsi<30)  wr += type==='long'? 0.03:-0.04;
+    else if(rsi<=50&&type==='long')  wr+=0.01;
+    if(rsi>70)  wr += type==='short'? 0.03:-0.04;
+    else if(rsi>=50&&type==='short') wr+=0.01;
+  }
+  if(fr!==null){
+    const frN=parseFloat(fr);
+    if(frN<-0.0001) wr += type==='long'? 0.04:-0.04;
+    if(frN> 0.0005) wr += type==='short'? 0.04:-0.04;
+  }
+  const ls=getLS(c.symbol);
+  if(ls!==null){
+    if(ls<0.35) wr += type==='long'? 0.04:-0.03;
+    if(ls>0.72) wr += type==='short'? 0.04:-0.03;
+  }
+  if(oiChg!==null){
+    const oiAl=(oi?.dir==='long'&&type==='long')||(oi?.dir==='short'&&type==='short');
+    if(oiChg> 5) wr += oiAl? 0.04:-0.03;
+    if(oiChg<-5) wr -= 0.03;
+  }
+  if(volPat){
+    const isL=volPat.signal==='long', isS=volPat.signal==='short', isBrk=volPat.name.includes('突破');
+    if(isL) wr += type==='long'?(isBrk?0.08:0.05):-(isBrk?0.08:0.05);
+    if(isS) wr += type==='short'?(isBrk?0.08:0.06):-(isBrk?0.08:0.06);
+    if(volPat.signal==='watch_long') wr += type==='long'? 0.03:-0.03;
+    if(volPat.signal==='exit')       wr += type==='long'?-0.08: 0.08;
+    if(volPat.signal==='watch')      wr += type==='short'? 0.07:-0.07;
+    if(volPat.signal==='wait')       wr -= 0.02;
+    if(volPat.name.includes('低量')) wr += type==='long'?-0.03: 0.03;
+  }
+  return Math.min(0.75, Math.max(0.30, wr));
+}
+
 // ═══ RECS ═══
 function renderRecs(){
   if(!scoredCoins.length)return;
   const _getVd=c=>vegasData.find(v=>v.sym===c.symbol.toUpperCase());
-  // 做多Top5：只留 MOVE signal==='bull'（日線EMA12>EMA576 + 4H突破EMA144/169）
-  const longs=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bull';}).sort((a,b)=>b.longScore-a.longScore).slice(0,5);
-  // 做空Top5：只留 MOVE signal==='bear'
-  const shorts=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bear';}).sort((a,b)=>b.shortScore-a.shortScore).slice(0,5);
+  // 做多Top5：只留 MOVE signal==='bull'，依全指標綜合勝率排序
+  const longs=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bull';}).sort((a,b)=>computeWR(b,'long')-computeWR(a,'long')).slice(0,5);
+  // 做空Top5：只留 MOVE signal==='bear'，依全指標綜合勝率排序
+  const shorts=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bear';}).sort((a,b)=>computeWR(b,'short')-computeWR(a,'short')).slice(0,5);
   const ranks=['🥇','🥈','🥉','4️⃣','5️⃣'];
   const watchRanks=['①','②','③'];
 
