@@ -1578,10 +1578,10 @@ function calcMOVE(c, type, vd) {
   // VEGAS 核心是否滿足
   const vegasOK = vd && ((type==='long'&&vd.signal==='bull')||(type==='short'&&vd.signal==='bear'));
   const vegasPartial = vd && vd.h4InTunnel;
-  // 日線趨勢確認（但4H尚未突破通道 → 輕倉等待）
+  // MOVE日線確認（EMA12>EMA576，但4H尚未突破EMA144/169 → 輕倉等待）
   const dailyConfirmed = vd && (
-    (type==='long'&&vd.dailyTrend==='bull') ||
-    (type==='short'&&vd.dailyTrend==='bear')
+    (type==='long'&&vd.moveDailyTrend==='bull') ||
+    (type==='short'&&vd.moveDailyTrend==='bear')
   );
 
   // 建議倉位（講義邏輯）
@@ -1671,10 +1671,10 @@ function scoreAll(){
 function renderRecs(){
   if(!scoredCoins.length)return;
   const _getVd=c=>vegasData.find(v=>v.sym===c.symbol.toUpperCase());
-  const longs=[...scoredCoins].filter(c=>{const vd=_getVd(c);return !(vd&&vd.signal==='bear');}).sort((a,b)=>b.longScore-a.longScore).slice(0,5);
-  const longsWatch=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bear';}).sort((a,b)=>b.longScore-a.longScore).slice(0,3);
-  const shorts=[...scoredCoins].filter(c=>{const vd=_getVd(c);return !(vd&&vd.signal==='bull');}).sort((a,b)=>b.shortScore-a.shortScore).slice(0,5);
-  const shortsWatch=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bull';}).sort((a,b)=>b.shortScore-a.shortScore).slice(0,3);
+  // 做多Top5：只留 MOVE signal==='bull'（日線EMA12>EMA576 + 4H突破EMA144/169）
+  const longs=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bull';}).sort((a,b)=>b.longScore-a.longScore).slice(0,5);
+  // 做空Top5：只留 MOVE signal==='bear'
+  const shorts=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bear';}).sort((a,b)=>b.shortScore-a.shortScore).slice(0,5);
   const ranks=['🥇','🥈','🥉','4️⃣','5️⃣'];
   const watchRanks=['①','②','③'];
 
@@ -1724,11 +1724,16 @@ function renderRecs(){
     if(critCount === 0 && vegasAligned) wr -= 0.03;
 
     // ── 賽克斯系統（三步驟 + QQE MOD）──
-    const saekFull    = vd?.step1 && vd?.step2 && vd?.step3;
-    const saekPartial = vd?.step1 && vd?.step2;
-    // 賽克斯方向由 VEGAS signal 決定
-    const saekBull = vd?.signal === 'bull';
-    const saekBear = vd?.signal === 'bear';
+    // 賽克斯方向用自己的 dailyTrend（EMA144/169 vs EMA576/676），與MOVE獨立
+    const saekBull = vd?.dailyTrend === 'bull';
+    const saekBear = vd?.dailyTrend === 'bear';
+    // saekFull/Partial 取方向特定版本
+    const saekFull    = type==='long'
+      ? (vd?.step1_long  && vd?.step2_long  && vd?.step3_long)
+      : (vd?.step1_short && vd?.step2_short && vd?.step3_short);
+    const saekPartial = type==='long'
+      ? (vd?.step1_long  && vd?.step2_long)
+      : (vd?.step1_short && vd?.step2_short);
     if(saekFull){
       wr += (saekBull&&type==='long')||(saekBear&&type==='short') ?  0.07 : -0.07;
     } else if(saekPartial){
@@ -1899,23 +1904,7 @@ function renderRecs(){
       ${items.map((c,i)=>makeRow(c,i,type)).join('')}
     </div>`;
 
-  const makeWatchSection=(items,type)=>items.length===0?'':
-    `<div style="background:var(--white);border:1.5px solid #f59e0b;border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);margin-bottom:10px">
-      <div style="padding:10px 13px;border-bottom:1.5px solid #f59e0b;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,rgba(245,158,11,0.10),var(--white))">
-        <div style="font-family:Nunito,sans-serif;font-size:14px;font-weight:900;color:#d97706">⚠️ 高度觀察 — 逆VEGAS，不建議操作</div>
-        <div style="font-size:10px;color:var(--text3);font-weight:700">${type==='long'?'VEGAS看空':'VEGAS看多'}</div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1.5px solid rgba(245,158,11,0.3);background:rgba(245,158,11,0.06)">
-        <div style="padding:5px 8px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif">幣種</div>
-        <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">勝率</div>
-        <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">EV</div>
-        <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">RR</div>
-        <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">指標</div>
-      </div>
-      ${items.map((c,i)=>makeRow(c,i,type,true)).join('')}
-    </div>`;
-
-  document.getElementById('rec-wrap').innerHTML=`<div style="display:flex;flex-direction:column;gap:0">${makeSection(longs,'long')}${makeWatchSection(longsWatch,'long')}${makeSection(shorts,'short')}${makeWatchSection(shortsWatch,'short')}</div>`;
+  document.getElementById('rec-wrap').innerHTML=`<div style="display:flex;flex-direction:column;gap:0">${makeSection(longs,'long')}${makeSection(shorts,'short')}</div>`;
 }
 
 // ═══ 賽克斯訊號分數計算（固定加權，無亂數）═══
@@ -2187,9 +2176,16 @@ async function computeVEGAS(sym){
     const h4_576=calcEMA(h4,Math.min(576,h4.length-1));
     if(!d12||!h4_12||!h4_144)return null;
 
+    // ══ MOVE 日線方向（EMA12 vs EMA576/676 大通道）══
+    // 講義定義：EMA12和K棒必須在EMA576/676之上/下
+    const moveDailyBull = d576 ? (d12 > d576) : (d12 > d144);
+    const moveDailyBear = d576 ? (d12 < d576) : (d12 < d144);
+    const moveDailyTrend = moveDailyBull?'bull':moveDailyBear?'bear':'neutral';
+
     // ══ 賽克斯三步驟 ══════════════════════════════════════
 
     // ── 步驟1 判勢：EMA144/169 小通道 vs EMA576/676 大通道 ──
+    // 賽克斯獨立判勢邏輯，與MOVE使用不同EMA組合
     const bigTunnelBull = d576 ? (d144>d576 && (d169||d144)>d576) : (d12>d144);
     const bigTunnelBear = d576 ? (d144<d576 && (d169||d144)<d576) : (d12<d144);
     const dailyTrend = bigTunnelBull?'bull':bigTunnelBear?'bear':'neutral';
@@ -2247,9 +2243,9 @@ async function computeVEGAS(sym){
     const h1_dir  = (h1_12 &&h1_144) ? (h1_12 >h1_144 ?'bull':'bear') : null;
     const m15_dir = (m15_12&&m15_144) ? (m15_12>m15_144?'bull':'bear') : null;
 
-    // ── VEGAS 做多/做空判斷（步驟3基礎） ──
-    const isBull = dailyTrend==='bull' && h4Above;
-    const isBear = dailyTrend==='bear' && h4Below;
+    // ── MOVE 做多/做空最終確認（MOVE講義：EMA12>EMA576日線 + 4H突破EMA144/169）──
+    const isBull = moveDailyBull && h4Above;
+    const isBear = moveDailyBear && h4Below;
 
     // ── 步驟3 進場：K棒收盤站上/貫穿EMA12 + QQE MOD同步啟動 ──
     // 做多：lastPrice > h4_12（收盤站上EMA12）且 QQE藍柱
@@ -2310,7 +2306,11 @@ async function computeVEGAS(sym){
 
     const cgId=symToCG(sym),cgCoin=cgId?coins[cgId]:null;
     return{
-      sym,signal:isBull?'bull':isBear?'bear':'neutral',score,dailyTrend,
+      sym,signal:isBull?'bull':isBear?'bear':'neutral',score,
+      // MOVE 日線方向（EMA12 vs EMA576）
+      moveDailyBull,moveDailyBear,moveDailyTrend,
+      // 賽克斯 Step1 日線方向（EMA144/169 vs EMA576/676）
+      dailyTrend,
       h4AboveTunnel:h4Above,h4BelowTunnel:h4Below,h4InTunnel:h4In,nearTunnel,
       bigTunnelBull,bigTunnelBear,
       // 賽克斯三步驟（雙向）
