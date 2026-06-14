@@ -1736,170 +1736,32 @@ function computeWR(c, type) {
     if(volPat.signal==='wait')       wr -= 0.02;
     if(volPat.name.includes('低量')) wr += type==='long'?-0.03: 0.03;
   }
-  return Math.min(0.75, Math.max(0.30, wr));
+  const wrFinal = Math.min(0.75, Math.max(0.30, wr));
+  return { wr: wrFinal, critCount, vegasAligned, vegasAgainst, saekFull, saekPartial, saekOK, moveOK };
 }
 
 // ═══ RECS ═══
 function renderRecs(){
   if(!scoredCoins.length)return;
   const _getVd=c=>vegasData.find(v=>v.sym===c.symbol.toUpperCase());
+  // 預先計算所有幣種的綜合勝率（每幣各算一次，sort 直接查 Map 不重複呼叫）
+  const _wrL = new Map(scoredCoins.map(c=>[c.symbol, computeWR(c,'long').wr]));
+  const _wrS = new Map(scoredCoins.map(c=>[c.symbol, computeWR(c,'short').wr]));
   // 做多Top5：只留 MOVE signal==='bull'，依全指標綜合勝率排序
-  const longs=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bull';}).sort((a,b)=>computeWR(b,'long')-computeWR(a,'long')).slice(0,5);
+  const longs=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bull';}).sort((a,b)=>(_wrL.get(b.symbol)||0)-(_wrL.get(a.symbol)||0)).slice(0,5);
   // 做空Top5：只留 MOVE signal==='bear'，依全指標綜合勝率排序
-  const shorts=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bear';}).sort((a,b)=>computeWR(b,'short')-computeWR(a,'short')).slice(0,5);
+  const shorts=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bear';}).sort((a,b)=>(_wrS.get(b.symbol)||0)-(_wrS.get(a.symbol)||0)).slice(0,5);
   const ranks=['🥇','🥈','🥉','4️⃣','5️⃣'];
-  const watchRanks=['①','②','③'];
 
-  const makeRow=(c,i,type,isWatch=false)=>{
-    const sc=type==='long'?c.longScore:c.shortScore;
+  const makeRow=(c,i,type)=>{
     const vd=vegasData.find(v=>v.sym===c.symbol.toUpperCase());
     const rsi=getRSI(c.symbol);
-    const fr=getFR(c.symbol);
     const oi=oiData.find(o=>o.sym.toLowerCase()===c.symbol.toLowerCase());
     // 優先使用真實K線計算的量價型態，否則fallback OI估算
     const volPat = vd?.volPat4H || (oi?detectVolPattern(oi,vd):null);
-    // OI 24H 變化（真實）
-    const oiChg = getOIChg(c.symbol);
 
-    // ── MOVE 交易系統三篩選標準 ──
-    const paList  = c ? detectPA(c, type)           : [];
-    const patList = c ? detectPattern(c, type)      : [];
-    const srList  = c ? detectSR(c, type, vegasData): [];
-    const crit1 = paList.length  > 0; // 篩選1：裸K/PA
-    const crit2 = patList.length > 0; // 篩選2：型態
-    const crit3 = srList.length  > 0; // 篩選3：支撐壓力
-    const critCount = [crit1,crit2,crit3].filter(Boolean).length;
-
-    // ══════════════════════════════════════
-    //  綜合勝率 — 兩大系統 + 共用 VEGAS 基礎
-    // ══════════════════════════════════════
-    let wr = 0.40;
-
-    // ── VEGAS 共同基礎 ──
-    const vegasAligned = vd && (
-      (vd.signal==='bull'&&type==='long') ||
-      (vd.signal==='bear'&&type==='short')
-    );
-    const vegasAgainst = vd && (
-      (vd.signal==='bull'&&type==='short') ||
-      (vd.signal==='bear'&&type==='long')
-    );
-    if(vegasAligned)    wr += 0.08;  // VEGAS 方向吻合
-    if(vegasAgainst)    wr -= 0.10;  // 逆 VEGAS 高風險
-    if(vd?.h4InTunnel)  wr -= 0.03;  // 通道整理中，方向未定
-
-    // ── MOVE 交易系統（篩選1+2+3）──
-    // 每個篩選 +4%，三全中額外 +5%（獎勵完整共振）
-    wr += critCount * 0.04;
-    if(critCount >= 3) wr += 0.05;
-    // 逆向：篩選都沒過反而扣
-    if(critCount === 0 && vegasAligned) wr -= 0.03;
-
-    // ── 賽克斯系統（三步驟 + QQE MOD）──
-    // 賽克斯方向用自己的 dailyTrend（EMA144/169 vs EMA576/676），與MOVE獨立
-    const saekBull = vd?.dailyTrend === 'bull';
-    const saekBear = vd?.dailyTrend === 'bear';
-    // saekFull/Partial 取方向特定版本
-    const saekFull    = type==='long'
-      ? (vd?.step1_long  && vd?.step2_long  && vd?.step3_long)
-      : (vd?.step1_short && vd?.step2_short && vd?.step3_short);
-    const saekPartial = type==='long'
-      ? (vd?.step1_long  && vd?.step2_long)
-      : (vd?.step1_short && vd?.step2_short);
-    if(saekFull){
-      wr += (saekBull&&type==='long')||(saekBear&&type==='short') ?  0.07 : -0.07;
-    } else if(saekPartial){
-      wr += (saekBull&&type==='long')||(saekBear&&type==='short') ?  0.03 : -0.03;
-    }
-
-    // QQE MOD：同向+5% / 逆向-5%
-    const qqeBull = vd?.qqe4h?.isBull;
-    const qqeBear = vd?.qqe4h?.isBear;
-    if(qqeBull) wr += type==='long'  ?  0.05 : -0.05;
-    if(qqeBear) wr += type==='short' ?  0.05 : -0.05;
-
-    // 多週期共振：方向對齊才加，逆向扣
-    const resAligned = (saekBull&&type==='long')||(saekBear&&type==='short');
-    if(vd?.resonance >= 3)      wr += resAligned ?  0.06 : -0.06;
-    else if(vd?.resonance >= 2) wr += resAligned ?  0.03 : -0.03;
-
-    // 通道回踩：方向對齊加，逆向扣
-    if(vd?.isPullbackSignal){
-      const pbLong = vd?.pullbackSide==='bull_pullback'||vd?.pullbackSide==='bull_bounce';
-      wr += (pbLong&&type==='long')||(!pbLong&&type==='short') ?  0.05 : -0.05;
-    }
-
-    // ── 兩系統共振獎勵 ──
-    const moveOK = critCount >= 2;
-    const saekOK = saekFull || saekPartial;
-    if(moveOK && saekOK) wr += vegasAligned ? 0.05 : -0.05;
-
-    // ── RSI（真實4H，null=數據未載入，不加不扣）──
-    if(rsi !== null){
-      if(rsi < 30) wr += type==='long'  ?  0.03 : -0.04; // 超賣
-      else if(rsi <= 50 && type==='long')  wr += 0.01;    // 健康多
-      if(rsi > 70) wr += type==='short' ?  0.03 : -0.04; // 超買
-      else if(rsi >= 50 && type==='short') wr += 0.01;    // 健康空
-    }
-
-    // ── 資金費率 FR（真實OKX，null=不計算）──
-    if(fr !== null){
-      const frNum = parseFloat(fr);
-      if(frNum < -0.0001) wr += type==='long'  ?  0.04 : -0.04; // 負費率利多
-      if(frNum > 0.0005)  wr += type==='short' ?  0.04 : -0.04; // 高費率利空
-    }
-
-    // ── 多空比 L/S（真實OKX，null=不計算）──
-    const ls = getLS(c.symbol);
-    if(ls !== null){
-      if(ls < 0.35) wr += type==='long'  ?  0.04 : -0.03; // 散戶極空=反向做多
-      if(ls > 0.72) wr += type==='short' ?  0.04 : -0.03; // 散戶極多=反向做空
-    }
-
-    // ── OI 持倉量變化（真實OKX，null=不計算）──
-    if(oiChg !== null){
-      const oiAligned = (oi?.dir==='long'&&type==='long')||(oi?.dir==='short'&&type==='short');
-      if(oiChg > 5)  wr += oiAligned ?  0.04 : -0.03; // OI增加+方向一致
-      if(oiChg < -5) wr += -0.03; // OI大量平倉，趨勢警惕
-    }
-
-    // 8. OANDA 量價型態（對稱加扣分）
-    if(volPat){
-      const isLongPat  = volPat.signal==='long';
-      const isShortPat = volPat.signal==='short';
-      const isBreakout = volPat.name.includes('突破');
-
-      // 放量突破 / 量增價漲：多加空扣
-      if(isLongPat){
-        wr += type==='long' ? (isBreakout?0.08:0.05) : -(isBreakout?0.08:0.05);
-      }
-      // 量增價跌：空加多扣
-      if(isShortPat){
-        wr += type==='short' ? (isBreakout?0.08:0.06) : -(isBreakout?0.08:0.06);
-      }
-      // 價跌量縮（賣壓減弱，接近底部）：多加空扣
-      if(volPat.signal==='watch_long'){
-        wr += type==='long' ? 0.03 : -0.03;
-      }
-      // 天量天價（可能反轉）：多扣空加
-      if(volPat.signal==='exit'){
-        wr += type==='long' ? -0.08 : 0.08;
-      }
-      // 爆量長黑（空方極強）：空加多扣
-      if(volPat.signal==='watch'){
-        wr += type==='short' ? 0.07 : -0.07;
-      }
-      // 縮量整理（不確定）：多空都小扣
-      if(volPat.signal==='wait'){
-        wr -= 0.02;
-      }
-      // 低量上漲（缺乏支撐）：多扣空加
-      if(volPat.name.includes('低量')){
-        wr += type==='long' ? -0.03 : 0.03;
-      }
-    }
-
-    wr=Math.min(0.75,Math.max(0.30,wr)); // 上限75%，下限30%
+    // ── 全指標綜合勝率（computeWR 統一計算，排序與顯示結果一致）──
+    const { wr, critCount, vegasAligned, vegasAgainst, saekFull, saekPartial, saekOK, moveOK } = computeWR(c, type);
 
     // 新聞情緒（僅顯示標籤，不影響勝率）
     const newsSent = getNewsSent(c.symbol);
@@ -1935,9 +1797,8 @@ function renderRecs(){
     if(rsi<32&&type==='long') tags.push(`RSI${rsi}`);
     if(rsi>68&&type==='short') tags.push(`RSI${rsi}`);
     if(volTag) tags.push(volTag);
-    const _rank=isWatch?(watchRanks[i]||`${i+1}`):(ranks[i]||`${i+1}`);
-    const _hov=isWatch?'rgba(245,158,11,0.10)':'var(--pink5)';
-    return `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1.5px solid var(--pink4);cursor:pointer;padding:10px 8px;align-items:center;transition:background .15s" onclick="openScoreDetail('${c.id}','${type}')" onmouseenter="this.style.background='${_hov}'" onmouseleave="this.style.background=''">
+    const _rank=ranks[i]||`${i+1}`;
+    return `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1.5px solid var(--pink4);cursor:pointer;padding:10px 8px;align-items:center;transition:background .15s" onclick="openScoreDetail('${c.id}','${type}')" onmouseenter="this.style.background='var(--pink5)'" onmouseleave="this.style.background=''">
       <div style="display:flex;align-items:center;gap:5px">
         <span style="font-size:12px">${_rank}</span>
         <div>
