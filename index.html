@@ -716,6 +716,7 @@ async function loadVEGAS(){
   const done=vegasData.filter(v=>v.signal!=='neutral').length;
   document.getElementById('vcnt').textContent=done;
   document.getElementById('vtime').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
+  if(scoredCoins.length) renderRecs();
 }
 
 function sw(t){
@@ -1392,6 +1393,36 @@ function computeEV(winRate, rr, slPct) {
   return { ev, kelly, winRate, rr, slPct };
 }
 
+// ═══ inferNeutralDirection：neutral 幣方向投票 ═══
+function inferNeutralDirection(sym) {
+  const ri = realInd[sym] || {};
+  const fr  = ri.fr != null ? parseFloat(ri.fr) : null;
+  const ls  = ri.lsRatio ?? null;
+  const qqe = ri.qqe ?? null;
+  const vd  = vegasData.find(v => v.sym === sym.toUpperCase());
+
+  let bullVotes = 0, bearVotes = 0;
+
+  if (fr !== null) {
+    if (fr < -0.0001) bullVotes++;
+    else if (fr > 0.0005) bearVotes++;
+  }
+  if (ls !== null) {
+    if (ls < 0.35) bullVotes++;
+    else if (ls > 0.72) bearVotes++;
+  }
+  if (qqe) {
+    if (qqe.isBull) bullVotes++;
+    else if (qqe.isBear) bearVotes++;
+  }
+  if (vd && vd.dailyTrend === 'bull') bullVotes++;
+  else if (vd && vd.dailyTrend === 'bear') bearVotes++;
+
+  if (bullVotes > bearVotes) return 'bull_lean';
+  if (bearVotes > bullVotes) return 'bear_lean';
+  return null;
+}
+
 // ═══ estWinRate（新規格版）═══
 function estWinRate(c, type) {
   let wr = 0.40;
@@ -1407,8 +1438,17 @@ function estWinRate(c, type) {
   if(vd){
     const match=(type==='long'&&vd.signal==='bull')||(type==='short'&&vd.signal==='bear');
     const opp  =(type==='long'&&vd.signal==='bear')||(type==='short'&&vd.signal==='bull');
-    if(match)wr+=0.08; else if(opp)wr-=0.10;
-    else if(vd.dailyTrend===(type==='long'?'bull':'bear'))wr+=0.03;
+    if(match){
+      wr+=0.08;
+    } else if(opp){
+      wr-=0.10;
+    } else if(vd.signal==='neutral'){
+      const lean=inferNeutralDirection(sym);
+      const leanMatch=(type==='long'&&lean==='bull_lean')||(type==='short'&&lean==='bear_lean');
+      const leanOpp  =(type==='long'&&lean==='bear_lean')||(type==='short'&&lean==='bull_lean');
+      if(leanMatch)wr+=0.04;
+      else if(leanOpp)wr-=0.05;
+    }
   }
   // ② RSI
   if(type==='long'){
@@ -1748,10 +1788,24 @@ function renderRecs(){
   // 預先計算所有幣種的綜合勝率（每幣各算一次，sort 直接查 Map 不重複呼叫）
   const _wrL = new Map(scoredCoins.map(c=>[c.symbol, computeWR(c,'long').wr]));
   const _wrS = new Map(scoredCoins.map(c=>[c.symbol, computeWR(c,'short').wr]));
-  // 做多Top5：只留 MOVE signal==='bull'，依全指標綜合勝率排序
-  const longs=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bull';}).sort((a,b)=>(_wrL.get(b.symbol)||0)-(_wrL.get(a.symbol)||0)).slice(0,5);
-  // 做空Top5：只留 MOVE signal==='bear'，依全指標綜合勝率排序
-  const shorts=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bear';}).sort((a,b)=>(_wrS.get(b.symbol)||0)-(_wrS.get(a.symbol)||0)).slice(0,5);
+  // 做多Top5：vd未載入排除；bull 直接進；neutral 需 inferNeutralDirection==='bull_lean'；bear 排除
+  const longs=[...scoredCoins].filter(c=>{
+    const vd=_getVd(c);
+    if(!vd) return false;
+    if(vd.signal==='bull') return true;
+    if(vd.signal==='bear') return false;
+    return inferNeutralDirection(c.symbol.toUpperCase())==='bull_lean';
+  }).sort((a,b)=>(_wrL.get(b.symbol)||0)-(_wrL.get(a.symbol)||0)).slice(0,5);
+  const longsWatch=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bear';}).sort((a,b)=>(_wrL.get(b.symbol)||0)-(_wrL.get(a.symbol)||0)).slice(0,3);
+  // 做空Top5：vd未載入排除；bear 直接進；neutral 需 inferNeutralDirection==='bear_lean'；bull 排除
+  const shorts=[...scoredCoins].filter(c=>{
+    const vd=_getVd(c);
+    if(!vd) return false;
+    if(vd.signal==='bear') return true;
+    if(vd.signal==='bull') return false;
+    return inferNeutralDirection(c.symbol.toUpperCase())==='bear_lean';
+  }).sort((a,b)=>(_wrS.get(b.symbol)||0)-(_wrS.get(a.symbol)||0)).slice(0,5);
+  const shortsWatch=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bull';}).sort((a,b)=>(_wrS.get(b.symbol)||0)-(_wrS.get(a.symbol)||0)).slice(0,3);
   const ranks=['🥇','🥈','🥉','4️⃣','5️⃣'];
 
   const makeRow=(c,i,type)=>{
@@ -1784,6 +1838,11 @@ function renderRecs(){
     // VEGAS 基礎
     if(vegasAligned) tags.push('VEGAS✅');
     if(vegasAgainst) tags.push('逆VEGAS⚠️');
+    if(!vegasAligned&&!vegasAgainst&&vd?.signal==='neutral'){
+      const lean=inferNeutralDirection(c.symbol.toUpperCase());
+      if(lean==='bull_lean'&&type==='long') tags.push('偏多觀察📊');
+      else if(lean==='bear_lean'&&type==='short') tags.push('偏空觀察📊');
+    }
     // MOVE 系統
     if(critCount>=3) tags.push('MOVE3/3🏆');
     else if(critCount===2) tags.push('MOVE2/3');
@@ -1795,8 +1854,8 @@ function renderRecs(){
     if(moveOK&&saekOK&&vegasAligned) tags.push('雙系統共振⭐');
     if(vd?.resonance>=2) tags.push(`共振${vd.resonance}TF`);
     if(vd?.isPullbackSignal) tags.push('回踩');
-    if(rsi<32&&type==='long') tags.push(`RSI${rsi}`);
-    if(rsi>68&&type==='short') tags.push(`RSI${rsi}`);
+    if(rsi!==null&&rsi<32&&type==='long') tags.push(`RSI ${rsi}`);
+    if(rsi!==null&&rsi>68&&type==='short') tags.push(`RSI ${rsi}`);
     if(volTag) tags.push(volTag);
     const _rank=ranks[i]||`${i+1}`;
     return `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1.5px solid var(--pink4);cursor:pointer;padding:10px 8px;align-items:center;transition:background .15s" onclick="openScoreDetail('${c.id}','${type}')" onmouseenter="this.style.background='var(--pink5)'" onmouseleave="this.style.background=''">
@@ -1836,7 +1895,13 @@ function renderRecs(){
         <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">RR</div>
         <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">指標</div>
       </div>
-      ${items.map((c,i)=>makeRow(c,i,type)).join('')}
+      ${items.length===0
+        ? `<div style="padding:18px 16px;text-align:center;color:var(--text3);font-size:12px;font-weight:600">
+            ${type==='long'
+              ? '目前無符合 VEGAS 方向的做多訊號，建議觀望'
+              : '目前無符合 VEGAS 方向的做空訊號，建議觀望'}
+           </div>`
+        : items.map((c,i)=>makeRow(c,i,type)).join('')}
     </div>`;
 
   document.getElementById('rec-wrap').innerHTML=`<div style="display:flex;flex-direction:column;gap:0">${makeSection(longs,'long')}${makeSection(shorts,'short')}</div>`;
