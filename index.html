@@ -803,7 +803,7 @@ async function loadOI(){
     if(!r.ok)throw new Error();
     const j=await r.json();if(j.code!=='0')throw new Error();
     oiData=j.data.filter(t=>t.instId.endsWith('USDT-SWAP')&&parseFloat(t.vol24h)>2000).map(t=>{
-      const px=parseFloat(t.last),op=parseFloat(t.open24h),hi=parseFloat(t.high24h),lo=parseFloat(t.low24h),vol=parseFloat(t.vol24h);
+      const px=parseFloat(t.last),op=parseFloat(t.open24h),hi=parseFloat(t.high24h),lo=parseFloat(t.low24h),vol=parseFloat(t.volCcy24h||t.vol24h);
       const pchg=op>0?(px-op)/op*100:0,pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5;
       const dir=pchg>2?'long':pchg<-2?'short':'neu';
       const str=Math.min(5,Math.max(1,Math.floor(Math.abs(pchg)/1.5)));
@@ -1428,7 +1428,7 @@ function estWinRate(c, type) {
   let wr = 0.40;
   const sym = c.symbol.toUpperCase();
   const ri  = realInd[sym] || {};
-  const rsi  = ri.rsi  ?? 50;
+  const rsi  = ri.rsi  ?? null;
   const fr   = ri.fr   != null ? parseFloat(ri.fr) : null;
   const ls   = ri.lsRatio ?? null;
   const qqe  = ri.qqe  ?? null;
@@ -1450,11 +1450,13 @@ function estWinRate(c, type) {
       else if(leanOpp)wr-=0.05;
     }
   }
-  // ② RSI
-  if(type==='long'){
-    if(rsi<30)wr+=0.03; else if(rsi<=50)wr+=0.01; else if(rsi>70)wr-=0.04;
-  } else {
-    if(rsi>70)wr+=0.03; else if(rsi>=50)wr+=0.01; else if(rsi<30)wr-=0.04;
+  // ② RSI（null = 數據未載入，不加分不扣分）
+  if(rsi !== null){
+    if(type==='long'){
+      if(rsi<30)wr+=0.03; else if(rsi<=50)wr+=0.01; else if(rsi>70)wr-=0.04;
+    } else {
+      if(rsi>70)wr+=0.03; else if(rsi>=50)wr+=0.01; else if(rsi<30)wr-=0.04;
+    }
   }
   // ③ FR
   if(fr!==null){
@@ -1825,8 +1827,10 @@ function renderRecs(){
     const volTag = volPat?volPat.name.replace(/[🚀📈📉💥⚠️⏸]/g,'').trim():null;
 
     // RR動態（量價型態也影響）
+    const saekAllLong  = vd?.step1_long  && vd?.step2_long  && vd?.step3_long;
+    const saekAllShort = vd?.step1_short && vd?.step2_short && vd?.step3_short;
     const rr=volPat?.signal==='long'&&type==='long'&&volPat.name.includes('突破')?3.0:
-              (vd?.step1&&vd?.step2&&vd?.step3)?3.0:
+              (type==='long'?saekAllLong:saekAllShort)?3.0:
               vd?.isPullbackSignal?2.5:2.0;
     const ev=wr*(0.03*rr)-(1-wr)*0.03;
     const evColor=ev>0?'var(--green2)':'var(--red2)';
@@ -2550,13 +2554,13 @@ function openMOVEDetail(sym, type, v, c) {
   const rsi_val = c ? getRSI(c.symbol) : null; // null = 真實數據載入中
   const fr_val  = c ? getFR(c.symbol) : null;
   const ls_val  = c ? getLS(c.symbol) : null;
-  if (type==='long'  && rsi_val < 30) winRate += 0.04;
-  if (type==='short' && rsi_val > 70) winRate += 0.04;
+  if (type==='long'  && rsi_val !== null && rsi_val < 30) winRate += 0.04;
+  if (type==='short' && rsi_val !== null && rsi_val > 70) winRate += 0.04;
   if (fr_val !== null && type==='long'  && parseFloat(fr_val) < -0.0001) winRate += 0.03;
   if (fr_val !== null && type==='short' && parseFloat(fr_val) > 0.0005)  winRate += 0.03;
   if (ls_val !== null && type==='long'  && ls_val < 0.4) winRate += 0.03;
   if (ls_val !== null && type==='short' && ls_val > 0.7) winRate += 0.03;
-  winRate = Math.min(0.78, Math.max(0.32, winRate));
+  winRate = Math.min(0.75, Math.max(0.30, winRate));
   const ev = winRate * (tpPct/100) - (1-winRate) * (slPct/100);
   const kelly = Math.max(0, (winRate * (tpPct/slPct) - (1-winRate)) / (tpPct/slPct));
 
@@ -2564,7 +2568,7 @@ function openMOVEDetail(sym, type, v, c) {
   const moveScore = Math.min(100, Math.round(
     (vegasOK?40:v?.h4InTunnel?15:0) +
     criteriaCount*15 +
-    (rsi_val < 30 && type==='long' ? 8 : rsi_val > 70 && type==='short' ? 8 : 0) +
+    (rsi_val !== null && rsi_val < 30 && type==='long' ? 8 : rsi_val !== null && rsi_val > 70 && type==='short' ? 8 : 0) +
     (fr_val!==null && ((type==='long'&&parseFloat(fr_val)<-0.0001)||(type==='short'&&parseFloat(fr_val)>0.0005)) ? 5 : 0)
   ));
 
@@ -2973,7 +2977,7 @@ async function loadCoinNews(sym){
       NEWS_RSS_SOURCES.map(s => fetchRSSItems(s.url, s.name))
     );
     let items = results.flatMap(r => r.status === 'fulfilled' ? r.value : [])
-      .filter(n => (n.title||'').toLowerCase().includes(symLow));
+      .filter(n => new RegExp(`\\b${symLow}\\b`, 'i').test(n.title||''));
 
     // 去重 + 按時間排序
     const seen = new Set();
