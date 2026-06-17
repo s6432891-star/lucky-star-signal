@@ -335,6 +335,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
     <div class="tab"        onclick="sw('sectors')"  id="tab-sectors">🏆 板塊</div>
     <div class="tab"        onclick="sw('calc')"   id="tab-calc">🧮 計算機</div>
     <div class="tab"        onclick="sw('ai')"     id="tab-ai">💬 AI天使</div>
+    <div class="tab"        onclick="sw('guide')"  id="tab-guide">❓ 使用說明</div>
   </div>
 </div>
 
@@ -629,12 +630,122 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
   </div>
 </div>
 
+<!-- GUIDE -->
+<div class="panel" id="panel-guide">
+  <div style="max-width:720px;margin:0 auto;padding:16px 12px;display:flex;flex-direction:column;gap:16px">
+
+    <!-- 訊號站是什麼 -->
+    <div class="card">
+      <div class="ch"><div class="ct">⭐ 幸運星信號是什麼？</div></div>
+      <div class="cbody" style="font-size:13px;line-height:1.9;color:var(--text2)">
+        <p style="margin:0 0 10px">幸運星信號是一個<strong>加密貨幣技術分析訊號站</strong>，整合多種指標幫你找高勝率進場機會，適合有一定交易基礎的使用者輔助判斷。</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="background:var(--pink5);border-radius:8px;padding:10px 12px">
+            <div style="font-weight:800;color:var(--pink3);margin-bottom:4px">📡 即時數據</div>
+            <div style="font-size:12px">監控 60+ 幣種，每分鐘更新 OKX 價格、持倉量、成交量</div>
+          </div>
+          <div style="background:var(--greenb);border-radius:8px;padding:10px 12px">
+            <div style="font-weight:800;color:var(--green2);margin-bottom:4px">🎯 三系統整合</div>
+            <div style="font-size:12px">VEGAS 通道 × MOVE 三篩選 × 賽克斯三步驟，多維度共振</div>
+          </div>
+          <div style="background:var(--goldb);border-radius:8px;padding:10px 12px">
+            <div style="font-weight:800;color:var(--gold);margin-bottom:4px">⚖️ 正EV計算</div>
+            <div style="font-size:12px">自動算出每筆交易的期望值，只進勝率 × RR 為正的機會</div>
+          </div>
+          <div style="background:rgba(192,132,252,0.1);border-radius:8px;padding:10px 12px">
+            <div style="font-weight:800;color:var(--purple);margin-bottom:4px">💬 AI天使</div>
+            <div style="font-size:12px">輸入自己的 Anthropic API Key，讓 AI 直接解讀當前訊號</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 各Tab說明 -->
+    <div class="card">
+      <div class="ch"><div class="ct">🗂️ 各功能頁說明</div></div>
+      <div class="cbody" style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:12px;align-items:start">
+          <span style="font-weight:800;color:var(--pink3);white-space:nowrap">📊 多空推薦</span>
+          <span style="color:var(--text2)">整合所有指標自動排出做多/做空前5名，附勝率、EV、建議倉位</span>
+          <span style="font-weight:800;color:var(--pink3);white-space:nowrap">⚖️ 正EV</span>
+          <span style="color:var(--text2)">所有幣種 EV 排行，只看 EV&gt;0 的機會，搭配 Kelly 公式算倉位</span>
+          <span style="font-weight:800;color:var(--pink3);white-space:nowrap">🌿 MOVE訊號</span>
+          <span style="color:var(--text2)">VEGAS 通道狀態 + 三個篩選條件，回踩距離與止損建議</span>
+          <span style="font-weight:800;color:var(--pink3);white-space:nowrap">⚡ 技術訊號</span>
+          <span style="color:var(--text2)">賽克斯三步驟核對、QQE MOD 多週期共振強度</span>
+          <span style="font-weight:800;color:var(--pink3);white-space:nowrap">🔥 OI異常</span>
+          <span style="color:var(--text2)">持倉量變化偵測，多頭建倉 / 空頭建倉 / 震盪排行</span>
+          <span style="font-weight:800;color:var(--pink3);white-space:nowrap">📊 成交量</span>
+          <span style="color:var(--text2)">成交量暴增訊號，放量突破 / 爆量長黑等7種量價型態</span>
+          <span style="font-weight:800;color:var(--pink3);white-space:nowrap">📰 快訊</span>
+          <span style="color:var(--text2)">四大幣圈媒體即時 RSS，自動標記新聞涉及的幣種</span>
+          <span style="font-weight:800;color:var(--pink3);white-space:nowrap">🌸 總覽</span>
+          <span style="color:var(--text2)">全市場多空比例、市場情緒、監控幣種總數</span>
+          <span style="font-weight:800;color:var(--pink3);white-space:nowrap">🏆 板塊</span>
+          <span style="color:var(--text2)">Layer1 / L2 / DeFi / Meme / AI 板塊強弱對比</span>
+          <span style="font-weight:800;color:var(--pink3);white-space:nowrap">🧮 計算機</span>
+          <span style="color:var(--text2)">輸入勝率/RR/止損，計算正EV與半凱利建議倉位</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 建議操作流程 -->
+    <div class="card">
+      <div class="ch"><div class="ct">🚀 建議操作流程（新手從這裡開始）</div></div>
+      <div class="cbody" style="font-size:13px;color:var(--text2);line-height:1.8">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <span style="background:var(--pink3);color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;margin-top:2px">1</span>
+            <span><strong>看多空推薦</strong> — 找 VEGAS ✅ 勝率 ≥ 60% 的幣，這是系統認為今日最值得關注的機會</span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <span style="background:var(--pink3);color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;margin-top:2px">2</span>
+            <span><strong>點進 MOVE 訊號</strong> — 確認該幣的 VEGAS 通道方向、回踩位置、篩選條件數量</span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <span style="background:var(--pink3);color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;margin-top:2px">3</span>
+            <span><strong>用計算機確認 EV</strong> — 輸入你的勝率、止損、止盈，確保 EV &gt; 0 才進場</span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <span style="background:var(--gold);color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;margin-top:2px">!</span>
+            <span style="color:var(--gold)"><strong>進場前必設止損</strong>，單筆風險不超過帳戶 5%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 數據來源 -->
+    <div class="card">
+      <div class="ch"><div class="ct">📡 數據來源</div></div>
+      <div class="cbody" style="font-size:12px;color:var(--text2);line-height:1.8">
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px">
+          <span style="font-weight:700;color:var(--text1)">OKX API</span><span>K線、持倉量、成交量、資金費率（VEGAS/MOVE/OI/成交量 Tab）</span>
+          <span style="font-weight:700;color:var(--text1)">CoinGecko</span><span>幣種基本資訊、市值、24H 漲跌（多空推薦/總覽）</span>
+          <span style="font-weight:700;color:var(--text1)">RSS 新聞</span><span>CoinTelegraph / Decrypt / CoinDesk / NewsBTC（快訊 Tab）</span>
+        </div>
+        <div style="margin-top:10px;padding:8px 10px;background:var(--pink5);border-radius:6px;font-size:11px;color:var(--text3)">
+          所有數據皆為公開 API 即時抓取，無需登入，不儲存任何個人資訊。
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 </div>
 
 <div class="modal-overlay" id="modal" onclick="closeMod(event)">
   <div class="modal"><div class="drag-bar"></div><div id="mbody"></div></div>
 </div>
 <div class="toast" id="toast"></div>
+
+<footer style="text-align:center;padding:18px 16px 24px;border-top:1.5px solid var(--pink4);margin-top:8px;background:var(--pink5)">
+  <div style="font-size:10px;color:var(--text3);line-height:1.9;max-width:600px;margin:0 auto">
+    <div style="font-weight:800;color:var(--text2);margin-bottom:4px;font-size:11px">⚠️ 免責聲明</div>
+    本站所有訊號、勝率、EV 數值均為技術指標計算結果，<strong>不構成任何投資建議</strong>。加密貨幣市場波動極大，過去績效不代表未來結果。請根據自身風險承受能力獨立判斷，並在進場前自行設定止損。本站不負任何因參考本站訊號而產生之投資損失責任。
+    <div style="margin-top:8px;color:var(--pink3);font-weight:700">⭐ 幸運星信號 · 數據來源：OKX / CoinGecko / RSS</div>
+  </div>
+</footer>
 
 <script>
 // ═══ STATE ═══
