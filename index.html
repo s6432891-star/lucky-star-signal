@@ -349,6 +349,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
 
 <!-- RECS -->
 <div class="panel active" id="panel-recs">
+  <div id="signup-banner"></div>
   <div class="rec-wrap" id="rec-wrap"><div class="loading"><div class="spin"></div>計算中...</div></div>
 </div>
 
@@ -735,6 +736,22 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
       </div>
     </div>
 
+    <!-- 早鳥訂閱 -->
+    <div class="card" style="border-color:var(--pink3);background:linear-gradient(135deg,var(--pink5),white)">
+      <div class="ch" style="background:linear-gradient(135deg,var(--pink3),var(--pink2))">
+        <div class="ct" style="color:white">⭐ 訂閱幸運星更新通知</div>
+      </div>
+      <div class="cbody" style="text-align:center;padding:20px 16px">
+        <div style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:14px">
+          留下 Email，搶先收到<strong>新功能上線通知</strong>、<strong>重大訊號提醒</strong>，以及未來付費版早鳥優惠。
+        </div>
+        <div id="signup-btn-wrap">
+          <!-- 由 JS renderSignup() 填入 -->
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:10px">不會收到垃圾信，隨時可取消訂閱</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -778,6 +795,7 @@ let chatHistory = [];
 let SYMS = ['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','DOT','LINK']; // 初始值，啟動後會被替換
 const CG_IDS='bitcoin,ethereum,solana,binancecoin,ripple,dogecoin,cardano,avalanche-2,polkadot,chainlink,uniswap,near,polygon,litecoin,arbitrum,optimism,sui,aptos,pepe,floki';
 const MAX_SYMS = 60; // 最多掃描幣種數（按成交量排序前60）
+const SIGNUP_FORM_URL = ''; // 填入 Google Form 網址後訂閱功能自動啟用
 
 // 從 OKX 動態取得所有 USDT 永續合約，按成交量排序
 async function loadAllSymbols(){
@@ -803,9 +821,30 @@ async function loadAllSymbols(){
 }
 
 // ═══ INIT ═══
+function renderSignup(){
+  const btn = `<a href="${SIGNUP_FORM_URL}" target="_blank" rel="noopener"
+    style="display:inline-block;background:linear-gradient(135deg,var(--pink3),var(--pink2));color:white;font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;padding:10px 28px;border-radius:25px;text-decoration:none;box-shadow:0 4px 14px rgba(255,77,125,0.3);transition:opacity .2s"
+    onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+    ⭐ 我要訂閱早鳥通知
+  </a>`;
+  const placeholder = `<div style="display:inline-block;background:var(--pink4);color:var(--text3);font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;padding:10px 24px;border-radius:25px">
+    🔜 訂閱功能即將開放
+  </div>`;
+  const banner = SIGNUP_FORM_URL
+    ? `<div style="margin:0 0 10px;padding:8px 14px;background:linear-gradient(135deg,var(--pink5),white);border:1.5px solid var(--pink3);border-radius:10px;font-size:11px;font-weight:700;color:var(--pink3);display:flex;align-items:center;gap:8px;cursor:pointer" onclick="window.open('${SIGNUP_FORM_URL}','_blank')">
+        ⭐ 訂閱幸運星更新通知 →
+      </div>`
+    : '';
+  const wrap = document.getElementById('signup-btn-wrap');
+  const bannerEl = document.getElementById('signup-banner');
+  if(wrap) wrap.innerHTML = SIGNUP_FORM_URL ? btn : placeholder;
+  if(bannerEl) bannerEl.innerHTML = banner;
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
   if(apiKey){document.getElementById('ainp').value=apiKey;document.getElementById('aist').textContent='● 已連線 ✨';}
   setInterval(()=>document.getElementById('clk').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false}),1000);
+  renderSignup();
   // 1. 先動態載入全部幣種列表
   loadAllSymbols().then(()=>{
     // 2. 快速載入價格/OI
