@@ -661,9 +661,11 @@ async function loadAllSymbols(){
       .sort((a,b)=>b.vol-a.vol)
       .slice(0,MAX_SYMS)
       .map(t=>t.sym);
-    SYMS=syms;
-    document.getElementById('vtime').textContent=`掃描 ${syms.length} 個幣種`;
-    console.log(`✅ 動態載入 ${syms.length} 個幣種`);
+    // 合併 IND_SYMS（主流幣），確保 Top5 候選池包含 BTC/ETH 等
+    const merged = [...new Set([...syms, ...IND_SYMS])];
+    SYMS = merged;
+    document.getElementById('vtime').textContent=`掃描 ${merged.length} 個幣種`;
+    console.log(`✅ 動態載入 ${syms.length} 個幣種 + IND_SYMS 合併後共 ${merged.length} 個`);
   }catch(e){console.warn('loadAllSymbols失敗',e);}
 }
 
