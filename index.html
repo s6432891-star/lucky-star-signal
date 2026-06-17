@@ -291,6 +291,11 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
 .empty{text-align:center;padding:24px;color:var(--text3);font-size:12px;line-height:2;font-weight:600;font-family:'Nunito',sans-serif}
 .toast{position:fixed;bottom:16px;right:16px;background:white;border:1.5px solid var(--pink4);border-left:4px solid var(--pink3);padding:9px 13px;border-radius:11px;font-size:11px;color:var(--text2);z-index:999;transform:translateY(70px);opacity:0;transition:all .3s;font-family:'Nunito',sans-serif;font-weight:700;box-shadow:var(--shadow)}
 .toast.show{transform:translateY(0);opacity:1}
+.api-status{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;font-family:'Nunito',sans-serif;color:var(--text3);background:var(--pink5);border:1.5px solid var(--pink4);border-radius:20px;padding:3px 9px;white-space:nowrap}
+.api-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);transition:background .4s}
+.api-dot.ok{background:var(--green)}
+.api-dot.warn{background:var(--gold)}
+.api-dot.err{background:var(--red2)}
 
 @media(max-width:640px){
   .stat-grid{grid-template-columns:repeat(2,1fr)}
@@ -314,6 +319,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
       <div><div class="logo-t">幸運星信號</div><div class="logo-s">⭐ MOVE系統 × 正EV交易</div></div>
     </div>
     <div class="hright">
+      <div class="api-status" id="api-status"><div class="api-dot" id="api-dot"></div><span id="api-label">連線中</span></div>
       <div class="livebadge"><div class="ldot"></div>LIVE</div>
       <div id="clk">--:--:--</div>
     </div>
@@ -751,6 +757,21 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
 // ═══ STATE ═══
 let apiKey = localStorage.getItem('angel_complete') || '';
 let coins = {}, oiData = [], scoredCoins = [], saekSigs = [], vegasData = [];
+
+// ═══ API 狀態燈號 ═══
+const _apiState = { okx: null, cg: null };
+function setApiStatus(src, ok) {
+  _apiState[src] = ok;
+  const dot = document.getElementById('api-dot');
+  const lbl = document.getElementById('api-label');
+  if (!dot || !lbl) return;
+  const { okx, cg } = _apiState;
+  if (okx === null && cg === null) { dot.className='api-dot'; lbl.textContent='連線中'; return; }
+  if (okx === false) { dot.className='api-dot err'; lbl.textContent='OKX 無法連線'; return; }
+  if (okx === true && cg === false) { dot.className='api-dot warn'; lbl.textContent='CG 異常'; return; }
+  if (okx === true && cg === true)  { dot.className='api-dot ok';  lbl.textContent='數據正常'; return; }
+  dot.className='api-dot ok'; lbl.textContent='數據正常';
+}
 let saekFilter='all', vegasFilter='all';
 let chatHistory = [];
 // 動態幣種列表（從OKX即時抓取，按成交量排序）
@@ -777,7 +798,8 @@ async function loadAllSymbols(){
     SYMS = merged;
     document.getElementById('vtime').textContent=`掃描 ${merged.length} 個幣種`;
     console.log(`✅ 動態載入 ${syms.length} 個幣種 + IND_SYMS 合併後共 ${merged.length} 個`);
-  }catch(e){console.warn('loadAllSymbols失敗',e);}
+    setApiStatus('okx', true);
+  }catch(e){console.warn('loadAllSymbols失敗',e);setApiStatus('okx',false);}
 }
 
 // ═══ INIT ═══
@@ -866,7 +888,8 @@ async function loadCoins(){
     const data=await r.json();
     coins={};data.forEach(c=>coins[c.id]=c);
     renderTicker(data);renderOverviewStats(data);renderTop5(data);
-  }catch(e){document.getElementById('ticker').innerHTML='<div style="color:var(--text3);font-size:10px;padding:0 12px;font-weight:700">⚠️ API限流，稍後重試</div>';}
+    setApiStatus('cg', true);
+  }catch(e){document.getElementById('ticker').innerHTML='<div style="color:var(--text3);font-size:10px;padding:0 12px;font-weight:700">⚠️ API限流，稍後重試</div>';setApiStatus('cg',false);}
 }
 
 function renderTicker(data){
@@ -926,7 +949,8 @@ async function loadOI(){
     renderOI();
     renderVolSpike();
     renderVolRank();
-  }catch(e){document.getElementById('oitbl').innerHTML='<div class="empty">⚠️ OKX API 錯誤</div>';}
+    setApiStatus('okx', true);
+  }catch(e){document.getElementById('oitbl').innerHTML='<div class="empty">⚠️ OKX API 錯誤</div>';setApiStatus('okx',false);}
 }
 
 // ═══ 真實量價型態（依規格：用K線OHLCV + 20根均量）═══
