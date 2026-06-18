@@ -331,7 +331,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
 <div class="tabs-wrap">
   <div class="tabs">
     <div class="tab active" onclick="sw('recs')"   id="tab-recs">📊 多空推薦</div>
-    <div class="tab" onclick="sw('ev')" id="tab-ev">⚖️ 正EV <span class="tbadge" id="ev-cnt">0</span></div>
+    <div class="tab" onclick="sw('ev')" id="tab-ev">⚖️ 正EV 計算機</div>
     <div class="tab"        onclick="sw('vegas')"  id="tab-vegas">🌿 MOVE訊號 <span class="tbadge" id="vcnt">...</span></div>
     <div class="tab"        onclick="sw('saek')"   id="tab-saek">⚡ 技術訊號 <span class="tbadge" id="scnt">0</span></div>
     <div class="tab"        onclick="sw('oi')"     id="tab-oi">🔥 OI異常 <span class="tbadge" id="ocnt">0</span></div>
@@ -392,13 +392,21 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
     <div class="ch"><div class="ct">📋 公式明細</div></div>
     <div class="cbody">
       <div style="background:var(--pink5);border-radius:10px;padding:11px 13px;font-size:11px;margin-bottom:10px">
-        <div style="font-weight:800;font-family:'Nunito',sans-serif;color:var(--pink3);margin-bottom:7px">EV = P × 獲利 − Q × 損失</div>
+        <div style="font-weight:800;font-family:'Nunito',sans-serif;color:var(--pink3);margin-bottom:2px">EV = P × B − Q × 1</div>
+        <div style="font-size:9px;color:var(--text3);margin-bottom:8px">每次輸掉「1單位」，B = 每輸1元能贏幾元（賺賠比）</div>
         <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text2)">勝率 P</span><span style="font-family:'JetBrains Mono',monospace;font-weight:700" id="f-wr">—</span></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text2)">輸率 Q = 1-P</span><span style="font-family:'JetBrains Mono',monospace;font-weight:700" id="f-lr">—</span></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text2)">賠率 B（止盈/止損）</span><span style="font-family:'JetBrains Mono',monospace;font-weight:700" id="f-rr">—</span></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text2)">單筆止損金額</span><span style="font-family:'JetBrains Mono',monospace;font-weight:700" id="f-sl">—</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text2)">輸率 Q = 1 − P</span><span style="font-family:'JetBrains Mono',monospace;font-weight:700" id="f-lr">—</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text2)">B 賺賠比（止盈 ÷ 止損）</span><span style="font-family:'JetBrains Mono',monospace;font-weight:700" id="f-rr">—</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text2)">單筆止損金額（1單位）</span><span style="font-family:'JetBrains Mono',monospace;font-weight:700" id="f-sl">—</span></div>
         <div style="height:1px;background:var(--pink4);margin:7px 0"></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text2)">每次EV</span><span style="font-family:'JetBrains Mono',monospace;font-weight:900;font-size:14px" id="f-ev">—</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="color:var(--text2)">EV（每1單位止損）</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-weight:900;font-size:13px" id="f-ev-unit">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="color:var(--text2)">每次EV（本金%）</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-weight:900;font-size:14px" id="f-ev">—</span>
+        </div>
         <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">100次期望總獲利</span><span style="font-family:'JetBrains Mono',monospace;font-weight:700" id="f-ev100">—</span></div>
       </div>
       <div style="background:linear-gradient(135deg,rgba(0,200,150,.08),var(--white));border:1.5px solid rgba(0,200,150,.3);border-radius:10px;padding:11px 13px">
@@ -409,11 +417,31 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
       </div>
     </div>
   </div>
+  <!-- 策略比較表 -->
   <div class="card">
-    <div class="ch"><div class="ct">🏆 當前正EV訊號排行</div><div class="cb">止損3% / 止盈6%基準</div></div>
+    <div class="ch"><div class="ct">📊 策略比較 — 高勝率 ≠ 正EV</div><div class="cb">EV = P × B − Q × 1</div></div>
     <div class="cbody">
-      <div style="font-size:10px;color:var(--text3);margin-bottom:10px;line-height:1.7">整合<strong style="color:var(--pink3)">真實RSI、資金費率、多空比、VEGAS通道</strong>估算勝率，計算EV。只顯示<strong style="color:var(--green2)">正EV訊號</strong>。</div>
-      <div id="ev-sig-list"><div class="loading"><div class="spin"></div>計算中...</div></div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:10px;line-height:1.7">
+        先找到訊號，<strong style="color:var(--pink3)">再用 EV 評估這筆交易值不值得做</strong>。勝率高不代表長期賺錢，關鍵是賺賠比。
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:11px">
+          <thead>
+            <tr style="background:var(--pink5)">
+              <th style="padding:7px 8px;text-align:left;font-size:10px;color:var(--text3);font-weight:700;border-bottom:1.5px solid var(--pink4)">策略</th>
+              <th style="padding:7px 6px;text-align:center;font-size:10px;color:var(--text3);font-weight:700;border-bottom:1.5px solid var(--pink4)">P 勝率</th>
+              <th style="padding:7px 6px;text-align:center;font-size:10px;color:var(--text3);font-weight:700;border-bottom:1.5px solid var(--pink4)">Q 輸率</th>
+              <th style="padding:7px 6px;text-align:center;font-size:10px;color:var(--text3);font-weight:700;border-bottom:1.5px solid var(--pink4)">B 賺賠比</th>
+              <th style="padding:7px 6px;text-align:center;font-size:10px;color:var(--text3);font-weight:700;border-bottom:1.5px solid var(--pink4)">EV</th>
+            </tr>
+          </thead>
+          <tbody id="strat-table-body"></tbody>
+        </table>
+      </div>
+      <div style="background:var(--pink5);border-radius:8px;padding:9px 11px;margin-top:10px;font-size:10px;color:var(--text2);line-height:1.7">
+        💡 <strong>EV 負值</strong>＝長期操作這個策略一定虧錢，不管勝率多高。<br>
+        策略A勝率90%卻是<span style="color:var(--red2);font-weight:800">負EV</span>，因為每次贏只賺0.1倍，每次輸就虧1倍。
+      </div>
     </div>
   </div>
 </div>
@@ -865,13 +893,13 @@ document.addEventListener('DOMContentLoaded',()=>{
     loadFast().then(()=>{
       // 3. VEGAS EMA 全幣掃描（背景執行）
       loadVEGAS();
-      loadRealIndicators().then(()=>calcSignalEVs());
+      loadRealIndicators();
     });
   });
   // 4. 新聞快訊（獨立載入，不阻塞主流程）
   loadNews();
   // 價格/OI/EV 每60秒更新
-  setInterval(()=>{loadFast();loadRealIndicators().then(()=>calcSignalEVs());},60000);
+  setInterval(()=>{loadFast();loadRealIndicators();},60000);
   // VEGAS 全幣掃描每3分鐘更新
   setInterval(()=>{loadAllSymbols().then(()=>loadVEGAS());},180000);
   // 新聞每5分鐘更新
@@ -3330,46 +3358,57 @@ function renderEV() {
   document.getElementById('lbl-rr').textContent=rr.toFixed(1);
   document.getElementById('lbl-sl').textContent=evState.sl+'%';
   document.getElementById('lbl-cap').textContent=cap.toLocaleString();
-  const q=1-wr, win=sl*rr, ev=wr*win-q*sl, ev100=ev*100*cap;
+  const q=1-wr;
+  // 講義定義：EV = P×B − Q×1（B = RR，以1單位止損為基準）
+  const evUnit = wr*rr - q;                 // 每輸1元的EV（講義格式）
+  const ev     = evUnit * sl;               // 換算為本金%（乘以止損%）
+  const ev100  = ev * cap * 100;            // 100次的期望獲利 $
   document.getElementById('f-wr').textContent=(wr*100).toFixed(0)+'%';
   document.getElementById('f-lr').textContent=(q*100).toFixed(0)+'%';
-  document.getElementById('f-rr').textContent=rr.toFixed(1)+':1';
-  document.getElementById('f-sl').textContent=evState.sl+'% ($'+(cap*sl).toFixed(0)+')';
+  document.getElementById('f-rr').textContent=rr.toFixed(1)+' 倍';
+  document.getElementById('f-sl').textContent=evState.sl+'%（$'+(cap*sl).toFixed(0)+'）';
+  document.getElementById('f-ev-unit').textContent=(evUnit>=0?'+':'')+evUnit.toFixed(3)+' 單位';
   document.getElementById('f-ev').textContent=(ev>=0?'+':'')+(ev*100).toFixed(2)+'%';
   document.getElementById('f-ev100').textContent=(ev100>=0?'+':'')+'$'+ev100.toFixed(0);
   const hero=document.getElementById('ev-hero');
   document.getElementById('ev-val').textContent=(ev>=0?'+':'')+(ev*100).toFixed(2)+'%';
-  if(ev>0.005){hero.style.background='linear-gradient(135deg,var(--green2),var(--green))';document.getElementById('ev-verdict').textContent='✅ 正EV！每次預期賺 '+(ev*100).toFixed(2)+'% 本金';}
+  if(ev>0.005){hero.style.background='linear-gradient(135deg,var(--green2),var(--green))';document.getElementById('ev-verdict').textContent='✅ 正EV！每輸1元平均賺 '+(evUnit).toFixed(2)+'元';}
   else if(ev>0){hero.style.background='linear-gradient(135deg,#4CAF50,#8BC34A)';document.getElementById('ev-verdict').textContent='⚠️ 微正EV，可優化勝率或盈虧比';}
-  else{hero.style.background='linear-gradient(135deg,var(--red2),var(--red))';document.getElementById('ev-verdict').textContent='❌ 負EV！長期虧錢，不要進場';}
+  else{hero.style.background='linear-gradient(135deg,var(--red2),var(--red))';document.getElementById('ev-verdict').textContent='❌ 負EV！長期每輸1元預期虧 '+Math.abs(evUnit).toFixed(2)+'元，不要進場';}
   const kelly=Math.max(0,(wr*rr-q)/rr);
   const hk=(kelly/2*100).toFixed(1);
   document.getElementById('kelly-pct').textContent=hk+'%';
   document.getElementById('kelly-sub').textContent='建議下注本金 '+hk+'%（半凱利）= $'+Math.max(0,cap*kelly/2).toFixed(0)+'\n完整凱利: '+(kelly*100).toFixed(1)+'%（較高風險）';
   document.getElementById('kelly-warn').textContent=kelly<=0?'❌ EV為負，凱利建議不下注，等待更好機會':parseFloat(hk)>20?'⚠️ 建議倉位偏高，實際操作上限10-15%':'✅ 此設定下，100次交易期望資金成長約 '+((1+ev)**100*100-100).toFixed(0)+'%';
+  renderStratTable(wr, rr);
 }
-
-function calcSignalEVs() {
-  if(!scoredCoins.length) return;
-  const items = scoredCoins.map(c => {
-    const type = c.longScore>=c.shortScore?'long':'short';
-    const sc = Math.max(c.longScore,c.shortScore);
-    const wr = estWinRate(c, type);
-    const ev = computeEV(wr, 2.0, 0.03);
-    return {...ev, c, type, sc};
-  }).filter(x=>x.ev>0).sort((a,b)=>b.ev-a.ev).slice(0,10);
-  document.getElementById('ev-cnt').textContent=items.length;
-  if(!items.length){document.getElementById('ev-sig-list').innerHTML='<div class="empty">目前無正EV訊號，等待更好機會 💕</div>';return;}
-  document.getElementById('ev-sig-list').innerHTML=items.map(x=>{
-    const rsi=getRSI(x.c.symbol),fr=getFR(x.c.symbol),ls=getLS(x.c.symbol);
-    const rsiStr=rsi?` RSI:${rsi}`:'', frStr=fr!==null?` FR:${(parseFloat(fr)*100).toFixed(3)}%`:'', lsStr=ls!==null?` L/S:${(ls*100).toFixed(0)}%`:'';
-    return `<div style="background:var(--white);border:1.5px solid var(--pink4);border-left:4px solid var(--green2);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:7px" onclick="openScoreDetail('${x.c.id}','${x.type}')">
-      <div><div style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:900">${x.c.symbol.toUpperCase()}</div><div style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px;font-family:'Nunito',sans-serif;background:${x.type==='long'?'var(--greenb)':'var(--redb)'};color:${x.type==='long'?'var(--green2)':'var(--red2)'};display:inline-block;margin-top:2px">${x.type==='long'?'做多':'做空'}</div></div>
-      <div style="flex:1;font-size:10px;color:var(--text2)">勝率 ${(x.winRate*100).toFixed(0)}% · RR ${x.rr}:1<br><span style="font-size:9px;color:var(--text3)">${rsiStr}${frStr}${lsStr}</span></div>
-      <div style="text-align:right"><div style="font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;color:var(--green2)">EV +${(x.ev*100).toFixed(2)}%</div><div style="font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace">Kelly ${(x.kelly*50).toFixed(0)}%</div></div>
-    </div>`;
+// 策略比較表（對照講義策略A-E，並標示目前設定）
+function renderStratTable(curWr, curRr) {
+  const strats=[
+    {name:'策略A',p:0.90,b:0.1},
+    {name:'策略B',p:0.70,b:0.4},
+    {name:'策略C',p:0.60,b:0.8},
+    {name:'策略D',p:0.30,b:3.0},
+    {name:'策略E',p:0.25,b:10.0},
+    {name:'⭐ 目前設定',p:curWr,b:curRr,isCur:true},
+  ];
+  const tbody=document.getElementById('strat-table-body');
+  if(!tbody)return;
+  tbody.innerHTML=strats.map(s=>{
+    const ev=s.p*s.b-(1-s.p);
+    const pos=ev>0;
+    const bg=s.isCur?'linear-gradient(135deg,rgba(255,133,161,.08),var(--white))':'';
+    const borderL=s.isCur?'border-left:3px solid var(--pink3)':'';
+    return `<tr style="background:${bg};${borderL}">
+      <td style="padding:7px 8px;font-weight:${s.isCur?900:700};color:${s.isCur?'var(--pink3)':'var(--text)'};font-family:Nunito,sans-serif;border-bottom:1px solid var(--pink4);font-size:11px">${s.name}</td>
+      <td style="padding:7px 6px;text-align:center;font-weight:700;border-bottom:1px solid var(--pink4)">${(s.p*100).toFixed(0)}%</td>
+      <td style="padding:7px 6px;text-align:center;font-weight:700;color:var(--text3);border-bottom:1px solid var(--pink4)">${(100-s.p*100).toFixed(0)}%</td>
+      <td style="padding:7px 6px;text-align:center;font-weight:700;border-bottom:1px solid var(--pink4)">${s.b}</td>
+      <td style="padding:7px 6px;text-align:center;font-weight:900;font-family:Nunito,sans-serif;font-size:12px;color:${pos?'var(--green2)':'var(--red2)'};border-bottom:1px solid var(--pink4)">${pos?'+':''}${ev.toFixed(2)}</td>
+    </tr>`;
   }).join('');
 }
+
 
 
 document.addEventListener('DOMContentLoaded', ()=>{ renderEV(); });
