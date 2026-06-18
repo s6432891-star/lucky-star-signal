@@ -445,6 +445,20 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
         <button class="fbtn" onclick="filterV('all',this)">全部</button>
         <button class="fbtn" onclick="filterV('strong',this)">強訊號≥75</button>
       </div>
+      <div style="margin-top:7px">
+        <input id="vsearch" type="text" placeholder="🔍 搜尋幣種，例如 BTC、SOL" oninput="searchV(this.value)"
+          style="width:100%;padding:6px 10px;border:1.5px solid var(--pink4);border-radius:20px;font-size:12px;font-family:'Nunito',sans-serif;font-weight:600;color:var(--text);background:var(--pink5);outline:none;box-sizing:border-box"
+          onfocus="this.style.borderColor='var(--pink3)'" onblur="this.style.borderColor='var(--pink4)'">
+      </div>
+      <div id="vbar-wrap" style="display:none;margin-top:8px">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);font-family:'Nunito',sans-serif;font-weight:700;margin-bottom:3px">
+          <span>掃描中 <span id="vbar-pct">0</span>%</span>
+          <span id="vbar-label">計算 EMA 通道...</span>
+        </div>
+        <div style="height:5px;background:var(--pink4);border-radius:10px;overflow:hidden">
+          <div id="vbar-fill" style="height:100%;width:0%;background:linear-gradient(90deg,var(--pink2),var(--pink3));border-radius:10px;transition:width .4s ease"></div>
+        </div>
+      </div>
     </div>
     <div id="vlist"><div class="loading"><div class="spin"></div>計算中（約30秒，掃描60+幣種）...</div></div>
   </div>
@@ -789,7 +803,7 @@ function setApiStatus(src, ok) {
   if (okx === true && cg === true)  { dot.className='api-dot ok';  lbl.textContent='數據正常'; return; }
   dot.className='api-dot ok'; lbl.textContent='數據正常';
 }
-let saekFilter='all', vegasFilter='all';
+let saekFilter='all', vegasFilter='all', vegasSearch='';
 let chatHistory = [];
 // 動態幣種列表（從OKX即時抓取，按成交量排序）
 let SYMS = ['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','DOT','LINK']; // 初始值，啟動後會被替換
@@ -875,11 +889,20 @@ async function loadFast(){
 
 async function loadVEGAS(){
   document.getElementById('vlist').innerHTML=`<div class="loading"><div class="spin"></div>掃描 ${SYMS.length} 個幣種中，請稍候...</div>`;
+  const vbarWrap=document.getElementById('vbar-wrap');
+  const vbarFill=document.getElementById('vbar-fill');
+  const vbarPct=document.getElementById('vbar-pct');
+  const vbarLabel=document.getElementById('vbar-label');
+  if(vbarWrap) vbarWrap.style.display='block';
   vegasData=[];
   const batchSize=2;
   for(let i=0;i<SYMS.length;i+=batchSize){
-    const done=i+batchSize;
-    document.getElementById('vcnt').textContent=`${Math.min(done,SYMS.length)}/${SYMS.length}`;
+    const scanned=Math.min(i+batchSize,SYMS.length);
+    const pct=Math.round(scanned/SYMS.length*100);
+    document.getElementById('vcnt').textContent=`${scanned}/${SYMS.length}`;
+    if(vbarFill) vbarFill.style.width=pct+'%';
+    if(vbarPct) vbarPct.textContent=pct;
+    if(vbarLabel) vbarLabel.textContent=SYMS[i]||'';
     const batch=SYMS.slice(i,i+batchSize);
     const res=await Promise.all(batch.map(s=>computeVEGAS(s)));
     res.forEach(r=>{if(r)vegasData.push(r);});
@@ -887,6 +910,7 @@ async function loadVEGAS(){
     renderVegas();
     if(i+batchSize<SYMS.length) await sleep(500);
   }
+  if(vbarWrap) vbarWrap.style.display='none';
   const done=vegasData.filter(v=>v.signal!=='neutral').length;
   document.getElementById('vcnt').textContent=done;
   document.getElementById('vtime').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
@@ -1974,7 +1998,6 @@ function renderRecs(){
     if(vd.signal==='bear') return false;
     return inferNeutralDirection(c.symbol.toUpperCase())==='bull_lean';
   }).sort((a,b)=>(_wrL.get(b.symbol)||0)-(_wrL.get(a.symbol)||0)).slice(0,5);
-  const longsWatch=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bear';}).sort((a,b)=>(_wrL.get(b.symbol)||0)-(_wrL.get(a.symbol)||0)).slice(0,3);
   // 做空Top5：vd未載入排除；bear 直接進；neutral 需 inferNeutralDirection==='bear_lean'；bull 排除
   const shorts=[...scoredCoins].filter(c=>{
     const vd=_getVd(c);
@@ -1983,7 +2006,6 @@ function renderRecs(){
     if(vd.signal==='bull') return false;
     return inferNeutralDirection(c.symbol.toUpperCase())==='bear_lean';
   }).sort((a,b)=>(_wrS.get(b.symbol)||0)-(_wrS.get(a.symbol)||0)).slice(0,5);
-  const shortsWatch=[...scoredCoins].filter(c=>{const vd=_getVd(c);return vd&&vd.signal==='bull';}).sort((a,b)=>(_wrS.get(b.symbol)||0)-(_wrS.get(a.symbol)||0)).slice(0,3);
   const ranks=['🥇','🥈','🥉','4️⃣','5️⃣'];
 
   const makeRow=(c,i,type)=>{
@@ -2037,6 +2059,17 @@ function renderRecs(){
     if(rsi!==null&&rsi<32&&type==='long') tags.push(`RSI ${rsi}`);
     if(rsi!==null&&rsi>68&&type==='short') tags.push(`RSI ${rsi}`);
     if(volTag) tags.push(volTag);
+    // 建議倉位（與 calcMOVE 邏輯一致）
+    const _dailyOK=vd&&((type==='long'&&vd.moveDailyTrend==='bull')||(type==='short'&&vd.moveDailyTrend==='bear'));
+    let posPct=0;
+    if(vegasAligned){
+      posPct=critCount>=3?200:critCount>=2?100:critCount>=1?50:25;
+    } else if(vd?.h4InTunnel&&critCount>=2){
+      posPct=30;
+    } else if(_dailyOK){
+      posPct=25;
+    }
+    const posClr=posPct>=200?'var(--purple)':posPct>=100?'var(--green2)':posPct>0?'var(--gold)':'var(--text4)';
     const _rank=ranks[i]||`${i+1}`;
     return `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1.5px solid var(--pink4);cursor:pointer;padding:10px 8px;align-items:center;transition:background .15s" onclick="openScoreDetail('${c.id}','${type}')" onmouseenter="this.style.background='var(--pink5)'" onmouseleave="this.style.background=''">
       <div style="display:flex;align-items:center;gap:5px">
@@ -2044,6 +2077,7 @@ function renderRecs(){
         <div>
           <div style="font-family:Nunito,sans-serif;font-size:15px;font-weight:900">${c.symbol.toUpperCase()}</div>
           <div style="font-size:10px;font-weight:700" class="${c.ch>=0?'up':'dn'}">${c.ch>=0?'+':''}${c.ch.toFixed(1)}%</div>
+          <div style="font-size:9px;font-weight:800;font-family:Nunito,sans-serif;color:${posClr}">${posPct>0?posPct+'%':'—'}</div>
         </div>
       </div>
       <div style="text-align:center">
@@ -2069,7 +2103,7 @@ function renderRecs(){
         <div style="font-size:10px;color:var(--text3);font-weight:700">綜合勝率評比 👆</div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1.5px solid var(--pink4);background:var(--pink5)">
-        <div style="padding:5px 8px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif">幣種</div>
+        <div style="padding:5px 8px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif">幣種 / 倉位</div>
         <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">勝率</div>
         <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">EV</div>
         <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">RR</div>
@@ -2522,6 +2556,10 @@ function filterV(f,btn){
   if(btn)btn.classList.add('active');
   renderVegas();
 }
+function searchV(q){
+  vegasSearch=q.trim().toUpperCase();
+  renderVegas();
+}
 
 // ═══ 通道埋伏（回踩）訊號渲染 ═══
 function renderPullback(){
@@ -2581,6 +2619,7 @@ function renderVegas(){
   else if(vegasFilter==='bear')list=list.filter(v=>v.signal==='bear');
   else if(vegasFilter==='strong')list=list.filter(v=>v.score>=75);
   else if(vegasFilter==='pullback')list=list.filter(v=>v.isPullbackSignal);
+  if(vegasSearch)list=list.filter(v=>v.sym.toUpperCase().includes(vegasSearch));
   if(!list.length){
     const hasData=vegasData.length>0;
     document.getElementById('vlist').innerHTML=hasData?'<div class="empty">無符合條件訊號</div>':'<div class="loading"><div class="spin"></div>計算真實EMA中（約20秒）...</div>';
@@ -2725,18 +2764,14 @@ function openMOVEDetail(sym, type, v, c) {
   else { tpPct = 6; slPct = 3; }
   const rr = (tpPct / slPct).toFixed(1);
 
-  // ── EV 計算 ──
-  let winRate = 0.42 + (criteriaCount * 0.07) + (vegasOK ? 0.08 : 0);
-  const rsi_val = c ? getRSI(c.symbol) : null; // null = 真實數據載入中
+  // ── EV 計算（與 Top5 排序統一，使用 computeWR）──
+  const rsi_val = c ? getRSI(c.symbol) : null;
   const fr_val  = c ? getFR(c.symbol) : null;
   const ls_val  = c ? getLS(c.symbol) : null;
-  if (type==='long'  && rsi_val !== null && rsi_val < 30) winRate += 0.04;
-  if (type==='short' && rsi_val !== null && rsi_val > 70) winRate += 0.04;
-  if (fr_val !== null && type==='long'  && parseFloat(fr_val) < -0.0001) winRate += 0.03;
-  if (fr_val !== null && type==='short' && parseFloat(fr_val) > 0.0005)  winRate += 0.03;
-  if (ls_val !== null && type==='long'  && ls_val < 0.4) winRate += 0.03;
-  if (ls_val !== null && type==='short' && ls_val > 0.7) winRate += 0.03;
-  winRate = Math.min(0.75, Math.max(0.30, winRate));
+  // c 存在時使用完整 computeWR（與 Top5 勝率一致）；否則降級簡算
+  const winRate = c
+    ? computeWR(c, type).wr
+    : Math.min(0.75, Math.max(0.30, 0.42 + (criteriaCount * 0.07) + (vegasOK ? 0.08 : 0)));
   const ev = winRate * (tpPct/100) - (1-winRate) * (slPct/100);
   const kelly = Math.max(0, (winRate * (tpPct/slPct) - (1-winRate)) / (tpPct/slPct));
 
