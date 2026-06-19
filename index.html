@@ -942,7 +942,9 @@ async function loadVEGAS(){
   const done=vegasData.filter(v=>v.signal!=='neutral').length;
   document.getElementById('vcnt').textContent=done;
   document.getElementById('vtime').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
-  if(scoredCoins.length) renderRecs();
+  saekSigs=buildSaek();
+  renderSaek();
+  renderRecs();
 }
 
 function sw(t){
@@ -2221,21 +2223,21 @@ function calcSaekScore(coin, type, ind){
 // ═══ SAEK SIGNAL（真實指標，無 Math.random）═══
 const TF_LIST=['5分鐘','1小時','4小時'],TF_KEYS=['5m','1h','4h'];
 function buildSaek(){
-  const data=Object.values(coins);if(!data.length)return[];
+  const data=buildTop5Candidates();if(!data.length)return[];
   const sigs=[];
   data.forEach(c=>{
     const sym=c.symbol.toUpperCase();
+    const vd=vegasData.find(v=>v.sym===sym);
     const ri=realInd[sym]||{};
     // 真實指標（realInd優先）
     const rsi  = ri.rsi  ?? null;
     const macd = ri.macd ?? null;
     const boll = ri.boll ?? null;
-    const qqe  = ri.qqe  ?? null;
+    const qqe  = ri.qqe  ?? vd?.qqe4h ?? null;
     const isReal = ri.rsi!==undefined;
     const tag  = isReal?'✅真實':'⚠️估算';
 
-    const oi=oiData.find(o=>o.sym.toLowerCase()===c.symbol.toLowerCase());
-    const vd=vegasData.find(v=>v.sym===sym);
+    const oi=okxTickers[sym]||oiData.find(o=>o.sym.toLowerCase()===c.symbol.toLowerCase());
     const vol=calcVol(c);
 
     // RSI 訊號（需真實數據）
