@@ -2743,15 +2743,25 @@ function renderVegas(){
 }
 
 // ═══ SECTORS ═══
-const SECS={'Layer 1':['bitcoin','ethereum','solana','cardano','avalanche-2','polkadot','near','sui','aptos'],'Layer 2':['polygon','arbitrum','optimism'],'DeFi':['uniswap'],'Meme':['dogecoin','floki','pepe'],'Infra':['chainlink','litecoin']};
+const SECTOR_SYMS={
+  'Layer 1':['BTC','ETH','SOL','ADA','AVAX','DOT','NEAR','SUI','APT','TON','TRX'],
+  'Layer 2':['MATIC','POL','ARB','OP','LINEA','STRK','ZK'],
+  'DeFi':['UNI','AAVE','ENA','PENDLE','CRV','LDO','ONDO'],
+  'Meme':['DOGE','FLOKI','PEPE','WIF','BONK','MEME','PUMP','HMSTR'],
+  'AI / Infra':['LINK','LTC','INJ','TAO','FET','RENDER','GRT','ICP']
+};
 function renderSectors(){
-  const byId={};Object.values(coins).forEach(c=>byId[c.id]=c);
-  document.getElementById('sec-grid').innerHTML=Object.entries(SECS).map(([name,ids])=>{
-    const ch=ids.map(id=>byId[id]?byId[id].price_change_percentage_24h||0:null).filter(v=>v!==null);
-    if(!ch.length)return '';
-    const avg=ch.reduce((a,b)=>a+b,0)/ch.length,cls=avg>2?'hot':avg<-2?'cold':'';
+  const candidates=buildTop5Candidates();
+  const bySym=new Map(candidates.map(c=>[c.symbol.toUpperCase(),c]));
+  document.getElementById('sec-grid').innerHTML=Object.entries(SECTOR_SYMS).map(([name,syms])=>{
+    const items=syms.map(sym=>bySym.get(sym)).filter(c=>c&&c.price_change_percentage_24h!==null&&c.price_change_percentage_24h!==undefined);
+    if(!items.length)return '';
+    const avg=items.reduce((a,c)=>a+(c.price_change_percentage_24h||0),0)/items.length,cls=avg>2?'hot':avg<-2?'cold':'';
     const color=avg>=0?'var(--green2)':'var(--red2)',bp=Math.min(100,Math.abs(avg)*10);
-    return `<div class="sec ${cls}"><div class="sec-name">${name}</div><div class="sec-val" style="color:${color}">${avg>=0?'+':''}${avg.toFixed(2)}%</div><div class="sec-bw"><div class="sec-b" style="width:${bp}%;background:${color}"></div></div></div>`;
+    const sorted=[...items].sort((a,b)=>(b.price_change_percentage_24h||0)-(a.price_change_percentage_24h||0));
+    const strong=sorted[0],weak=sorted[sorted.length-1];
+    const strongCh=strong.price_change_percentage_24h||0,weakCh=weak.price_change_percentage_24h||0;
+    return `<div class="sec ${cls}"><div class="sec-name">${name}</div><div class="sec-val" style="color:${color}">${avg>=0?'+':''}${avg.toFixed(2)}%</div><div class="sec-bw"><div class="sec-b" style="width:${bp}%;background:${color}"></div></div><div style="font-size:9px;color:var(--text3);line-height:1.7;margin-top:5px;font-family:Nunito,sans-serif"><div>強 ${strong.symbol.toUpperCase()} <span class="${strongCh>=0?'up':'dn'}">${strongCh>=0?'+':''}${strongCh.toFixed(1)}%</span></div><div>弱 ${weak.symbol.toUpperCase()} <span class="${weakCh>=0?'up':'dn'}">${weakCh>=0?'+':''}${weakCh.toFixed(1)}%</span></div></div></div>`;
   }).join('');
 }
 
