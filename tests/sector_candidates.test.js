@@ -22,5 +22,17 @@ assert(
   renderBody.includes('強') && renderBody.includes('弱'),
   'renderSectors() should show strongest and weakest coin labels'
 );
+assert(
+  html.includes('function openSectorDetail(name)'),
+  'sector cards should have a detail modal function openSectorDetail(name)'
+);
+assert(
+  renderBody.includes('onclick="openSectorDetail'),
+  'renderSectors() should make each sector card clickable'
+);
+assert(
+  html.includes('板塊詳情') && html.includes('openScoreDetail'),
+  'sector detail modal should show sector details and allow opening coin detail'
+);
 
-console.log('sector candidate pool test passed');
+console.log('sector candidate pool/detail test passed');

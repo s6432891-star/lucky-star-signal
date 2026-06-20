@@ -2761,8 +2761,50 @@ function renderSectors(){
     const sorted=[...items].sort((a,b)=>(b.price_change_percentage_24h||0)-(a.price_change_percentage_24h||0));
     const strong=sorted[0],weak=sorted[sorted.length-1];
     const strongCh=strong.price_change_percentage_24h||0,weakCh=weak.price_change_percentage_24h||0;
-    return `<div class="sec ${cls}"><div class="sec-name">${name}</div><div class="sec-val" style="color:${color}">${avg>=0?'+':''}${avg.toFixed(2)}%</div><div class="sec-bw"><div class="sec-b" style="width:${bp}%;background:${color}"></div></div><div style="font-size:9px;color:var(--text3);line-height:1.7;margin-top:5px;font-family:Nunito,sans-serif"><div>強 ${strong.symbol.toUpperCase()} <span class="${strongCh>=0?'up':'dn'}">${strongCh>=0?'+':''}${strongCh.toFixed(1)}%</span></div><div>弱 ${weak.symbol.toUpperCase()} <span class="${weakCh>=0?'up':'dn'}">${weakCh>=0?'+':''}${weakCh.toFixed(1)}%</span></div></div></div>`;
+    return `<div class="sec ${cls}" onclick="openSectorDetail('${name}')" style="cursor:pointer"><div class="sec-name">${name}</div><div class="sec-val" style="color:${color}">${avg>=0?'+':''}${avg.toFixed(2)}%</div><div class="sec-bw"><div class="sec-b" style="width:${bp}%;background:${color}"></div></div><div style="font-size:9px;color:var(--text3);line-height:1.7;margin-top:5px;font-family:Nunito,sans-serif"><div>強 ${strong.symbol.toUpperCase()} <span class="${strongCh>=0?'up':'dn'}">${strongCh>=0?'+':''}${strongCh.toFixed(1)}%</span></div><div>弱 ${weak.symbol.toUpperCase()} <span class="${weakCh>=0?'up':'dn'}">${weakCh>=0?'+':''}${weakCh.toFixed(1)}%</span></div><div style="color:var(--pink3);font-weight:800;margin-top:2px">點擊看詳情 →</div></div></div>`;
   }).join('');
+}
+
+function openSectorDetail(name){
+  const syms=SECTOR_SYMS[name]||[];
+  const candidates=buildTop5Candidates();
+  const bySym=new Map(candidates.map(c=>[c.symbol.toUpperCase(),c]));
+  const items=syms.map(sym=>bySym.get(sym)).filter(c=>c&&c.price_change_percentage_24h!==null&&c.price_change_percentage_24h!==undefined)
+    .sort((a,b)=>(b.price_change_percentage_24h||0)-(a.price_change_percentage_24h||0));
+  if(!items.length){showToast('此板塊目前無資料');return;}
+  const avg=items.reduce((a,c)=>a+(c.price_change_percentage_24h||0),0)/items.length;
+  const color=avg>=0?'var(--green2)':'var(--red2)';
+  const bull=items.filter(c=>(c.price_change_percentage_24h||0)>0).length;
+  const bear=items.filter(c=>(c.price_change_percentage_24h||0)<0).length;
+  const rows=items.map((c,i)=>{
+    const ch=c.price_change_percentage_24h||0;
+    const v=vegasData.find(x=>x.sym===c.symbol.toUpperCase());
+    const sig=v?.signal==='bull'?'VEGAS多':v?.signal==='bear'?'VEGAS空':'整理';
+    const sigColor=v?.signal==='bull'?'var(--green2)':v?.signal==='bear'?'var(--red2)':'var(--gold)';
+    const type=v?.signal==='bear'?'short':'long';
+    return `<div style="display:grid;grid-template-columns:34px 1fr 62px 68px 44px;gap:6px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--pink4);cursor:pointer" onclick="openScoreDetail('${c.id}','${type}')">
+      <div style="font-size:12px;color:var(--text3);font-family:Nunito,sans-serif;font-weight:900">${i+1}</div>
+      <div><div style="font-size:14px;font-weight:900;font-family:Nunito,sans-serif">${c.symbol.toUpperCase()}</div><div style="font-size:9px;color:var(--text3)">${c.name||c.symbol.toUpperCase()+'/USDT'}</div></div>
+      <div class="${ch>=0?'up':'dn'}" style="font-size:12px;font-weight:900;font-family:Nunito,sans-serif;text-align:right">${ch>=0?'+':''}${ch.toFixed(2)}%</div>
+      <div style="font-size:10px;font-weight:800;color:${sigColor};text-align:center">${sig}</div>
+      <div style="font-size:9px;color:var(--pink3);font-weight:800;text-align:right">詳情</div>
+    </div>`;
+  }).join('');
+  document.getElementById('mbody').innerHTML=`
+    <div class="mhdr">
+      <div><div class="msym">🏆 ${name} 板塊詳情</div><div class="mpx"><span style="color:${color}">${avg>=0?'+':''}${avg.toFixed(2)}%</span> <span style="font-size:10px;color:var(--text3)">24H平均</span></div></div>
+      <button class="mclose" onclick="closeMod()">✕</button>
+    </div>
+    <div style="padding:13px 14px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+        <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:10px;padding:9px;text-align:center"><div style="font-size:9px;color:var(--text3);font-weight:800">收錄幣數</div><div style="font-size:20px;font-weight:900;font-family:Nunito,sans-serif">${items.length}</div></div>
+        <div style="background:var(--greenb);border:1.5px solid rgba(0,200,150,.2);border-radius:10px;padding:9px;text-align:center"><div style="font-size:9px;color:var(--green2);font-weight:800">上漲</div><div style="font-size:20px;font-weight:900;font-family:Nunito,sans-serif;color:var(--green2)">${bull}</div></div>
+        <div style="background:var(--redb);border:1.5px solid rgba(255,77,109,.2);border-radius:10px;padding:9px;text-align:center"><div style="font-size:9px;color:var(--red2);font-weight:800">下跌</div><div style="font-size:20px;font-weight:900;font-family:Nunito,sans-serif;color:var(--red2)">${bear}</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);font-weight:800;margin:4px 0 8px">板塊詳情：依 24H 漲跌排序，點擊單一幣種可開啟完整 MOVE / 賽克斯分析</div>
+      <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:12px;overflow:hidden">${rows}</div>
+    </div>`;
+  document.getElementById('modal').classList.add('open');
 }
 
 // ═══ MODALS ═══
