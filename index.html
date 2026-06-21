@@ -1461,13 +1461,25 @@ function renderNewsFromMarket(){
   else document.getElementById('news-list').innerHTML='<div class="empty">市場資料載入中...</div>';
 }
 
+function getOIVegasTag(oi, vd){
+  if(!oi || oi.dir==='neu') return {label:'觀望', cls:'neu', color:'var(--text3)'};
+  if(!vd || vd.signal==='neutral') return {label:'等VEGAS確認', cls:'neu', color:'var(--text3)'};
+  if(oi.dir==='long' && vd.signal==='bull') return {label:'順勢多 ✅', cls:'long', color:'var(--green2)'};
+  if(oi.dir==='short' && vd.signal==='bear') return {label:'順勢空 ✅', cls:'short', color:'var(--red2)'};
+  if(oi.dir==='long' && vd.signal==='bear') return {label:'逆勢多 ⚠️', cls:'warn', color:'var(--gold)'};
+  if(oi.dir==='short' && vd.signal==='bull') return {label:'逆勢空 ⚠️', cls:'warn', color:'var(--gold)'};
+  return {label:'觀望', cls:'neu', color:'var(--text3)'};
+}
+
 function renderOI(){
   if(!oiData.length){document.getElementById('oitbl').innerHTML='<div class="empty">無資料</div>';return;}
   const rows=oiData.map(a=>{
+    const vd=vegasData.find(v=>v.sym===a.sym);
+    const ov=getOIVegasTag(a,vd);
     const dots=Array.from({length:5},(_,i)=>`<div style="width:5px;height:5px;border-radius:2px;background:${i<a.str?(a.dir==='long'?'var(--green)':a.dir==='short'?'var(--red)':'var(--gold)'):'var(--pink4)'}"></div>`).join('');
-    return `<tr onclick="openOIDetail('${a.sym}')"><td><span class="oisym">${a.sym}</span></td><td><span class="${a.pchg>=0?'up':'dn'}" style="font-weight:700">${a.pchg>=0?'+':''}${a.pchg.toFixed(2)}%</span></td><td><span class="oidir ${a.dir}">${a.dirLabel}</span></td><td><div style="display:flex;gap:2px">${dots}</div></td><td style="color:var(--text3);font-size:9px">${new Date().toLocaleTimeString('zh-TW',{hour12:false})}</td></tr>`;
+    return `<tr onclick="openOIDetail('${a.sym}')"><td><span class="oisym">${a.sym}</span></td><td><span class="${a.pchg>=0?'up':'dn'}" style="font-weight:700">${a.pchg>=0?'+':''}${a.pchg.toFixed(2)}%</span></td><td><span class="oidir ${a.dir}">${a.dirLabel}</span></td><td><span style="font-size:9px;font-weight:900;color:${ov.color};font-family:Nunito,sans-serif;white-space:nowrap">${ov.label}</span></td><td><div style="display:flex;gap:2px">${dots}</div></td><td style="color:var(--text3);font-size:9px">${new Date().toLocaleTimeString('zh-TW',{hour12:false})}</td></tr>`;
   }).join('');
-  document.getElementById('oitbl').innerHTML=`<table class="oi-tbl"><thead><tr><th>幣種</th><th>24H</th><th>訊號</th><th>強度</th><th>時間</th></tr></thead><tbody>${rows}</tbody></table>`;
+  document.getElementById('oitbl').innerHTML=`<table class="oi-tbl"><thead><tr><th>幣種</th><th>24H</th><th>OI訊號</th><th>OI+VEGAS</th><th>強度</th><th>時間</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 // ═══ TECH INDICATORS ═══
