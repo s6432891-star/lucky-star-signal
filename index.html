@@ -170,6 +170,29 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
 .trow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--pink4)}
 .trow:last-child{border:none}
 
+/* ── AI MARKET BRIEF ── */
+.brief-card{background:linear-gradient(135deg,var(--pink5),var(--white));border:1.5px solid var(--pink4);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+.brief-hero{padding:13px 14px;border-bottom:1.5px solid var(--pink4)}
+.brief-title{font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;color:var(--pink3);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.brief-verdict{font-family:'Nunito',sans-serif;font-size:22px;font-weight:900;margin-bottom:5px}
+.brief-desc{font-size:12px;color:var(--text2);line-height:1.8;font-weight:700}
+.brief-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:10px 12px;background:var(--white)}
+.brief-metric{background:var(--pink5);border:1px solid var(--pink4);border-radius:10px;padding:8px;text-align:center}
+.brief-ml{font-size:9px;color:var(--text3);font-family:'Nunito',sans-serif;font-weight:800;margin-bottom:3px}
+.brief-mv{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:900}
+.brief-checks{padding:10px 13px;border-top:1.5px solid var(--pink4);font-size:11px;color:var(--text2);line-height:1.8}
+.brief-tag{display:inline-block;font-size:9px;font-weight:900;font-family:'Nunito',sans-serif;padding:2px 6px;border-radius:8px;margin:2px;background:var(--pink4);color:var(--text2)}
+.mover-head,.mover-row{display:grid;grid-template-columns:.5fr 1.2fr 1.1fr 1fr 1.2fr 1.9fr;gap:6px;align-items:center}
+.mover-head{padding:6px 12px;background:var(--pink5);border-bottom:1.5px solid var(--pink4);font-size:9px;color:var(--text3);font-family:'Nunito',sans-serif;font-weight:900}
+.mover-row{padding:9px 12px;border-bottom:1px solid var(--pink4);cursor:pointer;transition:background .15s;font-size:11px}
+.mover-row:hover{background:var(--pink5)}
+.mover-row:last-child{border:none}
+.mover-sym{font-family:'Nunito',sans-serif;font-size:14px;font-weight:900}
+.mover-pill{display:inline-block;font-size:9px;font-weight:900;font-family:'Nunito',sans-serif;padding:2px 6px;border-radius:8px;white-space:nowrap}
+.mover-pill.bull{background:var(--greenb);color:var(--green2)}
+.mover-pill.bear{background:var(--redb);color:var(--red2)}
+.mover-pill.neu{background:var(--goldb);color:var(--gold)}
+
 /* ── SECTORS ── */
 .sec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px}
 .sec{background:var(--white);border:1.5px solid var(--pink4);border-radius:var(--r2);padding:9px;transition:all .2s;position:relative;overflow:hidden}
@@ -299,6 +322,9 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
 
 @media(max-width:640px){
   .stat-grid{grid-template-columns:repeat(2,1fr)}
+  .brief-grid{grid-template-columns:repeat(2,1fr)}
+  .mover-head,.mover-row{grid-template-columns:.45fr 1fr .9fr .9fr 1fr}
+  .mover-head div:nth-child(6),.mover-row div:nth-child(6){grid-column:1/-1}
   .rec-wrap{grid-template-columns:1fr}
   .tech-grid{grid-template-columns:repeat(2,1fr)}
   .factor-grid{grid-template-columns:1fr 1fr}
@@ -350,6 +376,14 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
 <!-- RECS -->
 <div class="panel active" id="panel-recs">
   <div id="signup-banner"></div>
+  <div id="market-brief"><div class="loading"><div class="spin"></div>整理真實市場數據中...</div></div>
+  <div class="card" id="movers-card">
+    <div class="ch"><div class="ct">🔥 24H 熱門異動榜</div><div class="cb" id="movers-time">OKX 真實數據</div></div>
+    <div style="background:linear-gradient(135deg,rgba(192,132,252,.07),var(--white));border-bottom:1.5px solid var(--pink4);padding:9px 13px;font-size:11px;color:var(--text2);line-height:1.7">
+      只顯示真實 API 抓到的價格、24H 漲跌與成交量；沒有資料就顯示「載入中」，不補假值。
+    </div>
+    <div id="movers-list"><div class="loading"><div class="spin"></div>載入 OKX 24H 異動資料...</div></div>
+  </div>
   <div class="rec-wrap" id="rec-wrap"><div class="loading"><div class="spin"></div>計算中...</div></div>
 </div>
 
@@ -911,6 +945,7 @@ async function loadFast(){
   scoredCoins=scoreAll();
   saekSigs=buildSaek();
   renderOverviewStats(Object.values(coins)); // oiData 已就緒，更新為60幣總覽
+  renderMarketBrief();renderHotMovers();
   renderRecs();renderSaek();renderSectors();
   document.getElementById('stime').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
 }
@@ -943,6 +978,7 @@ async function loadVEGAS(){
   document.getElementById('vcnt').textContent=done;
   document.getElementById('vtime').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
   saekSigs=buildSaek();
+  renderMarketBrief();renderHotMovers();
   renderSaek();
   renderRecs();
 }
@@ -1025,6 +1061,131 @@ function renderTop5(data){
   }).join('');
 }
 
+// ═══ AI 市場總結卡（只整理真實 API 已載入資料，不補假值）═══
+function fmtUSD(px){
+  if(px===null||px===undefined||Number.isNaN(Number(px))) return '無資料';
+  const n=Number(px);
+  if(n>=1000) return '$'+n.toLocaleString('en-US',{maximumFractionDigits:0});
+  if(n>=1) return '$'+n.toLocaleString('en-US',{maximumFractionDigits:2});
+  return '$'+n.toFixed(5);
+}
+function fmtPct(v){
+  if(v===null||v===undefined||Number.isNaN(Number(v))) return '無資料';
+  const n=Number(v);return `${n>=0?'+':''}${n.toFixed(2)}%`;
+}
+function getCoinBySym(sym){
+  return Object.values(coins).find(c=>c.symbol?.toUpperCase()===sym.toUpperCase())||null;
+}
+function getMarketUniverse(){
+  const map=new Map();
+  Object.values(okxTickers||{}).forEach(o=>{
+    if(!o?.sym) return;
+    map.set(o.sym.toUpperCase(),{sym:o.sym.toUpperCase(),price:o.px??null,chg:o.pchg??null,vol:o.vol??null,src:'OKX'});
+  });
+  Object.values(coins||{}).forEach(c=>{
+    const sym=c.symbol?.toUpperCase();if(!sym) return;
+    const old=map.get(sym)||{};
+    map.set(sym,{...old,sym,price:c.current_price??old.price??null,chg:c.price_change_percentage_24h??old.chg??null,vol:c.total_volume??old.vol??null,src:old.src||'CoinGecko'});
+  });
+  return [...map.values()].filter(x=>x.chg!==null||x.price!==null||x.vol!==null);
+}
+function getLiquidMarketUniverse(){
+  return getMarketUniverse().filter(x=>x.src!=='OKX'||x.vol===null||Number(x.vol)>=500000);
+}
+function getVegasSummary(){
+  const bull=vegasData.filter(v=>v.signal==='bull').length;
+  const bear=vegasData.filter(v=>v.signal==='bear').length;
+  const neutral=vegasData.filter(v=>v.signal==='neutral').length;
+  return {bull,bear,neutral,total:vegasData.length};
+}
+function getBriefDecision(){
+  const btc=getCoinBySym('BTC'), eth=getCoinBySym('ETH');
+  const btcCh=btc?.price_change_percentage_24h??null;
+  const ethCh=eth?.price_change_percentage_24h??null;
+  const vg=getVegasSummary();
+  const universe=getLiquidMarketUniverse();
+  const up=universe.filter(x=>Number(x.chg)>1).length;
+  const down=universe.filter(x=>Number(x.chg)<-1).length;
+  const bigMoves=universe.filter(x=>Math.abs(Number(x.chg)||0)>=5).length;
+  const oiAligned=oiData.filter(o=>getOIVegasTag(o,vegasData.find(v=>v.sym===o.sym))?.label?.includes('順勢')).length;
+  const btcRsi=realInd.BTC?.rsi??null, ethRsi=realInd.ETH?.rsi??null;
+  let verdict='數據載入中', cls='neu', action='等待 BTC/ETH、OKX 24H、VEGAS 掃描與 OI 資料完整載入。';
+  const hasCore=btcCh!==null&&ethCh!==null&&(universe.length>0||vg.total>0);
+  if(hasCore){
+    const coreWeak=(btcCh<0&&ethCh<0), coreStrong=(btcCh>0&&ethCh>0);
+    if(coreWeak&&(down>up||vg.bear>vg.bull)){
+      verdict='偏空觀望';cls='dn';action='不追空、不抄底；先等 4H 收線、VEGAS 方向與 OI 是否順勢共振。';
+    }else if(coreStrong&&(up>down||vg.bull>vg.bear)){
+      verdict='偏多觀察';cls='up';action='只看順 VEGAS 與 MOVE/賽克斯確認的幣，不因單日漲幅直接追高。';
+    }else{
+      verdict='震盪觀望';cls='neu';action='多空訊號不一致，先降低交易頻率，等方向明確。';
+    }
+    if(bigMoves>=8) action+=' 目前異動幣偏多，注意波動放大。';
+  }
+  const reasons=[];
+  if(btcCh!==null) reasons.push(`BTC 24H ${fmtPct(btcCh)}`);
+  if(ethCh!==null) reasons.push(`ETH 24H ${fmtPct(ethCh)}`);
+  if(vg.total) reasons.push(`VEGAS：多 ${vg.bull} / 空 ${vg.bear} / 觀望 ${vg.neutral}`);
+  if(oiData.length) reasons.push(`OI 順勢共振 ${oiAligned} 個`);
+  if(btcRsi!==null) reasons.push(`BTC 4H RSI ${btcRsi}`);
+  if(ethRsi!==null) reasons.push(`ETH 4H RSI ${ethRsi}`);
+  return {verdict,cls,action,btc,eth,btcCh,ethCh,vg,up,down,bigMoves,oiAligned,btcRsi,ethRsi,reasons};
+}
+function renderMarketBrief(){
+  const el=document.getElementById('market-brief');if(!el)return;
+  const d=getBriefDecision();
+  const color=d.cls==='up'?'var(--green2)':d.cls==='dn'?'var(--red2)':'var(--gold)';
+  el.innerHTML=`<div class="brief-card">
+    <div class="brief-hero">
+      <div class="brief-title">🤖 AI 新手秒懂市場總結 <span class="brief-tag">真實數據</span><span class="brief-tag">不自動下單</span></div>
+      <div class="brief-verdict" style="color:${color}">${d.verdict}</div>
+      <div class="brief-desc">${d.action}</div>
+    </div>
+    <div class="brief-grid">
+      <div class="brief-metric"><div class="brief-ml">BTC</div><div class="brief-mv">${fmtUSD(d.btc?.current_price)}</div><div class="${(d.btcCh??0)>=0?'up':'dn'}" style="font-size:10px;font-weight:800">${fmtPct(d.btcCh)}</div></div>
+      <div class="brief-metric"><div class="brief-ml">ETH</div><div class="brief-mv">${fmtUSD(d.eth?.current_price)}</div><div class="${(d.ethCh??0)>=0?'up':'dn'}" style="font-size:10px;font-weight:800">${fmtPct(d.ethCh)}</div></div>
+      <div class="brief-metric"><div class="brief-ml">VEGAS 多 / 空</div><div class="brief-mv"><span class="up">${d.vg.bull}</span> / <span class="dn">${d.vg.bear}</span></div><div style="font-size:10px;color:var(--text3);font-weight:800">掃描 ${d.vg.total||'—'} 幣</div></div>
+      <div class="brief-metric"><div class="brief-ml">24H 異動 ≥5%</div><div class="brief-mv" style="color:${d.bigMoves>=8?'var(--red2)':'var(--text)'}">${d.bigMoves||0}</div><div style="font-size:10px;color:var(--text3);font-weight:800">波動監控</div></div>
+    </div>
+    <div class="brief-checks">
+      <strong style="color:var(--pink3)">判斷依據：</strong>${d.reasons.length?d.reasons.map(r=>`<span class="brief-tag">${r}</span>`).join(''):'<span class="brief-tag">資料載入中</span>'}<br>
+      <strong style="color:var(--pink3)">白話提醒：</strong>這張卡只把已載入的市場資料翻成白話，不改 Top5、勝率、VEGAS、MOVE、賽克斯或 OI 計算邏輯。
+    </div>
+  </div>`;
+}
+function getMoverAdvice(item,vd){
+  const ch=Number(item.chg)||0;
+  if(!vd||vd.signal==='neutral') return Math.abs(ch)>=5?'波動放大，等 VEGAS 確認':'等方向確認';
+  if(ch>0&&vd.signal==='bull') return '順勢上漲，避免追高';
+  if(ch<0&&vd.signal==='bear') return '順勢下跌，不急追空';
+  if(ch>0&&vd.signal==='bear') return '逆勢反彈，注意壓力';
+  if(ch<0&&vd.signal==='bull') return '回調觀察，等支撐';
+  return '觀望';
+}
+function renderHotMovers(){
+  const el=document.getElementById('movers-list');if(!el)return;
+  const data=getLiquidMarketUniverse().filter(x=>x.sym&&x.chg!==null).sort((a,b)=>Math.abs(Number(b.chg)||0)-Math.abs(Number(a.chg)||0)).slice(0,12);
+  const timeEl=document.getElementById('movers-time');
+  if(timeEl) timeEl.textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
+  if(!data.length){el.innerHTML='<div class="empty">24H 異動資料載入中...</div>';return;}
+  const head='<div class="mover-head"><div>#</div><div>幣種</div><div>價格</div><div>24H</div><div>VEGAS</div><div>幸運星提醒</div></div>';
+  const rows=data.map((x,i)=>{
+    const vd=vegasData.find(v=>v.sym===x.sym);
+    const sig=vd?.signal||'neutral';
+    const pill=sig==='bull'?'🚀 做多':sig==='bear'?'📉 做空':'⏳ 觀望';
+    const advice=getMoverAdvice(x,vd);
+    return `<div class="mover-row" onclick="${vd?`openVegasDetail('${x.sym}')`:`sw('overview')`}">
+      <div style="font-family:JetBrains Mono,monospace;color:var(--text3);font-weight:800">${i+1}</div>
+      <div><div class="mover-sym">${x.sym}</div><div style="font-size:9px;color:var(--text3);font-weight:800">${x.src}</div></div>
+      <div style="font-family:JetBrains Mono,monospace;font-weight:800">${fmtUSD(x.price)}</div>
+      <div class="${Number(x.chg)>=0?'up':'dn'}" style="font-family:JetBrains Mono,monospace;font-weight:900">${fmtPct(x.chg)}</div>
+      <div><span class="mover-pill ${sig==='bull'?'bull':sig==='bear'?'bear':'neu'}">${pill}</span></div>
+      <div style="color:var(--text2);font-weight:700;line-height:1.5">${advice}</div>
+    </div>`;
+  }).join('');
+  el.innerHTML=head+rows;
+}
+
 // ═══ OI ═══
 async function loadOI(){
   try{
@@ -1044,6 +1205,8 @@ async function loadOI(){
     renderOI();
     renderVolSpike();
     renderVolRank();
+    renderMarketBrief();
+    renderHotMovers();
     setApiStatus('okx', true);
   }catch(e){document.getElementById('oitbl').innerHTML='<div class="empty">⚠️ OKX API 錯誤</div>';setApiStatus('okx',false);}
 }
