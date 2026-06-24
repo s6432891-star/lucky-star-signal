@@ -382,6 +382,14 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
     <div style="background:linear-gradient(135deg,rgba(192,132,252,.07),var(--white));border-bottom:1.5px solid var(--pink4);padding:9px 13px;font-size:11px;color:var(--text2);line-height:1.7">
       只顯示真實 API 抓到的價格、24H 漲跌與成交量；沒有資料就顯示「載入中」，不補假值。
     </div>
+    <div class="fbar" style="padding:9px 12px 0;margin-bottom:0">
+      <button class="fbtn active" onclick="filterMovers('all',this)">全部</button>
+      <button class="fbtn g" onclick="filterMovers('aligned',this)">順 VEGAS</button>
+      <button class="fbtn r" onclick="filterMovers('against',this)">逆勢警告</button>
+      <button class="fbtn" onclick="filterMovers('volatile',this)">波動放大</button>
+      <button class="fbtn g" onclick="filterMovers('bull',this)">做多觀察</button>
+      <button class="fbtn r" onclick="filterMovers('bear',this)">做空觀察</button>
+    </div>
     <div id="movers-list"><div class="loading"><div class="spin"></div>載入 OKX 24H 異動資料...</div></div>
   </div>
   <div class="rec-wrap" id="rec-wrap"><div class="loading"><div class="spin"></div>計算中...</div></div>
@@ -865,7 +873,7 @@ function setApiStatus(src, ok) {
   if (okx === true && cg === true)  { dot.className='api-dot ok';  lbl.textContent='數據正常'; return; }
   dot.className='api-dot ok'; lbl.textContent='數據正常';
 }
-let saekFilter='all', vegasFilter='all', vegasSearch='';
+let saekFilter='all', vegasFilter='all', vegasSearch='', moverFilter='all';
 let chatHistory = [];
 // 動態幣種列表（從OKX即時抓取，按成交量排序）
 let SYMS = ['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','DOT','LINK']; // 初始值，啟動後會被替換
@@ -1153,33 +1161,69 @@ function renderMarketBrief(){
     </div>
   </div>`;
 }
+function classifyMover(item,vd){
+  const ch=Number(item.chg)||0;
+  const sig=vd?.signal||'neutral';
+  const aligned=(ch>0&&sig==='bull')||(ch<0&&sig==='bear');
+  const against=(ch>0&&sig==='bear')||(ch<0&&sig==='bull');
+  const volatile=Math.abs(ch)>=5;
+  return {sig,aligned,against,volatile};
+}
+function filterMovers(filter,btn){
+  moverFilter=filter;
+  document.querySelectorAll('#movers-card .fbar .fbtn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderHotMovers();
+}
 function getMoverAdvice(item,vd){
   const ch=Number(item.chg)||0;
-  if(!vd||vd.signal==='neutral') return Math.abs(ch)>=5?'波動放大，等 VEGAS 確認':'等方向確認';
-  if(ch>0&&vd.signal==='bull') return '順勢上漲，避免追高';
-  if(ch<0&&vd.signal==='bear') return '順勢下跌，不急追空';
-  if(ch>0&&vd.signal==='bear') return '逆勢反彈，注意壓力';
-  if(ch<0&&vd.signal==='bull') return '回調觀察，等支撐';
-  return '觀望';
+  const c=classifyMover(item,vd);
+  if(c.aligned&&ch>0) return '順 VEGAS 上漲，等回調或確認，不追高';
+  if(c.aligned&&ch<0) return '順 VEGAS 下跌，等反彈壓力，不急追空';
+  if(c.against&&ch>0) return '逆 VEGAS 反彈，注意壓力與假突破';
+  if(c.against&&ch<0) return '逆 VEGAS 回調，等支撐與 4H 收線';
+  if(c.volatile) return '波動放大，等 VEGAS 確認';
+  if(c.sig==='bull') return '做多觀察，等待 MOVE/賽克斯確認';
+  if(c.sig==='bear') return '做空觀察，等待 MOVE/賽克斯確認';
+  return '等方向確認';
+}
+function getFilteredMovers(){
+  const rows=getLiquidMarketUniverse()
+    .filter(x=>x.sym&&x.chg!==null)
+    .map(x=>({item:x,vd:vegasData.find(v=>v.sym===x.sym)}))
+    .filter(({item,vd})=>{
+      const c=classifyMover(item,vd);
+      if(moverFilter==='aligned') return c.aligned;
+      if(moverFilter==='against') return c.against;
+      if(moverFilter==='volatile') return c.volatile;
+      if(moverFilter==='bull') return c.sig==='bull';
+      if(moverFilter==='bear') return c.sig==='bear';
+      return true;
+    })
+    .sort((a,b)=>Math.abs(Number(b.item.chg)||0)-Math.abs(Number(a.item.chg)||0))
+    .slice(0,12);
+  return rows;
 }
 function renderHotMovers(){
   const el=document.getElementById('movers-list');if(!el)return;
-  const data=getLiquidMarketUniverse().filter(x=>x.sym&&x.chg!==null).sort((a,b)=>Math.abs(Number(b.chg)||0)-Math.abs(Number(a.chg)||0)).slice(0,12);
+  const data=getFilteredMovers();
   const timeEl=document.getElementById('movers-time');
   if(timeEl) timeEl.textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
-  if(!data.length){el.innerHTML='<div class="empty">24H 異動資料載入中...</div>';return;}
+  if(!data.length){el.innerHTML='<div class="empty">目前沒有符合此篩選的真實異動資料<br>可切回「全部」或等待 VEGAS 掃描完成。</div>';return;}
   const head='<div class="mover-head"><div>#</div><div>幣種</div><div>價格</div><div>24H</div><div>VEGAS</div><div>幸運星提醒</div></div>';
-  const rows=data.map((x,i)=>{
-    const vd=vegasData.find(v=>v.sym===x.sym);
-    const sig=vd?.signal||'neutral';
+  const rows=data.map(({item:x,vd},i)=>{
+    const c=classifyMover(x,vd);
+    const sig=c.sig;
     const pill=sig==='bull'?'🚀 做多':sig==='bear'?'📉 做空':'⏳ 觀望';
     const advice=getMoverAdvice(x,vd);
+    const typeTag=c.aligned?'順勢':c.against?'逆勢':c.volatile?'波動':'觀察';
+    const typeColor=c.aligned?'var(--green2)':c.against?'var(--red2)':c.volatile?'var(--gold)':'var(--text3)';
     return `<div class="mover-row" onclick="${vd?`openVegasDetail('${x.sym}')`:`sw('overview')`}">
       <div style="font-family:JetBrains Mono,monospace;color:var(--text3);font-weight:800">${i+1}</div>
       <div><div class="mover-sym">${x.sym}</div><div style="font-size:9px;color:var(--text3);font-weight:800">${x.src}</div></div>
       <div style="font-family:JetBrains Mono,monospace;font-weight:800">${fmtUSD(x.price)}</div>
       <div class="${Number(x.chg)>=0?'up':'dn'}" style="font-family:JetBrains Mono,monospace;font-weight:900">${fmtPct(x.chg)}</div>
-      <div><span class="mover-pill ${sig==='bull'?'bull':sig==='bear'?'bear':'neu'}">${pill}</span></div>
+      <div><span class="mover-pill ${sig==='bull'?'bull':sig==='bear'?'bear':'neu'}">${pill}</span><div style="font-size:9px;font-weight:900;color:${typeColor};margin-top:2px">${typeTag}</div></div>
       <div style="color:var(--text2);font-weight:700;line-height:1.5">${advice}</div>
     </div>`;
   }).join('');
