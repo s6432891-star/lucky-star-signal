@@ -1950,6 +1950,23 @@ function signalMaturity(type, v, rsi, chg24){
   return {stage:'觀察', color:'var(--text3)', desc:'尚未滿足進場條件，續觀察'};
 }
 
+// 資料完整度（Phase 3D）：徽章 + 計數，純顯示
+function dcBadge(label, ok, id){
+  const col = ok?'var(--green2)':'var(--text3)';
+  const bg  = ok?'rgba(0,200,150,.08)':'var(--pink5)';
+  const bd  = ok?'rgba(0,200,150,.3)':'var(--pink4)';
+  return `<span class="dc-badge"${id?` id="${id}"`:''} data-ok="${ok?1:0}" style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:6px;background:${bg};border:1px solid ${bd};color:${col};font-family:Nunito,sans-serif">${ok?'✓':'○'} ${label}</span>`;
+}
+function updateDataCompleteness(){
+  const badges=document.querySelectorAll('.dc-badge');
+  const el=document.getElementById('dc-count');
+  if(!badges.length || !el) return;
+  let ok=0; badges.forEach(b=>{ if(b.dataset.ok==='1') ok++; });
+  const pct=Math.round(ok/badges.length*100);
+  el.textContent=`${ok}/${badges.length} 項真實資料（${pct}%）`;
+  el.style.color = pct>=70?'var(--green2)':pct>=40?'var(--gold)':'var(--red2)';
+}
+
 // AI 訊號判決書單行（Phase 3A）：support = 'good'(綠) / 'bad'(紅) / 'neutral'(金)
 function vRow(label, tag, support, desc){
   const col = support==='good'?'var(--green2)':support==='bad'?'var(--red2)':'var(--gold)';
@@ -3621,6 +3638,23 @@ function openMOVEDetail(sym, type, v, c) {
       </div>` : ''}
     </div>
 
+    <!-- 資料完整度（Phase 3D）-->
+    <div class="m-sec">
+      <div class="m-sec-t">🧪 資料完整度 <span id="dc-count" style="font-size:11px;font-weight:900;font-family:Nunito,sans-serif;color:var(--text3)">檢查中…</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">
+        ${dcBadge('價格', !!ps && ps!=='—')}
+        ${dcBadge('24H 漲跌', Number.isFinite(chg24))}
+        ${dcBadge('VEGAS 通道', !!v)}
+        ${dcBadge('RSI', rsi_val!==null)}
+        ${dcBadge('MACD', !!_macd)}
+        ${dcBadge('資金費率', false, 'dc-fr')}
+        ${dcBadge('多空比 L/S', false, 'dc-ls')}
+        ${dcBadge('CVD', false, 'dc-cvd')}
+        ${dcBadge('OI 行為', false, 'dc-oi')}
+      </div>
+      <div style="font-size:9px;color:var(--text3);line-height:1.5;margin-top:6px">越多真實指標可用，訊號可信度越高；缺資料只顯示「無數據」，不影響其他指標計算、不補假值。</div>
+    </div>
+
     ${relCoins.length ? `<!-- 同期相關幣種 -->
     <div class="m-sec">
       <div class="m-sec-t">🔗 同期相關幣種</div>
@@ -3671,6 +3705,7 @@ function openMOVEDetail(sym, type, v, c) {
   document.getElementById('modal').classList.add('open');
   // 非同步載入新聞 + FR + LS
   loadCoinNews(sym);
+  updateDataCompleteness();
   fetchAndUpdateFRLS(sym, type);
 }
 
@@ -3760,6 +3795,14 @@ async function fetchAndUpdateFRLS(sym, type) {
       cvdV.innerHTML = vRow('市場動能', tag, sup, desc);
     }
   }
+
+  // 更新資料完整度的非同步徽章（Phase 3D）
+  const dcUpd=(id,ok,label)=>{const e=document.getElementById(id);if(e)e.outerHTML=dcBadge(label, ok, id);};
+  dcUpd('dc-fr',  fr!==null,  '資金費率');
+  dcUpd('dc-ls',  ls!==null,  '多空比 L/S');
+  dcUpd('dc-cvd', cvd!==null, 'CVD');
+  dcUpd('dc-oi',  oiq!==null, 'OI 行為');
+  updateDataCompleteness();
 
   // 更新 FR 格子
   const frCell = document.getElementById('modal-fr-cell');
