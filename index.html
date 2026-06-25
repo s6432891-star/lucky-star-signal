@@ -356,14 +356,14 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
 
 <div class="tabs-wrap">
   <div class="tabs">
-    <div class="tab active" onclick="sw('recs')"   id="tab-recs">📊 多空推薦</div>
+    <div class="tab active" onclick="sw('overview')" id="tab-overview">🌸 總覽</div>
+    <div class="tab" onclick="sw('recs')"   id="tab-recs">📊 多空推薦</div>
     <div class="tab" onclick="sw('ev')" id="tab-ev">⚖️ 正EV 計算機</div>
     <div class="tab"        onclick="sw('vegas')"  id="tab-vegas">🌿 MOVE訊號 <span class="tbadge" id="vcnt">...</span></div>
     <div class="tab"        onclick="sw('saek')"   id="tab-saek">⚡ 技術訊號 <span class="tbadge" id="scnt">0</span></div>
     <div class="tab"        onclick="sw('oi')"     id="tab-oi">🔥 OI異常 <span class="tbadge" id="ocnt">0</span></div>
     <div class="tab"        onclick="sw('flash')"  id="tab-flash">📊 成交量 <span class="tbadge" id="flash-cnt">0</span></div>
     <div class="tab"        onclick="sw('news')"   id="tab-news">📰 快訊 <span class="tbadge" id="news-cnt">0</span></div>
-    <div class="tab"        onclick="sw('overview')" id="tab-overview">🌸 總覽</div>
     <div class="tab"        onclick="sw('sectors')"  id="tab-sectors">🏆 板塊</div>
     <div class="tab"        onclick="sw('calc')"   id="tab-calc">🧮 計算機</div>
     <div class="tab"        onclick="sw('ai')"     id="tab-ai">💬 AI天使</div>
@@ -374,7 +374,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
 <div class="main">
 
 <!-- RECS -->
-<div class="panel active" id="panel-recs">
+<div class="panel" id="panel-recs">
   <div id="signup-banner"></div>
   <div id="market-brief"><div class="loading"><div class="spin"></div>整理真實市場數據中...</div></div>
   <div class="card" id="movers-card">
@@ -382,13 +382,13 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
     <div style="background:linear-gradient(135deg,rgba(192,132,252,.07),var(--white));border-bottom:1.5px solid var(--pink4);padding:9px 13px;font-size:11px;color:var(--text2);line-height:1.7">
       只顯示真實 API 抓到的價格、24H 漲跌與成交量；沒有資料就顯示「載入中」，不補假值。
     </div>
-    <div class="fbar" style="padding:9px 12px 0;margin-bottom:0">
-      <button class="fbtn active" onclick="filterMovers('all',this)">全部</button>
-      <button class="fbtn g" onclick="filterMovers('aligned',this)">順 VEGAS</button>
-      <button class="fbtn r" onclick="filterMovers('against',this)">逆勢警告</button>
-      <button class="fbtn" onclick="filterMovers('volatile',this)">波動放大</button>
-      <button class="fbtn g" onclick="filterMovers('bull',this)">做多觀察</button>
-      <button class="fbtn r" onclick="filterMovers('bear',this)">做空觀察</button>
+    <div class="fbar movers-fbar" style="padding:9px 12px 0;margin-bottom:0">
+      <button class="fbtn active" data-mf="all" onclick="filterMovers('all')">全部</button>
+      <button class="fbtn g" data-mf="aligned" onclick="filterMovers('aligned')">順 VEGAS</button>
+      <button class="fbtn r" data-mf="against" onclick="filterMovers('against')">逆勢警告</button>
+      <button class="fbtn" data-mf="volatile" onclick="filterMovers('volatile')">波動放大</button>
+      <button class="fbtn g" data-mf="bull" onclick="filterMovers('bull')">做多觀察</button>
+      <button class="fbtn r" data-mf="bear" onclick="filterMovers('bear')">做空觀察</button>
     </div>
     <div id="movers-list"><div class="loading"><div class="spin"></div>載入 OKX 24H 異動資料...</div></div>
   </div>
@@ -596,7 +596,27 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
 </div>
 
 <!-- OVERVIEW -->
-<div class="panel" id="panel-overview">
+<div class="panel active" id="panel-overview">
+  <!-- Top5 多空推薦（與多空推薦Tab同步）-->
+  <div class="rec-wrap" id="rec-wrap-ov"><div class="loading"><div class="spin"></div>計算中...</div></div>
+  <!-- AI 新手秒懂市場總結（與多空推薦Tab同步）-->
+  <div id="market-brief-ov"><div class="loading"><div class="spin"></div>整理真實市場數據中...</div></div>
+  <!-- 24H 熱門異動榜（與多空推薦Tab同步）-->
+  <div class="card" id="movers-card-ov">
+    <div class="ch"><div class="ct">🔥 24H 熱門異動榜</div><div class="cb" id="movers-time-ov">OKX 真實數據</div></div>
+    <div style="background:linear-gradient(135deg,rgba(192,132,252,.07),var(--white));border-bottom:1.5px solid var(--pink4);padding:9px 13px;font-size:11px;color:var(--text2);line-height:1.7">
+      只顯示真實 API 抓到的價格、24H 漲跌與成交量；沒有資料就顯示「載入中」，不補假值。
+    </div>
+    <div class="fbar movers-fbar" style="padding:9px 12px 0;margin-bottom:0">
+      <button class="fbtn active" data-mf="all" onclick="filterMovers('all')">全部</button>
+      <button class="fbtn g" data-mf="aligned" onclick="filterMovers('aligned')">順 VEGAS</button>
+      <button class="fbtn r" data-mf="against" onclick="filterMovers('against')">逆勢警告</button>
+      <button class="fbtn" data-mf="volatile" onclick="filterMovers('volatile')">波動放大</button>
+      <button class="fbtn g" data-mf="bull" onclick="filterMovers('bull')">做多觀察</button>
+      <button class="fbtn r" data-mf="bear" onclick="filterMovers('bear')">做空觀察</button>
+    </div>
+    <div id="movers-list-ov"><div class="loading"><div class="spin"></div>載入 OKX 24H 異動資料...</div></div>
+  </div>
   <div class="stat-grid">
     <div class="stat-box"><div class="sl">監控幣種</div><div class="sv neu" id="s-total">—</div><div class="ss">幣種</div></div>
     <div class="stat-box"><div class="sl">看漲 🚀</div><div class="sv up" id="s-long">—</div></div>
@@ -1204,11 +1224,12 @@ function getBriefDecision(){
   if(ethRsi!==null) reasons.push(`ETH 4H RSI ${ethRsi}`);
   return {verdict,cls,action,btc,eth,btcCh,ethCh,vg,up,down,bigMoves,oiAligned,btcRsi,ethRsi,reasons};
 }
+// 把同一段 HTML 寫進多個容器（多空推薦 + 總覽 同步顯示用）
+function _setAll(html, ...ids){ ids.forEach(id=>{ const e=document.getElementById(id); if(e) e.innerHTML=html; }); }
 function renderMarketBrief(){
-  const el=document.getElementById('market-brief');if(!el)return;
   const d=getBriefDecision();
   const color=d.cls==='up'?'var(--green2)':d.cls==='dn'?'var(--red2)':'var(--gold)';
-  el.innerHTML=`<div class="brief-card">
+  const html=`<div class="brief-card">
     <div class="brief-hero">
       <div class="brief-title">🤖 AI 新手秒懂市場總結 <span class="brief-tag">真實數據</span><span class="brief-tag">不自動下單</span></div>
       <div class="brief-verdict" style="color:${color}">${d.verdict}</div>
@@ -1225,6 +1246,7 @@ function renderMarketBrief(){
       <strong style="color:var(--pink3)">白話提醒：</strong>這張卡只把已載入的市場資料翻成白話，不改 Top5、勝率、VEGAS、MOVE、賽克斯或 OI 計算邏輯。
     </div>
   </div>`;
+  _setAll(html,'market-brief','market-brief-ov');
 }
 function classifyMover(item,vd){
   const ch=Number(item.chg)||0;
@@ -1234,10 +1256,10 @@ function classifyMover(item,vd){
   const volatile=Math.abs(ch)>=5;
   return {sig,aligned,against,volatile};
 }
-function filterMovers(filter,btn){
+function filterMovers(filter){
   moverFilter=filter;
-  document.querySelectorAll('#movers-card .fbar .fbtn').forEach(b=>b.classList.remove('active'));
-  if(btn)btn.classList.add('active');
+  // 同步兩個異動榜（多空推薦 + 總覽）的按鈕 active 狀態
+  document.querySelectorAll('.movers-fbar .fbtn').forEach(b=>b.classList.toggle('active', b.dataset.mf===filter));
   renderHotMovers();
 }
 function getMoverAdvice(item,vd){
@@ -1270,11 +1292,10 @@ function getFilteredMovers(){
   return rows;
 }
 function renderHotMovers(){
-  const el=document.getElementById('movers-list');if(!el)return;
   const data=getFilteredMovers();
-  const timeEl=document.getElementById('movers-time');
-  if(timeEl) timeEl.textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
-  if(!data.length){el.innerHTML='<div class="empty">目前沒有符合此篩選的真實異動資料<br>可切回「全部」或等待 VEGAS 掃描完成。</div>';return;}
+  const t=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
+  ['movers-time','movers-time-ov'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=t;});
+  if(!data.length){_setAll('<div class="empty">目前沒有符合此篩選的真實異動資料<br>可切回「全部」或等待 VEGAS 掃描完成。</div>','movers-list','movers-list-ov');return;}
   const head='<div class="mover-head"><div>#</div><div>幣種</div><div>價格</div><div>24H</div><div>VEGAS</div><div>幸運星提醒</div></div>';
   const rows=data.map(({item:x,vd},i)=>{
     const c=classifyMover(x,vd);
@@ -1292,7 +1313,7 @@ function renderHotMovers(){
       <div style="color:var(--text2);font-weight:700;line-height:1.5">${advice}</div>
     </div>`;
   }).join('');
-  el.innerHTML=head+rows;
+  _setAll(head+rows,'movers-list','movers-list-ov');
 }
 
 // ═══ OI ═══
@@ -1873,6 +1894,16 @@ async function fetchCVD(sym) {
   } catch(e) { return null; }
 }
 
+// AI 訊號判決書單行（Phase 3A）：support = 'good'(綠) / 'bad'(紅) / 'neutral'(金)
+function vRow(label, tag, support, desc){
+  const col = support==='good'?'var(--green2)':support==='bad'?'var(--red2)':'var(--gold)';
+  return `<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--pink4)">
+    <div style="width:58px;flex-shrink:0;font-size:10px;font-weight:700;color:var(--text3);font-family:Nunito,sans-serif">${label}</div>
+    <div style="flex-shrink:0"><span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:7px;background:var(--white);border:1px solid ${col};color:${col};font-family:Nunito,sans-serif;white-space:nowrap">${tag}</span></div>
+    <div style="flex:1;font-size:10px;color:var(--text2);line-height:1.5">${desc}</div>
+  </div>`;
+}
+
 // ── 真實指標 Getter（null = 數據載入中，禁止估算）──
 function getRSI(sym){
   const ri=realInd[sym.toUpperCase()]||{};
@@ -2364,7 +2395,7 @@ function buildTop5Candidates(){
 function renderRecs(){
   const candidates = buildTop5Candidates();
   if(!candidates.length){
-    document.getElementById('rec-wrap').innerHTML='<div class="loading"><div class="spin"></div>等待 VEGAS 掃描完成後產生 Top5...</div>';
+    _setAll('<div class="loading"><div class="spin"></div>等待 VEGAS 掃描完成後產生 Top5...</div>','rec-wrap','rec-wrap-ov');
     return;
   }
   const _getVd=c=>vegasData.find(v=>v.sym===c.symbol.toUpperCase());
@@ -2499,7 +2530,7 @@ function renderRecs(){
         : items.map((c,i)=>makeRow(c,i,type)).join('')}
     </div>`;
 
-  document.getElementById('rec-wrap').innerHTML=`<div style="display:flex;flex-direction:column;gap:0">${makeSection(longs,'long')}${makeSection(shorts,'short')}</div>`;
+  _setAll(`<div style="display:flex;flex-direction:column;gap:0">${makeSection(longs,'long')}${makeSection(shorts,'short')}</div>`,'rec-wrap','rec-wrap-ov');
 }
 
 // ═══ 賽克斯訊號分數計算（固定加權，無亂數）═══
@@ -3325,6 +3356,31 @@ function openMOVEDetail(sym, type, v, c) {
     .sort((a, b) => type === 'long' ? b.longScore - a.longScore : b.shortScore - a.shortScore)
     .slice(0, 4) : [];
 
+  // ── Phase 3A：白話判決卡（趨勢結構 + 相對強弱 可即時算；FR/L/S/CVD 非同步補）──
+  const dirW = type==='long'?'做多':'做空';
+  const wantSig = type==='long'?'bull':'bear';
+  const oppSig  = type==='long'?'bear':'bull';
+  let vegasTag, vegasSup, vegasDesc;
+  if(!v){ vegasTag='計算中'; vegasSup='neutral'; vegasDesc='VEGAS 通道資料載入中'; }
+  else if(v.signal===wantSig){ vegasTag='順勢'; vegasSup='good'; vegasDesc=`日線＋4H ${type==='long'?'多頭':'空頭'}排列，與${dirW}方向一致`; }
+  else if(v.signal===oppSig){ vegasTag='逆勢'; vegasSup='bad'; vegasDesc=`目前為${type==='long'?'空頭':'多頭'}排列，與${dirW}方向相反，風險高`; }
+  else if(v.h4InTunnel){ vegasTag='整理中'; vegasSup='neutral'; vegasDesc='EMA12 在通道內，方向未明，宜等突破確認'; }
+  else { vegasTag='待確認'; vegasSup='neutral'; vegasDesc='方向尚未由 VEGAS 雙確認'; }
+  let relTag, relSup, relDesc;
+  const relAbs = Math.abs(relBTC).toFixed(1);
+  if(Math.abs(relBTC)<0.5){ relTag='與BTC同步'; relSup='neutral'; relDesc='與 BTC 走勢接近，無明顯獨立強弱'; }
+  else if(type==='long'){
+    if(relBTC>0){ relTag='強於BTC'; relSup='good'; relDesc=`相較 BTC 強 ${relAbs}%，有額外買盤支撐`; }
+    else { relTag='弱於BTC'; relSup='bad'; relDesc=`相較 BTC 弱 ${relAbs}%，本身存在額外賣壓`; }
+  } else {
+    if(relBTC<0){ relTag='弱於BTC'; relSup='good'; relDesc=`相較 BTC 弱 ${relAbs}%，下跌動能較強，利於做空`; }
+    else { relTag='強於BTC'; relSup='bad'; relDesc=`相較 BTC 強 ${relAbs}%，逆勢做空風險高`; }
+  }
+  const verdictGrad = type==='long'
+    ? 'linear-gradient(135deg,rgba(0,200,150,.07),var(--white))'
+    : 'linear-gradient(135deg,rgba(255,77,109,.07),var(--white))';
+  const verdictBorder = type==='long' ? 'rgba(0,200,150,.3)' : 'rgba(255,77,109,.3)';
+
   document.getElementById('mbody').innerHTML = `
     <!-- 頭部 -->
     <div class="mhdr">
@@ -3339,6 +3395,16 @@ function openMOVEDetail(sym, type, v, c) {
            style="font-size:11px;font-weight:900;padding:6px 11px;border-radius:10px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif;text-decoration:none;white-space:nowrap">📊 查看圖表</a>
         <button class="mclose" onclick="closeMod()">✕</button>
       </div>
+    </div>
+
+    <!-- AI 訊號判決書（Phase 3A）：白話綜合判讀，不改任何計算 -->
+    <div class="m-sec" style="background:${verdictGrad};border:1.5px solid ${verdictBorder}">
+      <div class="m-sec-t">🧭 AI 訊號判決書 — ${dirW}依據</div>
+      ${vRow('趨勢結構', vegasTag, vegasSup, vegasDesc)}
+      ${vRow('相對強弱', relTag, relSup, relDesc)}
+      <div id="verdict-fr">${vRow('資金費率','讀取中','neutral','抓取中…')}</div>
+      <div id="verdict-ls">${vRow('散戶情緒','讀取中','neutral','抓取中…')}</div>
+      <div id="verdict-cvd">${vRow('市場動能','讀取中','neutral','抓取中…')}</div>
     </div>
 
     <!-- MOVE 評分 + 建議倉位 -->
@@ -3555,6 +3621,50 @@ async function fetchAndUpdateFRLS(sym, type) {
         <div class="tc2-v" style="font-size:11px;color:${cvdColor}">買 ${buyPct}%</div>
         <div class="tc2-s ${cvdCls}">${lead}</div>
         <div class="tc2-d">近2H主動買${buyPct}% / 賣${100-buyPct}%</div>`;
+    }
+  }
+
+  // ── 更新 AI 訊號判決書的 FR / L/S / CVD 三行（Phase 3A，純判讀不計分）──
+  const frV = document.getElementById('verdict-fr');
+  if (frV) {
+    if (fr === null) frV.innerHTML = vRow('資金費率','無數據','neutral','此幣無合約資金費率資料');
+    else {
+      const f = parseFloat(fr);
+      let tag, sup, desc;
+      if (f > 0.0005) { tag='偏高'; sup=type==='short'?'good':'bad';
+        desc=type==='short'?'多單付費偏高、市場過熱，回落利於做空':'多單付費偏高，追多成本高、易回落'; }
+      else if (f < -0.0001) { tag='負費率'; sup=type==='long'?'good':'bad';
+        desc=type==='long'?'空單付費、空方擁擠，利於做多反彈':'空單付費、有逼空風險，做空需謹慎'; }
+      else { tag='中性'; sup='neutral'; desc='費率接近零，市場情緒無明顯偏向'; }
+      frV.innerHTML = vRow('資金費率', tag, sup, desc);
+    }
+  }
+  const lsV = document.getElementById('verdict-ls');
+  if (lsV) {
+    if (ls === null) lsV.innerHTML = vRow('散戶情緒','無數據','neutral','OKX 無此幣多空比資料');
+    else {
+      const longPct = Math.round(ls*100);
+      let tag, sup, desc;
+      if (ls > 0.72) { tag=`偏多 ${longPct}%`; sup=type==='short'?'good':'bad';
+        desc=`散戶 ${longPct}% 做多、過度擁擠，反指角度做空較有利`; }
+      else if (ls < 0.35) { tag=`偏空 ${100-longPct}%`; sup=type==='long'?'good':'bad';
+        desc=`散戶 ${100-longPct}% 做空、過度擁擠，反指角度做多較有利`; }
+      else { tag=`多 ${longPct}%`; sup='neutral'; desc=`散戶多空比 ${longPct}/${100-longPct}，無明顯極端`; }
+      lsV.innerHTML = vRow('散戶情緒', tag, sup, desc);
+    }
+  }
+  const cvdV = document.getElementById('verdict-cvd');
+  if (cvdV) {
+    if (cvd === null) cvdV.innerHTML = vRow('市場動能','無數據','neutral','OKX 無此幣主動買賣資料');
+    else {
+      const buyPct = Math.round(cvd.ratio*100);
+      let tag, sup, desc;
+      if (cvd.ratio > 0.55) { tag='買方主導'; sup=type==='long'?'good':'bad';
+        desc=`近2H主動買盤 ${buyPct}%，買方積極${type==='short'?'，逆勢做空需謹慎':''}`; }
+      else if (cvd.ratio < 0.45) { tag='賣方主導'; sup=type==='short'?'good':'bad';
+        desc=`近2H主動賣盤 ${100-buyPct}%，賣方積極${type==='long'?'，追多需謹慎':''}`; }
+      else { tag='多空均衡'; sup='neutral'; desc=`主動買賣接近（買 ${buyPct}%），無明顯主導方`; }
+      cvdV.innerHTML = vRow('市場動能', tag, sup, desc);
     }
   }
 
