@@ -1928,6 +1928,28 @@ function oiQuadrant(oiChg, priceChg){
   return {name:'變化不明顯', side:'neutral', desc:'近1H 持倉與價格變化都不大'};
 }
 
+// 訊號成熟度（Phase 3E）：用現有 VEGAS/賽克斯/RSI/漲跌幅 判斷生命週期，純判讀不改計算
+function signalMaturity(type, v, rsi, chg24){
+  if(!v) return {stage:'計算中', color:'var(--text3)', desc:'VEGAS 掃描中'};
+  const want=type==='long'?'bull':'bear', opp=type==='long'?'bear':'bull';
+  const aligned=v.signal===want, against=v.signal===opp;
+  const step3=type==='long'?v.step3_long:v.step3_short;
+  const step2=type==='long'?v.step2_long:v.step2_short;
+  const ch=Number(chg24)||0;
+  if(against) return {stage:'失效', color:'var(--red2)', desc:'逆 VEGAS，方向相反，不建議操作'};
+  if(aligned){
+    if(rsi!==null && ((type==='long'&&rsi>72&&ch>8)||(type==='short'&&rsi<28&&ch<-8)))
+      return {stage:'過熱', color:'#ff8c42', desc:`已${type==='long'?'大漲':'大跌'} ${Math.abs(ch).toFixed(1)}%、RSI 極端，追${type==='long'?'高':'空'}風險高`};
+    if(v.isFakeBreakout) return {stage:'等確認', color:'var(--gold)', desc:'假突破偵測中，等 EMA12 與 K 棒同步突破'};
+    if(step3) return {stage:'可執行', color:'var(--green2)', desc:'VEGAS 雙確認＋進場訊號成立，可依紀律進場'};
+    if(step2) return {stage:'等確認', color:'var(--gold)', desc:'已找位，等 K 棒收＋QQE 觸發進場'};
+    if(v.h4InTunnel) return {stage:'可觀察', color:'var(--gold)', desc:'VEGAS 整理中，等突破方向'};
+    return {stage:'可觀察', color:'var(--pink3)', desc:'方向確認，等回踩到位再找進場'};
+  }
+  if(v.signal==='neutral') return {stage:'剛出現', color:'var(--purple)', desc:'方向初現（中性傾向），等 VEGAS 雙確認'};
+  return {stage:'觀察', color:'var(--text3)', desc:'尚未滿足進場條件，續觀察'};
+}
+
 // AI 訊號判決書單行（Phase 3A）：support = 'good'(綠) / 'bad'(紅) / 'neutral'(金)
 function vRow(label, tag, support, desc){
   const col = support==='good'?'var(--green2)':support==='bad'?'var(--red2)':'var(--gold)';
@@ -2523,6 +2545,7 @@ function renderRecs(){
       posPct=25;
     }
     const posClr=posPct>=200?'var(--purple)':posPct>=100?'var(--green2)':posPct>0?'var(--gold)':'var(--text4)';
+    const mat=signalMaturity(type,vd,rsi,c.ch);
     const _rank=ranks[i]||`${i+1}`;
     return `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1.5px solid var(--pink4);cursor:pointer;padding:10px 8px;align-items:center;transition:background .15s" onclick="openScoreDetail('${c.id}','${type}')" onmouseenter="this.style.background='var(--pink5)'" onmouseleave="this.style.background=''">
       <div style="display:flex;align-items:center;gap:5px">
@@ -2531,6 +2554,7 @@ function renderRecs(){
           <div style="font-family:Nunito,sans-serif;font-size:15px;font-weight:900">${c.symbol.toUpperCase()}</div>
           <div style="font-size:10px;font-weight:700" class="${c.ch>=0?'up':'dn'}">${c.ch>=0?'+':''}${c.ch.toFixed(1)}%</div>
           <div style="font-size:9px;font-weight:800;font-family:Nunito,sans-serif;color:${posClr}">${posPct>0?posPct+'%':'—'}</div>
+          <div style="display:inline-block;font-size:8px;font-weight:900;padding:1px 5px;border-radius:5px;margin-top:2px;background:var(--pink5);border:1px solid var(--pink4);color:${mat.color};font-family:Nunito,sans-serif">${mat.stage}</div>
         </div>
       </div>
       <div style="text-align:center">
@@ -3424,6 +3448,7 @@ function openMOVEDetail(sym, type, v, c) {
     ? 'linear-gradient(135deg,rgba(0,200,150,.07),var(--white))'
     : 'linear-gradient(135deg,rgba(255,77,109,.07),var(--white))';
   const verdictBorder = type==='long' ? 'rgba(0,200,150,.3)' : 'rgba(255,77,109,.3)';
+  const mat = signalMaturity(type, v, rsi_val, chg24);
 
   document.getElementById('mbody').innerHTML = `
     <!-- 頭部 -->
@@ -3456,8 +3481,12 @@ function openMOVEDetail(sym, type, v, c) {
     <div class="m-score-sec">
       <div class="bscore ${verdictCls}"><div class="bscore-n">${moveScore}</div><div class="bscore-l">MOVE評分</div></div>
       <div style="flex:1">
-        <div class="vpill ${verdictCls}">${type==='long'?'🚀 做多訊號':'📉 做空訊號'}</div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <div class="vpill ${verdictCls}">${type==='long'?'🚀 做多訊號':'📉 做空訊號'}</div>
+          <span style="font-size:11px;font-weight:900;padding:3px 10px;border-radius:20px;background:var(--white);border:1.5px solid ${mat.color};color:${mat.color};font-family:Nunito,sans-serif">⏱ ${mat.stage}</span>
+        </div>
+        <div style="font-size:10px;color:var(--text2);line-height:1.5;margin:4px 0">${mat.desc}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:2px">
           <div style="font-family:'Nunito',sans-serif;font-size:22px;font-weight:900;color:${posColor}">${positionPct}%</div>
           <div style="font-size:10px;color:var(--text3);line-height:1.5">${posLabel}<br>符合 <strong style="color:var(--pink3)">${criteriaCount}/3</strong> 篩選標準</div>
         </div>
