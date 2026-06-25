@@ -603,6 +603,34 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
     <div class="stat-box"><div class="sl">看跌 📉</div><div class="sv dn" id="s-short">—</div></div>
     <div class="stat-box"><div class="sl">市場情緒</div><div class="sv" id="s-mood">—</div><div class="ss" id="s-pct">—</div></div>
   </div>
+  <div class="card" style="margin-bottom:10px">
+    <div class="ch"><div class="ct">😱 恐懼貪婪指數</div><div class="cb" id="fng-upd">—</div></div>
+    <div class="cbody">
+      <div class="gaugerow">
+        <svg width="88" height="48" viewBox="0 0 88 48" style="flex-shrink:0">
+          <path d="M5,44 A39,39 0 0,1 83,44" fill="none" stroke="#ffe0e8" stroke-width="8" stroke-linecap="round"/>
+          <path d="M5,44 A39,39 0 0,1 83,44" fill="none" stroke="url(#fnggrad)" stroke-width="8" stroke-linecap="round"/>
+          <defs><linearGradient id="fnggrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#ff4d6d"/><stop offset="50%" stop-color="#f5a623"/><stop offset="100%" stop-color="#00c896"/></linearGradient></defs>
+          <line x1="44" y1="44" x2="44" y2="11" stroke="#ff85a1" stroke-width="2.5" stroke-linecap="round" id="fng-needle" style="transform-origin:44px 44px;transform:rotate(-90deg);transition:transform 1.5s ease"/>
+          <circle cx="44" cy="44" r="4" fill="#ff85a1"/>
+        </svg>
+        <div style="flex:1">
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <span id="fng-val" style="font-family:Nunito,sans-serif;font-size:30px;font-weight:900;line-height:1;color:var(--text3)">—</span>
+            <span id="fng-label" class="gaugelabel" style="margin:0">數據載入中</span>
+          </div>
+          <div id="fng-yday" style="font-size:11px;color:var(--text3);margin-top:3px">—</div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:4px;margin-top:9px;font-size:9px;font-weight:800;font-family:Nunito,sans-serif">
+        <span style="color:#ff4d6d">極度恐懼</span>
+        <span style="color:#ff8c42">恐懼</span>
+        <span style="color:var(--gold)">中性</span>
+        <span style="color:#7ed957">貪婪</span>
+        <span style="color:#00c896">極度貪婪</span>
+      </div>
+    </div>
+  </div>
   <div class="row2">
     <div class="card">
       <div class="ch"><div class="ct">🎯 市場方向</div><div class="cb" id="dir-t">—</div></div>
@@ -940,12 +968,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
   // 4. 新聞快訊（獨立載入，不阻塞主流程）
   loadNews();
+  loadFearGreed();
   // 價格/OI/EV 每60秒更新
   setInterval(()=>{loadFast();loadRealIndicators();},60000);
   // VEGAS 全幣掃描每3分鐘更新
   setInterval(()=>{loadAllSymbols().then(()=>loadVEGAS());},180000);
-  // 新聞每5分鐘更新
-  setInterval(()=>loadNews(),300000);
+  // 新聞每5分鐘更新（恐懼貪婪每日更新，跟著刷新即可）
+  setInterval(()=>{loadNews();loadFearGreed();},300000);
 });
 
 async function loadFast(){
@@ -1059,6 +1088,42 @@ function renderOverviewStats(data){
   document.getElementById('gbar').style.width=pct+'%';
   document.getElementById('gneedle').style.transform=`rotate(${(pct/100*180)-90}deg)`;
   document.getElementById('dir-t').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false});
+}
+
+// ═══ 恐懼貪婪指數（alternative.me 免費 API，CORS 開放；抓不到顯示載入中，不補假值）═══
+function fngBand(v){
+  if(v<=25) return {zh:'極度恐懼',color:'#ff4d6d',tip:'市場恐慌拋售，歷史上常為買入時機'};
+  if(v<=45) return {zh:'恐懼',color:'#ff8c42',tip:'投資者悲觀謹慎，市場偏弱'};
+  if(v<=55) return {zh:'中性',color:'#f5a623',tip:'情緒均衡，方向不明'};
+  if(v<=75) return {zh:'貪婪',color:'#7ed957',tip:'市場樂觀，注意追高風險'};
+  return {zh:'極度貪婪',color:'#00c896',tip:'過度樂觀，歷史上常為高點警訊'};
+}
+async function loadFearGreed(){
+  try{
+    const r=await fetch('https://api.alternative.me/fng/?limit=2');
+    const j=await r.json();
+    const d=j&&j.data;
+    if(!d||!d.length) throw new Error('no data');
+    const val=parseInt(d[0].value,10);
+    const yday=d[1]?parseInt(d[1].value,10):null;
+    const b=fngBand(val);
+    const vEl=document.getElementById('fng-val');
+    vEl.textContent=val;vEl.style.color=b.color;
+    const lbl=document.getElementById('fng-label');
+    lbl.textContent=b.zh;lbl.style.color=b.color;
+    document.getElementById('fng-needle').style.transform=`rotate(${(val/100*180)-90}deg)`;
+    const ydayEl=document.getElementById('fng-yday');
+    if(yday!==null){const diff=val-yday;ydayEl.textContent=`昨日 ${yday}（${diff>=0?'+':''}${diff}）· ${b.tip}`;}
+    else ydayEl.textContent=b.tip;
+    const sec=parseInt(d[0].time_until_update||0,10);
+    const updEl=document.getElementById('fng-upd');
+    if(sec>0){const h=Math.floor(sec/3600);updEl.textContent=h>0?`${h}小時後更新`:'即將更新';}
+    else updEl.textContent='每日更新';
+  }catch(e){
+    document.getElementById('fng-val').textContent='—';
+    document.getElementById('fng-label').textContent='數據載入中';
+    document.getElementById('fng-upd').textContent='無資料';
+  }
 }
 
 function renderTop5(data){
@@ -1777,9 +1842,35 @@ async function fetchFR(sym) {
   } catch(e) { return null; }
 }
 
+// Cloudflare Worker 代理：繞過 OKX /rubik/stat/ 的 CORS 封鎖（只代理 OKX 公開行情）
+const OKX_PROXY = 'https://young-glade-8c18lucky-star-proxy.s6432891.workers.dev';
+function proxyOKX(okxUrl){ return `${OKX_PROXY}/?url=${encodeURIComponent(okxUrl)}`; }
+
 async function fetchLS(sym) {
-  // OKX /rubik/stat/ 路徑整體被 CORS 封鎖（GitHub Pages 前端無法呼叫）
-  return null;
+  // 透過代理抓 OKX 多空帳戶比；回傳「多單佔比 0~1」（null = 無資料，不估算）
+  try {
+    const j = await okxFetch(proxyOKX(`https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio?ccy=${sym}&period=5m`));
+    if (!j || j.code!=='0' || !j.data?.length) return null;
+    // OKX 回傳 [[ts, ratio], ...]（newest first）；ratio = 多單量 / 空單量
+    const ratio = parseFloat(j.data[0][1]);
+    if (!isFinite(ratio) || ratio<=0) return null;
+    return ratio/(ratio+1); // 轉成多單佔比，供既有顯示/計算使用
+  } catch(e) { return null; }
+}
+
+async function fetchCVD(sym) {
+  // 透過代理抓 OKX taker 主動買賣量，計算近期 CVD（僅顯示/判讀，不進勝率公式）
+  try {
+    const j = await okxFetch(proxyOKX(`https://www.okx.com/api/v5/rubik/stat/taker-volume?ccy=${sym}&instType=CONTRACTS&period=5m`));
+    if (!j || j.code!=='0' || !j.data?.length) return null;
+    // OKX 回傳 [[ts, sellVol, buyVol], ...]（newest first）；取最近 24 根（約 2 小時）累積
+    const rows = j.data.slice(0, 24);
+    let buy=0, sell=0;
+    rows.forEach(r=>{ sell += parseFloat(r[1])||0; buy += parseFloat(r[2])||0; });
+    const total = buy+sell;
+    if (total<=0) return null;
+    return { buy, sell, delta: buy-sell, ratio: buy/total }; // ratio>0.5 = 買方主導
+  } catch(e) { return null; }
 }
 
 // ── 真實指標 Getter（null = 數據載入中，禁止估算）──
@@ -3357,6 +3448,7 @@ function openMOVEDetail(sym, type, v, c) {
         <div class="tc2" id="modal-fr-cell"><div class="tc2-n">資金費率 FR</div><div class="tc2-v" style="font-size:11px;color:var(--gold)">—</div><div class="tc2-s neu" style="display:flex;align-items:center;gap:3px"><div class="spin" style="width:8px;height:8px;border-width:1.5px"></div>抓取中</div><div class="tc2-d">—</div></div>
         <div class="tc2" id="modal-ls-cell"><div class="tc2-n">多空比 L/S</div><div class="tc2-v" style="font-size:11px;color:var(--gold)">—</div><div class="tc2-s neu" style="display:flex;align-items:center;gap:3px"><div class="spin" style="width:8px;height:8px;border-width:1.5px"></div>抓取中</div><div class="tc2-d">—</div></div>
         <div class="tc2"><div class="tc2-n">相對強弱</div><div class="tc2-v" style="font-size:11px;color:${relBTC>=0?'var(--green2)':'var(--red2)'}">${relBTC>=0?'+':''}${relBTC.toFixed(2)}%</div><div class="tc2-s ${relBTC>=0?'bull':'bear'}">${relBTC>=0?'強於BTC':'弱於BTC'}</div><div class="tc2-d">vs BTC 24H</div></div>
+        <div class="tc2" id="modal-cvd-cell"><div class="tc2-n">CVD 主動買賣</div><div class="tc2-v" style="font-size:11px;color:var(--gold)">—</div><div class="tc2-s neu" style="display:flex;align-items:center;gap:3px"><div class="spin" style="width:8px;height:8px;border-width:1.5px"></div>抓取中</div><div class="tc2-d">—</div></div>
       </div>
     </div>
 
@@ -3442,10 +3534,29 @@ function openMOVEDetail(sym, type, v, c) {
 }
 
 async function fetchAndUpdateFRLS(sym, type) {
-  const [fr, ls] = await Promise.all([
+  const [fr, ls, cvd] = await Promise.all([
     fetchFR(sym),
-    fetchLS(sym)
+    fetchLS(sym),
+    fetchCVD(sym)
   ]);
+
+  // 更新 CVD 格子（僅顯示/判讀，不進勝率計算）
+  const cvdCell = document.getElementById('modal-cvd-cell');
+  if (cvdCell) {
+    if (cvd === null) {
+      cvdCell.innerHTML = `<div class="tc2-n">CVD 主動買賣</div><div class="tc2-v" style="font-size:11px;color:var(--gold)">無數據</div><div class="tc2-s neu">無數據</div><div class="tc2-d">OKX無此幣數據</div>`;
+    } else {
+      const buyPct = Math.round(cvd.ratio*100);
+      const cvdCls = cvd.ratio>0.55?'bull':cvd.ratio<0.45?'bear':'neu';
+      const cvdColor = cvdCls==='bull'?'var(--green2)':cvdCls==='bear'?'var(--red2)':'var(--gold)';
+      const lead = cvd.ratio>0.55?'買方主導':cvd.ratio<0.45?'賣方主導':'多空均衡';
+      cvdCell.innerHTML = `
+        <div class="tc2-n">CVD 主動買賣</div>
+        <div class="tc2-v" style="font-size:11px;color:${cvdColor}">買 ${buyPct}%</div>
+        <div class="tc2-s ${cvdCls}">${lead}</div>
+        <div class="tc2-d">近2H主動買${buyPct}% / 賣${100-buyPct}%</div>`;
+    }
+  }
 
   // 更新 FR 格子
   const frCell = document.getElementById('modal-fr-cell');
