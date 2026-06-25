@@ -1317,6 +1317,28 @@ function renderHotMovers(){
 }
 
 // ═══ OI ═══
+// OI 四象限 Tab 升級：每次刷新存真實 OI+價格快照，與視窗內最舊一筆比對算真實變化（同窗口、不補假值）
+const OI_WINDOW_MS = 6*60*1000;
+const _oiHist = {};
+function pushOISnap(sym, oiUsd, px, now){
+  if(!_oiHist[sym]) _oiHist[sym]=[];
+  const arr=_oiHist[sym];
+  arr.push({t:now, oiUsd, px});
+  while(arr.length>2 && now - arr[0].t > OI_WINDOW_MS) arr.shift();
+}
+function oiBaseline(sym){
+  const arr=_oiHist[sym];
+  return (arr && arr.length>=1) ? arr[0] : null;
+}
+async function fetchAllOI(){
+  try{
+    const j=await okxFetch(proxyOKX('https://www.okx.com/api/v5/public/open-interest?instType=SWAP'));
+    if(!j || j.code!=='0' || !j.data) return null;
+    const map={};
+    j.data.forEach(o=>{ if(o.instId.endsWith('-USDT-SWAP')){ const v=parseFloat(o.oiUsd); if(v>0) map[o.instId.replace('-USDT-SWAP','')]=v; } });
+    return map;
+  }catch(e){ return null; }
+}
 async function loadOI(){
   try{
     const r=await fetch('https://www.okx.com/api/v5/market/tickers?instType=SWAP');
@@ -1332,6 +1354,23 @@ async function loadOI(){
     okxTickers=Object.fromEntries(rows.map(a=>[a.sym.toUpperCase(),a]));
     oiData=rows.sort((a,b)=>b.score-a.score).slice(0,30);
     document.getElementById('ocnt').textContent=oiData.filter(a=>Math.abs(a.pchg)>3).length;
+    // 真實 OI 四象限：批量抓 OI，與視窗內最舊快照（同窗口）比對 OI 與價格變化
+    const oiMap=await fetchAllOI();
+    if(oiMap){
+      const now=Date.now();
+      oiData.forEach(a=>{
+        const oiUsd=oiMap[a.sym];
+        if(oiUsd>0){
+          const base=oiBaseline(a.sym);
+          if(base && base.oiUsd>0 && base.px>0){
+            a.oiChgReal=(oiUsd-base.oiUsd)/base.oiUsd*100;
+            const pxChgReal=(a.px-base.px)/base.px*100;
+            a.quadrant=oiQuadrant(a.oiChgReal, pxChgReal);
+          }
+          pushOISnap(a.sym, oiUsd, a.px, now);
+        }
+      });
+    }
     renderOI();
     renderVolSpike();
     renderVolRank();
@@ -1770,9 +1809,14 @@ function renderOI(){
     const vd=vegasData.find(v=>v.sym===a.sym);
     const ov=getOIVegasTag(a,vd);
     const dots=Array.from({length:5},(_,i)=>`<div style="width:5px;height:5px;border-radius:2px;background:${i<a.str?(a.dir==='long'?'var(--green)':a.dir==='short'?'var(--red)':'var(--gold)'):'var(--pink4)'}"></div>`).join('');
-    return `<tr onclick="openOIDetail('${a.sym}')"><td><span class="oisym">${a.sym}</span></td><td><span class="${a.pchg>=0?'up':'dn'}" style="font-weight:700">${a.pchg>=0?'+':''}${a.pchg.toFixed(2)}%</span></td><td><span class="oidir ${a.dir}">${a.dirLabel}</span></td><td><span style="font-size:9px;font-weight:900;color:${ov.color};font-family:Nunito,sans-serif;white-space:nowrap">${ov.label}</span></td><td><div style="display:flex;gap:2px">${dots}</div></td><td style="color:var(--text3);font-size:9px">${new Date().toLocaleTimeString('zh-TW',{hour12:false})}</td></tr>`;
+    // 真實 OI 四象限顯示（冷啟動或無資料 → OI計算中）
+    const q=a.quadrant;
+    const qCol=q?(q.side==='long'?'var(--green2)':q.side==='short'?'var(--red2)':(q.side==='weakLong'||q.side==='weakShort')?'var(--gold)':'var(--text3)'):'var(--text3)';
+    const qChg=a.oiChgReal!=null?`${a.oiChgReal>=0?'+':''}${a.oiChgReal.toFixed(1)}%`:'';
+    const qCell=q?`<span style="font-size:9px;font-weight:900;color:${qCol};font-family:Nunito,sans-serif;white-space:nowrap">${q.name}</span><div style="font-size:8px;color:var(--text3);font-family:'JetBrains Mono',monospace">OI ${qChg}</div>`:`<span style="font-size:9px;color:var(--text3)">OI計算中</span>`;
+    return `<tr onclick="openOIDetail('${a.sym}')"><td><span class="oisym">${a.sym}</span></td><td><span class="${a.pchg>=0?'up':'dn'}" style="font-weight:700">${a.pchg>=0?'+':''}${a.pchg.toFixed(2)}%</span></td><td>${qCell}</td><td><span style="font-size:9px;font-weight:900;color:${ov.color};font-family:Nunito,sans-serif;white-space:nowrap">${ov.label}</span></td><td><div style="display:flex;gap:2px">${dots}</div></td><td style="color:var(--text3);font-size:9px">${new Date().toLocaleTimeString('zh-TW',{hour12:false})}</td></tr>`;
   }).join('');
-  document.getElementById('oitbl').innerHTML=`<table class="oi-tbl"><thead><tr><th>幣種</th><th>24H</th><th>OI訊號</th><th>OI+VEGAS</th><th>強度</th><th>時間</th></tr></thead><tbody>${rows}</tbody></table>`;
+  document.getElementById('oitbl').innerHTML=`<table class="oi-tbl"><thead><tr><th>幣種</th><th>24H</th><th>OI 行為</th><th>OI+VEGAS</th><th>強度</th><th>時間</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 // ═══ TECH INDICATORS ═══
