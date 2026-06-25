@@ -1894,6 +1894,40 @@ async function fetchCVD(sym) {
   } catch(e) { return null; }
 }
 
+// 真實 OI 1H 變化 + 同期價格 1H 變化（OI 走代理、價格走 K 線；null = 無資料不估算）
+async function fetchOIQuadrant(sym){
+  try{
+    const [oiRes, klRes] = await Promise.all([
+      okxFetch(proxyOKX(`https://www.okx.com/api/v5/rubik/stat/contracts/open-interest-volume?ccy=${sym}&period=5m`)),
+      okxFetch(`https://www.okx.com/api/v5/market/candles?instId=${sym}-USDT-SWAP&bar=5m&limit=13`)
+    ]);
+    if(!oiRes || oiRes.code!=='0' || !oiRes.data?.length) return null;
+    const oiArr=oiRes.data; // [ts, oi, vol]（newest first）
+    const oiNow=parseFloat(oiArr[0][1]);
+    const oiPast=parseFloat(oiArr[Math.min(12, oiArr.length-1)][1]);
+    if(!(oiNow>0) || !(oiPast>0)) return null;
+    const oiChg=(oiNow-oiPast)/oiPast*100;
+    let priceChg=null;
+    if(klRes && klRes.code==='0' && klRes.data?.length){
+      const k=klRes.data; // [ts,o,h,l,c,...]（newest first）
+      const cNow=parseFloat(k[0][4]);
+      const cPast=parseFloat(k[Math.min(12, k.length-1)][4]);
+      if(cNow>0 && cPast>0) priceChg=(cNow-cPast)/cPast*100;
+    }
+    return { oiChg, priceChg };
+  }catch(e){ return null; }
+}
+// OI 四象限分類（真實 OI 變化 × 真實價格變化）
+function oiQuadrant(oiChg, priceChg){
+  if(priceChg===null) return null;
+  const oiUp=oiChg>0.3, oiDown=oiChg<-0.3, pUp=priceChg>0.1, pDown=priceChg<-0.1;
+  if(oiUp && pUp)   return {name:'多頭建倉', side:'long',      desc:'持倉增、價格漲，新多單進場，看漲延續'};
+  if(oiUp && pDown) return {name:'空頭建倉', side:'short',     desc:'持倉增、價格跌，新空單進場，看跌延續'};
+  if(oiDown && pUp) return {name:'空頭回補', side:'weakLong',  desc:'持倉減、價格漲，空單平倉推升，動能存疑'};
+  if(oiDown && pDown)return{name:'多頭平倉', side:'weakShort', desc:'持倉減、價格跌，多單離場，非新空主導'};
+  return {name:'變化不明顯', side:'neutral', desc:'近1H 持倉與價格變化都不大'};
+}
+
 // AI 訊號判決書單行（Phase 3A）：support = 'good'(綠) / 'bad'(紅) / 'neutral'(金)
 function vRow(label, tag, support, desc){
   const col = support==='good'?'var(--green2)':support==='bad'?'var(--red2)':'var(--gold)';
@@ -3402,6 +3436,7 @@ function openMOVEDetail(sym, type, v, c) {
       <div class="m-sec-t">🧭 AI 訊號判決書 — ${dirW}依據</div>
       ${vRow('趨勢結構', vegasTag, vegasSup, vegasDesc)}
       ${vRow('相對強弱', relTag, relSup, relDesc)}
+      <div id="verdict-oi">${vRow('OI 行為','讀取中','neutral','抓取中…')}</div>
       <div id="verdict-fr">${vRow('資金費率','讀取中','neutral','抓取中…')}</div>
       <div id="verdict-ls">${vRow('散戶情緒','讀取中','neutral','抓取中…')}</div>
       <div id="verdict-cvd">${vRow('市場動能','讀取中','neutral','抓取中…')}</div>
@@ -3600,11 +3635,29 @@ function openMOVEDetail(sym, type, v, c) {
 }
 
 async function fetchAndUpdateFRLS(sym, type) {
-  const [fr, ls, cvd] = await Promise.all([
+  const [fr, ls, cvd, oiq] = await Promise.all([
     fetchFR(sym),
     fetchLS(sym),
-    fetchCVD(sym)
+    fetchCVD(sym),
+    fetchOIQuadrant(sym)
   ]);
+
+  // 更新 AI 訊號判決書「OI 行為」行（真實 OI 四象限，純判讀不計分）
+  const oiV = document.getElementById('verdict-oi');
+  if (oiV) {
+    if (oiq === null) oiV.innerHTML = vRow('OI 行為','無數據','neutral','OKX 無此幣持倉資料');
+    else {
+      const q = oiQuadrant(oiq.oiChg, oiq.priceChg);
+      if (!q) oiV.innerHTML = vRow('OI 行為','資料不足','neutral','價格 1H 資料載入中');
+      else {
+        let sup = 'neutral';
+        if (q.side==='long')  sup = type==='long' ? 'good' : 'bad';
+        else if (q.side==='short') sup = type==='short' ? 'good' : 'bad';
+        const oiTxt = `OI 1H ${oiq.oiChg>=0?'+':''}${oiq.oiChg.toFixed(1)}%`;
+        oiV.innerHTML = vRow('OI 行為', q.name, sup, `${q.desc}（${oiTxt}）`);
+      }
+    }
+  }
 
   // 更新 CVD 格子（僅顯示/判讀，不進勝率計算）
   const cvdCell = document.getElementById('modal-cvd-cell');
