@@ -3950,8 +3950,12 @@ function renderCoinNews(sym, items, bullWords, bearWords){
 
 function openOIDetail(sym){
   const oi=oiData.find(o=>o.sym===sym);if(!oi)return;
+  const v=vegasData.find(x=>x.sym===sym.toUpperCase());
   const cg=Object.values(coins).find(c=>c.symbol.toLowerCase()===sym.toLowerCase());
-  if(cg)openScoreDetail(cg.id,oi.dir==='long'?'long':'short');
+  // 方向：優先 VEGAS，其次 OI 方向，預設做多
+  const type = v?.signal==='bull' ? 'long' : v?.signal==='bear' ? 'short' : oi.dir==='short' ? 'short' : 'long';
+  // 即使 CoinGecko 無此幣（cg=null），仍用 VEGAS 資料開啟詳情，避免點不開
+  openMOVEDetail(sym, type, v, cg||null);
 }
 
 function closeMod(e){if(!e||e.target===document.getElementById('modal'))document.getElementById('modal').classList.remove('open');}
