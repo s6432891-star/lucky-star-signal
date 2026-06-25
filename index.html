@@ -2317,7 +2317,8 @@ function scoreAll(){
 }
 
 // ═══ 全指標綜合勝率計算（供 Top5 排序使用）═══
-function computeWR(c, type) {
+// wantBreakdown=true 時額外回傳每項加扣分明細（給詳情頁用，不影響 wr 數值）
+function computeWR(c, type, wantBreakdown) {
   const vd  = vegasData.find(v=>v.sym===c.symbol.toUpperCase());
   const rsi = getRSI(c.symbol);
   const fr  = getFR(c.symbol);
@@ -2330,64 +2331,70 @@ function computeWR(c, type) {
   const critCount = [paList.length>0, patList.length>0, srList.length>0].filter(Boolean).length;
 
   let wr = 0.40;
+  const bd = wantBreakdown ? [{label:'基礎勝率', detail:'每筆訊號起算', pts:0.40}] : null;
+  const add = (delta, label, detail) => { wr += delta; if(bd && delta!==0) bd.push({label, detail, pts:delta}); };
   const vegasAligned = vd&&((vd.signal==='bull'&&type==='long')||(vd.signal==='bear'&&type==='short'));
   const vegasAgainst = vd&&((vd.signal==='bull'&&type==='short')||(vd.signal==='bear'&&type==='long'));
-  if(vegasAligned) wr+=0.08; if(vegasAgainst) wr-=0.10;
-  if(vd?.h4InTunnel) wr-=0.03;
-  wr += critCount*0.04; if(critCount>=3) wr+=0.05;
-  if(critCount===0&&vegasAligned) wr-=0.03;
+  if(vegasAligned) add(0.08,'VEGAS 順勢',`日線+4H ${type==='long'?'多頭':'空頭'}排列，方向一致`);
+  if(vegasAgainst) add(-0.10,'VEGAS 逆勢','目前排列與操作方向相反');
+  if(vd?.h4InTunnel) add(-0.03,'VEGAS 整理中','EMA12 在通道內，方向未明');
+  if(critCount>0) add(critCount*0.04,`MOVE 篩選 ${critCount}/3`,'每符合一項 +4%');
+  if(critCount>=3) add(0.05,'三篩選全中','PA+型態+支撐壓力全符合');
+  if(critCount===0&&vegasAligned) add(-0.03,'順勢但零篩選','VEGAS 對但無 MOVE 篩選確認');
   const saekBull=vd?.dailyTrend==='bull', saekBear=vd?.dailyTrend==='bear';
   const saekFull    = type==='long'?(vd?.step1_long&&vd?.step2_long&&vd?.step3_long):(vd?.step1_short&&vd?.step2_short&&vd?.step3_short);
   const saekPartial = type==='long'?(vd?.step1_long&&vd?.step2_long):(vd?.step1_short&&vd?.step2_short);
   const saekOK = saekFull||saekPartial;
   const saekDir = (saekBull&&type==='long')||(saekBear&&type==='short');
-  if(saekFull)    wr += saekDir? 0.07:-0.07;
-  else if(saekPartial) wr += saekDir? 0.03:-0.03;
+  if(saekFull)    add(saekDir?0.07:-0.07,'賽克斯三步驟', saekDir?'判勢+找位+進場全滿足':'三步驟方向與操作相反');
+  else if(saekPartial) add(saekDir?0.03:-0.03,'賽克斯前兩步', saekDir?'判勢+找位完成，待進場':'前兩步方向相反');
   const qqeBull=vd?.qqe4h?.isBull, qqeBear=vd?.qqe4h?.isBear;
-  if(qqeBull) wr += type==='long'? 0.05:-0.05;
-  if(qqeBear) wr += type==='short'? 0.05:-0.05;
+  if(qqeBull) add(type==='long'?0.05:-0.05,'QQE 4H 藍柱','4H 動能偏多');
+  if(qqeBear) add(type==='short'?0.05:-0.05,'QQE 4H 紅柱','4H 動能偏空');
   const resAligned=(saekBull&&type==='long')||(saekBear&&type==='short');
-  if(vd?.resonance>=3)      wr += resAligned? 0.06:-0.06;
-  else if(vd?.resonance>=2) wr += resAligned? 0.03:-0.03;
+  if(vd?.resonance>=3)      add(resAligned?0.06:-0.06,'多週期共振 3框',`15M/1H/4H ${resAligned?'同向':'反向'}`);
+  else if(vd?.resonance>=2) add(resAligned?0.03:-0.03,'多週期共振 2框', resAligned?'兩框同向':'兩框反向');
   if(vd?.isPullbackSignal){
     const pbLong=vd?.pullbackSide==='bull_pullback'||vd?.pullbackSide==='bull_bounce';
-    wr += (pbLong&&type==='long')||(!pbLong&&type==='short')? 0.05:-0.05;
+    const pbMatch=(pbLong&&type==='long')||(!pbLong&&type==='short');
+    add(pbMatch?0.05:-0.05,'通道回踩', pbMatch?'回踩通道同向，進場時機佳':'回踩方向與操作相反');
   }
-  if(critCount>=2&&saekOK) wr += vegasAligned? 0.05:-0.05;
+  if(critCount>=2&&saekOK) add(vegasAligned?0.05:-0.05,'MOVE+賽克斯雙共振', vegasAligned?'兩系統同時確認':'雙系統但逆 VEGAS');
   if(rsi!==null){
-    if(rsi<30)  wr += type==='long'? 0.03:-0.04;
-    else if(rsi<=50&&type==='long')  wr+=0.01;
-    if(rsi>70)  wr += type==='short'? 0.03:-0.04;
-    else if(rsi>=50&&type==='short') wr+=0.01;
+    if(rsi<30)  add(type==='long'?0.03:-0.04,`RSI ${rsi}（超賣）`, type==='long'?'超賣利於做多反彈':'超賣不利做空');
+    else if(rsi<=50&&type==='long')  add(0.01,`RSI ${rsi}（偏弱）`,'偏低，做多小幅有利');
+    if(rsi>70)  add(type==='short'?0.03:-0.04,`RSI ${rsi}（超買）`, type==='short'?'超買利於做空回調':'超買不利做多');
+    else if(rsi>=50&&type==='short') add(0.01,`RSI ${rsi}（偏強）`,'偏高，做空小幅有利');
   }
   if(fr!==null){
     const frN=parseFloat(fr);
-    if(frN<-0.0001) wr += type==='long'? 0.04:-0.04;
-    if(frN> 0.0005) wr += type==='short'? 0.04:-0.04;
+    if(frN<-0.0001) add(type==='long'?0.04:-0.04,`資金費率 ${(frN*100).toFixed(3)}%`, type==='long'?'負費率、空方付費，利多':'負費率不利做空');
+    if(frN> 0.0005) add(type==='short'?0.04:-0.04,`資金費率 ${(frN*100).toFixed(3)}%`, type==='short'?'費率偏高、多方付費，利空':'費率偏高不利做多');
   }
   const ls=getLS(c.symbol);
   if(ls!==null){
-    if(ls<0.35) wr += type==='long'? 0.04:-0.03;
-    if(ls>0.72) wr += type==='short'? 0.04:-0.03;
+    if(ls<0.35) add(type==='long'?0.04:-0.03,`多空比 多${Math.round(ls*100)}%（偏空擁擠）`, type==='long'?'散戶過度偏空，反指利多':'散戶偏空、做空擁擠');
+    if(ls>0.72) add(type==='short'?0.04:-0.03,`多空比 多${Math.round(ls*100)}%（偏多擁擠）`, type==='short'?'散戶過度偏多，反指利空':'散戶偏多、做多擁擠');
   }
   if(oiChg!==null){
     const oiAl=(oi?.dir==='long'&&type==='long')||(oi?.dir==='short'&&type==='short');
-    if(oiChg> 5) wr += oiAl? 0.04:-0.03;
-    if(oiChg<-5) wr -= 0.03;
+    if(oiChg> 5) add(oiAl?0.04:-0.03,`OI 增 ${oiChg.toFixed(1)}%`, oiAl?'持倉增且同向，主力進場':'持倉增但逆向');
+    if(oiChg<-5) add(-0.03,`OI 減 ${oiChg.toFixed(1)}%`,'持倉大減，動能轉弱');
   }
   if(volPat){
     const isL=volPat.signal==='long', isS=volPat.signal==='short', isBrk=volPat.name.includes('突破');
-    if(isL) wr += type==='long'?(isBrk?0.08:0.05):-(isBrk?0.08:0.05);
-    if(isS) wr += type==='short'?(isBrk?0.08:0.06):-(isBrk?0.08:0.06);
-    if(volPat.signal==='watch_long') wr += type==='long'? 0.03:-0.03;
-    if(volPat.signal==='exit')       wr += type==='long'?-0.08: 0.08;
-    if(volPat.signal==='watch')      wr += type==='short'? 0.07:-0.07;
-    if(volPat.signal==='wait')       wr -= 0.02;
-    if(volPat.name.includes('低量')) wr += type==='long'?-0.03: 0.03;
+    if(isL) add(type==='long'?(isBrk?0.08:0.05):-(isBrk?0.08:0.05),`量價：${volPat.name}`, type==='long'?'量價型態偏多':'量價偏多、不利做空');
+    if(isS) add(type==='short'?(isBrk?0.08:0.06):-(isBrk?0.08:0.06),`量價：${volPat.name}`, type==='short'?'量價型態偏空':'量價偏空、不利做多');
+    if(volPat.signal==='watch_long') add(type==='long'?0.03:-0.03,`量價：${volPat.name}`,'偏多觀察');
+    if(volPat.signal==='exit')       add(type==='long'?-0.08:0.08,`量價：${volPat.name}`,'過熱/出貨訊號');
+    if(volPat.signal==='watch')      add(type==='short'?0.07:-0.07,`量價：${volPat.name}`,'偏空觀察');
+    if(volPat.signal==='wait')       add(-0.02,`量價：${volPat.name}`,'縮量整理，觀望');
+    if(volPat.name.includes('低量')) add(type==='long'?-0.03:0.03,`量價：${volPat.name}`,'低量');
   }
+  const wrRaw = wr;
   const wrFinal = Math.min(0.75, Math.max(0.30, wr));
   const moveOK = vegasAligned && critCount >= 1;
-  return { wr: wrFinal, critCount, vegasAligned, vegasAgainst, saekFull, saekPartial, saekOK, moveOK };
+  return { wr: wrFinal, wrRaw, breakdown: bd, critCount, vegasAligned, vegasAgainst, saekFull, saekPartial, saekOK, moveOK };
 }
 
 // ═══ RECS ═══
@@ -3267,9 +3274,12 @@ function openMOVEDetail(sym, type, v, c) {
   const fr_val  = c ? getFR(c.symbol) : null;
   const ls_val  = c ? getLS(c.symbol) : null;
   // c 存在時使用完整 computeWR（與 Top5 勝率一致）；否則降級簡算
-  const winRate = c
-    ? computeWR(c, type).wr
+  const _wrRes = c ? computeWR(c, type, true) : null;
+  const winRate = _wrRes
+    ? _wrRes.wr
     : Math.min(0.75, Math.max(0.30, 0.42 + (criteriaCount * 0.07) + (vegasOK ? 0.08 : 0)));
+  const wrBreakdown = _wrRes?.breakdown || null;
+  const wrRaw = _wrRes?.wrRaw ?? winRate;
   const ev = winRate * (tpPct/100) - (1-winRate) * (slPct/100);
   const kelly = Math.max(0, (winRate * (tpPct/slPct) - (1-winRate)) / (tpPct/slPct));
 
@@ -3553,29 +3563,30 @@ function openMOVEDetail(sym, type, v, c) {
       </div>
     </div>
 
-    <!-- 評分依據 -->
+    <!-- 評分依據：加扣分明細（Phase 3B）-->
     <div class="m-sec">
-      <div class="m-sec-t">📊 評分依據</div>
-      <div style="display:flex;flex-direction:column;gap:7px">
-        ${[
-          {n:'勁能',    v:sb_mom,  mx:28, cl:'var(--green2)'},
-          {n:'成交量',  v:sb_vol,  mx:22, cl:'var(--pink3)'},
-          {n:'位置',    v:sb_pos,  mx:18, cl:'var(--gold)'},
-          {n:'K線型態', v:sb_pat,  mx:20, cl:'var(--purple)'},
-          {n:'OI加成',  v:sb_oi,   mx:8,  cl:'var(--gold)'},
-          {n:'技術指標',v:sb_tech, mx:16, cl:'var(--gold)'},
-        ].map(({n,v,mx,cl})=>{
-          const pct=Math.max(0,Math.min(100,Math.round(v/mx*100)));
-          return `<div style="display:flex;align-items:center;gap:8px">
-            <div style="width:52px;font-size:10px;font-weight:700;color:var(--text2);font-family:Nunito,sans-serif;flex-shrink:0">${n}</div>
-            <div style="flex:1;height:8px;border-radius:6px;background:var(--pink4);overflow:hidden">
-              <div style="width:${pct}%;height:100%;background:${cl};border-radius:6px"></div>
+      <div class="m-sec-t">📊 評分依據 — 勝率怎麼算出來的</div>
+      ${wrBreakdown ? `
+      <div style="display:flex;flex-direction:column;gap:0">
+        ${wrBreakdown.map(b=>{
+          const p=Math.round(b.pts*100);
+          const isBase=b.label==='基礎勝率';
+          const col=isBase?'var(--text2)':p>0?'var(--green2)':p<0?'var(--red2)':'var(--text3)';
+          return `<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--pink4)">
+            <div style="flex:1">
+              <div style="font-size:11px;font-weight:700;color:var(--text);font-family:Nunito,sans-serif">${b.label}</div>
+              ${b.detail?`<div style="font-size:9px;color:var(--text3);margin-top:1px;line-height:1.4">${b.detail}</div>`:''}
             </div>
-            <div style="font-size:11px;font-weight:900;font-family:'JetBrains Mono',monospace;color:${v>0?cl:'var(--text3)'};min-width:20px;text-align:right">${v}</div>
-            <div style="font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;min-width:22px">/${mx}</div>
+            <div style="font-size:13px;font-weight:900;font-family:'JetBrains Mono',monospace;color:${col};white-space:nowrap;min-width:42px;text-align:right">${isBase?'':p>0?'+':''}${p}%</div>
           </div>`;
         }).join('')}
-      </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0 2px">
+          <div style="font-size:11px;font-weight:900;color:var(--text);font-family:Nunito,sans-serif">合計勝率${Math.abs(wrRaw-winRate)>0.001?`（原始 ${(wrRaw*100).toFixed(0)}% → 觸及上下限）`:''}</div>
+          <div style="font-size:20px;font-weight:900;font-family:Nunito,sans-serif;color:var(--pink3)">${(winRate*100).toFixed(0)}%</div>
+        </div>
+        <div style="font-size:9px;color:var(--text3);line-height:1.5;margin-top:4px">每項＝對勝率的加減分，基礎 40% 起算，上限 75%／下限 30%。此明細＝Top5 排序所用的真實計算，未額外造數。</div>
+      </div>` : `
+      <div style="font-size:11px;color:var(--text3);line-height:1.6">此幣缺完整指標資料，僅顯示簡算勝率 <strong style="color:var(--pink3)">${(winRate*100).toFixed(0)}%</strong>。等 VEGAS 掃描與指標載入後即有完整明細。</div>`}
       ${allTags.length ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:10px">
         ${allTags.map(tag=>`<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;background:var(--pink5);border:1px solid var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">${tag}</span>`).join('')}
       </div>` : ''}
