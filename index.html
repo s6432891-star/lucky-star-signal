@@ -3157,16 +3157,16 @@ function renderPullback(){
   renderNearPullback();
 }
 
-// ═══ 快回踩預警：接近通道緣但尚未進回踩區（pullbackDist 2%~4%）═══
+// ═══ 快回踩預警：接近通道緣但尚未進回踩區（pullbackDist 2%~5%）═══
 function renderNearPullback(){
   const cntEl=document.getElementById('near-pullback-cnt');
   const listEl=document.getElementById('near-pullback-list');
   if(!listEl) return;
-  // 條件：還沒到位(!isPullbackSignal) + 有距離資料 + 距通道緣 2%~4%（再靠近就進回踩區）+ 日線方向明確
+  // 條件：還沒到位(!isPullbackSignal) + 有距離資料 + 距通道緣 2%~5%（再靠近就進回踩區）+ 日線方向明確
   const near=vegasData.filter(v=>
     !v.isPullbackSignal &&
     typeof v.pullbackDist==='number' &&
-    v.pullbackDist>2 && v.pullbackDist<=4 &&
+    v.pullbackDist>2 && v.pullbackDist<=5 &&
     (v.dailyTrend==='bull'||v.dailyTrend==='bear')
   ).sort((a,b)=>a.pullbackDist-b.pullbackDist); // 越接近排越前
   if(cntEl) cntEl.textContent = near.length?`${near.length} 個接近中`:'暫無';
