@@ -3373,6 +3373,28 @@ function openMOVEDetail(sym, type, v, c) {
     (fr_val!==null && ((type==='long'&&parseFloat(fr_val)<-0.0001)||(type==='short'&&parseFloat(fr_val)>0.0005)) ? 5 : 0)
   ));
 
+  // ── 通道回踩（顯示於 MOVE 評分下方）──
+  const pbSide = v?.pullbackSide || null;
+  const pbIsLong  = pbSide==='bull_pullback' || pbSide==='bull_bounce';
+  const pbIsShort = pbSide==='bear_pullback' || pbSide==='bear_bounce';
+  const pbDirMatch = (type==='long'&&pbIsLong) || (type==='short'&&pbIsShort);
+  const pbReal   = !!v?.isPullbackSignal && pbDirMatch && (pbSide==='bull_pullback'||pbSide==='bear_pullback'); // 真回踩到位
+  const pbBounce = pbDirMatch && (pbSide==='bull_bounce'||pbSide==='bear_bounce');                              // 通道內反彈（不算硬門檻）
+  const pbDist   = (v && typeof v.pullbackDist==='number') ? v.pullbackDist : null;
+  const pbWR     = v?.pullbackWR ? Math.round(v.pullbackWR*100) : null;
+  const pbLabel  = (v?.pullbackLabel && v.pullbackLabel!=='—') ? v.pullbackLabel : null;
+  let pbStatus, pbColor, pbBg, pbBd, pbDesc;
+  if(pbReal){
+    pbStatus='✅ 回踩到位，可進場'; pbColor='var(--green2)'; pbBg='linear-gradient(135deg,rgba(0,200,150,.07),var(--white))'; pbBd='rgba(0,200,150,.3)';
+    pbDesc=`價格已回踩到 VEGAS 通道${type==='long'?'上緣（EMA144/169 小通道）支撐':'下緣（EMA144/169 小通道）壓力'}，是 MOVE 系統最佳進場時機。這也是進 Top5 的硬門檻。`;
+  } else if(pbBounce){
+    pbStatus='⏳ 通道內反彈（未到位）'; pbColor='var(--gold)'; pbBg='var(--pink5)'; pbBd='var(--pink4)';
+    pbDesc='價格在通道內反彈，還沒回踩到通道邊緣的最佳位置，勝率較低，不列入 Top5 硬門檻，建議再等回踩到通道緣。';
+  } else {
+    pbStatus='○ 尚未回踩'; pbColor='var(--text3)'; pbBg='var(--pink5)'; pbBd='var(--pink4)';
+    pbDesc=`目前價格距 VEGAS 通道${type==='long'?'上緣':'下緣'}還有空間，等價格回踩到 EMA144/169 小通道${type==='long'?'上緣再做多':'下緣再做空'}。`;
+  }
+
   // ── RSI / MACD / Boll（null = 真實數據載入中）──
   const _macd = c ? getMACDObj(c.symbol) : null;
   const _boll = c ? getBoll(c.symbol)    : null;
@@ -3549,6 +3571,17 @@ function openMOVEDetail(sym, type, v, c) {
           <div style="font-size:10px;color:var(--text3);line-height:1.5">${posLabel}<br>符合 <strong style="color:var(--pink3)">${criteriaCount}/3</strong> 篩選標準</div>
         </div>
       </div>
+    </div>
+
+    <!-- 通道回踩（MOVE 評分下方）-->
+    <div class="m-sec" style="background:${pbBg};border:1.5px solid ${pbBd}">
+      <div class="m-sec-t">🔥 通道回踩${pbLabel?` <span style="font-size:10px;font-weight:800;color:${pbColor}">${pbLabel}</span>`:''}</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="font-size:14px;font-weight:900;color:${pbColor};font-family:Nunito,sans-serif">${pbStatus}</span>
+        ${pbDist!==null?`<span style="font-size:10px;color:var(--text3)">距通道緣 <strong style="color:${pbColor};font-family:'JetBrains Mono',monospace">${(pbDist>=0?'+':'')+pbDist.toFixed(2)}%</strong></span>`:''}
+        ${pbWR!==null&&pbWR>0?`<span style="font-size:10px;color:var(--text3)">回踩勝率參考 <strong style="color:${pbColor};font-family:'JetBrains Mono',monospace">${pbWR}%</strong></span>`:''}
+      </div>
+      <div style="font-size:10px;color:var(--text2);line-height:1.6;margin-top:6px">${pbDesc}</div>
     </div>
 
     <!-- 進場 / 止損 / 止盈 -->
