@@ -346,6 +346,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
     </div>
     <div class="hright">
       <div class="api-status" id="api-status"><div class="api-dot" id="api-dot"></div><span id="api-label">連線中</span></div>
+      <div class="api-status" id="notify-toggle" onclick="toggleNotify()" title="高勝率訊號（勝率≥70%）出現時，跳瀏覽器通知提醒你" style="cursor:pointer"><span id="notify-icon">🔔</span><span id="notify-label">提醒關</span></div>
       <div class="livebadge"><div class="ldot"></div>LIVE</div>
       <div id="clk">--:--:--</div>
     </div>
@@ -977,6 +978,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(apiKey){document.getElementById('ainp').value=apiKey;document.getElementById('aist').textContent='● 已連線 ✨';}
   setInterval(()=>document.getElementById('clk').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false}),1000);
   renderSignup();
+  initNotify();
   // 1. 先動態載入全部幣種列表
   loadAllSymbols().then(()=>{
     // 2. 快速載入價格/OI
@@ -2113,67 +2115,10 @@ function inferNeutralDirection(sym) {
   return null;
 }
 
-// ═══ estWinRate（新規格版）═══
-function estWinRate(c, type) {
-  let wr = 0.40;
-  const sym = c.symbol.toUpperCase();
-  const ri  = realInd[sym] || {};
-  const rsi  = ri.rsi  ?? null;
-  const fr   = ri.fr   != null ? parseFloat(ri.fr) : null;
-  const ls   = ri.lsRatio ?? null;
-  const qqe  = ri.qqe  ?? null;
-  const vd   = vegasData.find(v => v.sym === sym);
-  const sc   = type === 'long' ? c.longScore : c.shortScore;
-  // ① VEGAS
-  if(vd){
-    const match=(type==='long'&&vd.signal==='bull')||(type==='short'&&vd.signal==='bear');
-    const opp  =(type==='long'&&vd.signal==='bear')||(type==='short'&&vd.signal==='bull');
-    if(match){
-      wr+=0.08;
-    } else if(opp){
-      wr-=0.10;
-    } else if(vd.signal==='neutral'){
-      const lean=inferNeutralDirection(sym);
-      const leanMatch=(type==='long'&&lean==='bull_lean')||(type==='short'&&lean==='bear_lean');
-      const leanOpp  =(type==='long'&&lean==='bear_lean')||(type==='short'&&lean==='bull_lean');
-      if(leanMatch)wr+=0.04;
-      else if(leanOpp)wr-=0.05;
-    }
-  }
-  // ② RSI（null = 數據未載入，不加分不扣分）
-  if(rsi !== null){
-    if(type==='long'){
-      if(rsi<30)wr+=0.03; else if(rsi<=50)wr+=0.01; else if(rsi>70)wr-=0.04;
-    } else {
-      if(rsi>70)wr+=0.03; else if(rsi>=50)wr+=0.01; else if(rsi<30)wr-=0.04;
-    }
-  }
-  // ③ FR
-  if(fr!==null){
-    if(type==='long'){if(fr<-0.0001)wr+=0.04;else if(fr>0.0005)wr-=0.04;}
-    else{if(fr>0.0005)wr+=0.04;else if(fr<-0.0001)wr-=0.04;}
-  }
-  // ④ L/S 逆向
-  if(ls!==null){
-    if(type==='long'){if(ls<0.35)wr+=0.04;else if(ls>0.72)wr-=0.03;}
-    else{if(ls>0.72)wr+=0.04;else if(ls<0.35)wr-=0.03;}
-  }
-  // ⑤ QQE MOD
-  if(qqe){
-    if(type==='long'&&qqe.isBull)wr+=0.04;
-    else if(type==='short'&&qqe.isBear)wr+=0.04;
-    else if(type==='long'&&qqe.isBear)wr-=0.04;
-    else if(type==='short'&&qqe.isBull)wr-=0.04;
-  }
-  // ⑥ 評分加權
-  if(sc>=80)wr+=0.03; else if(sc>=70)wr+=0.01;
-  return Math.min(0.75, Math.max(0.30, wr));
-}
+// 註：estWinRate（舊版勝率算法）已於 2026-06-27 移除，勝率統一由 computeWR() 計算。
+//     同時移除無呼叫點的 calcRSI / calcMACD / calcBoll 工具函數。
 
-function calcRSI(c){return getRSI(c.symbol||'');}
-function calcMACD(c){const ch=c.price_change_percentage_24h||0,hi=c.high_24h||0,lo=c.low_24h||0,px=c.current_price||0,pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5,hist=((ch/10+(pos-0.5)*0.5)).toFixed(3);return{hist,signal:ch>2?'黃金交叉':ch<-2?'死亡交叉':'整理',cls:ch>1?'bull':ch<-1?'bear':'neu'};}
 function calcMA(c){const ch=c.price_change_percentage_24h||0,hi=c.high_24h||0,lo=c.low_24h||0,px=c.current_price||0,pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5;if(pos>0.75&&ch>1)return{label:'站上MA20',cls:'bull',desc:'均線多頭排列'};if(pos<0.25&&ch<-1)return{label:'跌破MA20',cls:'bear',desc:'均線空頭排列'};if(pos>0.6&&ch>0)return{label:'MA20上方',cls:'bull',desc:'短期偏多'};if(pos<0.4&&ch<0)return{label:'MA20下方',cls:'bear',desc:'短期偏空'};return{label:'MA整理',cls:'neu',desc:'等待方向'};}
-function calcBoll(c){const hi=c.high_24h||0,lo=c.low_24h||0,px=c.current_price||0,ch=c.price_change_percentage_24h||0,pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5;if(pos>0.9)return{label:'觸上軌',cls:'bear',desc:'接近壓力'};if(pos<0.1)return{label:'觸下軌',cls:'bull',desc:'接近支撐，反彈機率高'};if(pos>0.65&&ch>2)return{label:'突破中軌',cls:'bull',desc:'動能向上'};if(pos<0.35&&ch<-2)return{label:'跌破中軌',cls:'bear',desc:'動能向下'};return{label:'中軌整理',cls:'neu',desc:'等待突破'};}
 function calcVol(c){const vol=c.total_volume||0,ch=c.price_change_percentage_24h||0;if(vol>3e9&&ch>2)return{label:'量價齊升',cls:'bull',val:(vol/1e9).toFixed(1)+'B',desc:'放量上漲，多頭確認'};if(vol>3e9&&ch<-2)return{label:'放量下跌',cls:'bear',val:(vol/1e9).toFixed(1)+'B',desc:'放量下跌，空頭確認'};if(vol>1e9&&ch>1)return{label:'量增價漲',cls:'bull',val:(vol/1e9).toFixed(1)+'B',desc:'量能支撐'};if(vol<3e8)return{label:'量能萎縮',cls:'neu',val:(vol/1e9).toFixed(2)+'B',desc:'缺乏量能'};return{label:'量能正常',cls:'neu',val:(vol/1e9).toFixed(1)+'B',desc:'成交量穩定'};}
 
 
@@ -2657,6 +2602,57 @@ function renderRecs(){
     </div>`;
 
   _setAll(`<div style="display:flex;flex-direction:column;gap:0">${makeSection(longs,'long')}${makeSection(shorts,'short')}</div>`,'rec-wrap','rec-wrap-ov');
+
+  // C3：高勝率訊號瀏覽器推播（勝率≥70% 才提醒；同一訊號 30 分鐘內不重複）
+  const hi=[];
+  longs.forEach(c=>{ const wr=_wrL.get(c.symbol)||0; if(wr>=0.70) hi.push({sym:c.symbol.toUpperCase(),type:'long',wr}); });
+  shorts.forEach(c=>{ const wr=_wrS.get(c.symbol)||0; if(wr>=0.70) hi.push({sym:c.symbol.toUpperCase(),type:'short',wr}); });
+  notifyHighWR(hi);
+}
+
+// ═══ C3：高勝率瀏覽器推播 ═══
+let _notifyOn = false;
+const _notifiedAt = {}; // key: `SYM-type` -> 上次推播的時間戳，30 分鐘冷卻避免洗版
+const NOTIFY_COOLDOWN = 30*60*1000;
+
+function initNotify(){
+  _notifyOn = localStorage.getItem('ls_notify')==='1' && ('Notification' in window) && Notification.permission==='granted';
+  paintNotifyToggle();
+}
+function paintNotifyToggle(){
+  const ic=document.getElementById('notify-icon'), lb=document.getElementById('notify-label'), wrap=document.getElementById('notify-toggle');
+  if(!ic||!lb||!wrap) return;
+  if(_notifyOn){ ic.textContent='🔔'; lb.textContent='提醒開'; wrap.style.borderColor='var(--green2)'; wrap.style.color='var(--green2)'; }
+  else { ic.textContent='🔕'; lb.textContent='提醒關'; wrap.style.borderColor=''; wrap.style.color=''; }
+}
+async function toggleNotify(){
+  if(!('Notification' in window)){ alert('你的瀏覽器不支援桌面通知'); return; }
+  if(_notifyOn){ // 關閉
+    _notifyOn=false; localStorage.setItem('ls_notify','0'); paintNotifyToggle(); return;
+  }
+  // 開啟：要先取得授權
+  let perm=Notification.permission;
+  if(perm!=='granted') perm=await Notification.requestPermission();
+  if(perm!=='granted'){ alert('要先允許瀏覽器通知，提醒功能才能開啟'); paintNotifyToggle(); return; }
+  _notifyOn=true; localStorage.setItem('ls_notify','1'); paintNotifyToggle();
+  try{ new Notification('幸運星信號 ⭐ 提醒已開啟',{body:'出現勝率 ≥70% 的訊號會主動通知你'}); }catch(e){}
+}
+function notifyHighWR(list){
+  if(!_notifyOn || !('Notification' in window) || Notification.permission!=='granted') return;
+  const now=Date.now();
+  list.forEach(s=>{
+    const key=`${s.sym}-${s.type}`;
+    if(_notifiedAt[key] && now-_notifiedAt[key] < NOTIFY_COOLDOWN) return;
+    _notifiedAt[key]=now;
+    const dir=s.type==='long'?'做多 🚀':'做空 📉';
+    try{
+      const n=new Notification(`⭐ 高勝率訊號：${s.sym} ${dir}`,{
+        body:`綜合勝率 ${Math.round(s.wr*100)}%，已進入 Top5。點開查看完整判決與倉位建議。`,
+        tag:key
+      });
+      n.onclick=()=>{ window.focus(); n.close(); };
+    }catch(e){}
+  });
 }
 
 // ═══ 賽克斯訊號分數計算（固定加權，無亂數）═══
@@ -2895,17 +2891,17 @@ async function fetchKlinesOHLCV(sym,bar,limit){
 }
 
 // OI 變化（用 ticker openInterest + 快取比較）
-const _oiCache = {};
 async function fetchOIChange(sym){
+  // 真實 OI 1H 變化：抓 OKX open-interest-volume 5m 歷史（走代理），用最新 vs 12 根前（約1H）相減。
+  // 改自舊版「前後快取相減」（頁面剛開第一輪永遠 null 的冷啟動問題）→ 第一次呼叫就有真實值。
   try{
-    const j=await okxFetch(`https://www.okx.com/api/v5/market/ticker?instId=${sym}-USDT-SWAP`);
+    const j=await okxFetch(proxyOKX(`https://www.okx.com/api/v5/rubik/stat/contracts/open-interest-volume?ccy=${sym}&period=5m`));
     if(!j||j.code!=='0'||!j.data?.length)return null;
-    const curr=parseFloat(j.data[0].oi);
-    if(isNaN(curr))return null;
-    const prev=_oiCache[sym];
-    _oiCache[sym]=curr;
-    if(prev==null)return null;
-    return (curr-prev)/prev*100;
+    const arr=j.data; // [ts, oi, vol]（newest first）
+    const oiNow=parseFloat(arr[0][1]);
+    const oiPast=parseFloat(arr[Math.min(12, arr.length-1)][1]);
+    if(!(oiNow>0)||!(oiPast>0))return null;
+    return (oiNow-oiPast)/oiPast*100;
   }catch(e){return null;}
 }
 
