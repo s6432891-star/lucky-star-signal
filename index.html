@@ -346,7 +346,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
     </div>
     <div class="hright">
       <div class="api-status" id="api-status"><div class="api-dot" id="api-dot"></div><span id="api-label">連線中</span></div>
-      <div class="api-status" id="notify-toggle" onclick="toggleNotify()" title="高勝率訊號（勝率≥70%）出現時，跳瀏覽器通知提醒你" style="cursor:pointer"><span id="notify-icon">🔔</span><span id="notify-label">提醒關</span></div>
+      <div class="api-status" id="notify-toggle" onclick="toggleNotify()" title="高勝率訊號（勝率≥70%）出現時，跳瀏覽器通知提醒你" style="cursor:pointer"><span id="notify-icon">☆</span><span id="notify-label">提醒關</span></div>
       <div class="livebadge"><div class="ldot"></div>LIVE</div>
       <div id="clk">--:--:--</div>
     </div>
@@ -2622,8 +2622,8 @@ function initNotify(){
 function paintNotifyToggle(){
   const ic=document.getElementById('notify-icon'), lb=document.getElementById('notify-label'), wrap=document.getElementById('notify-toggle');
   if(!ic||!lb||!wrap) return;
-  if(_notifyOn){ ic.textContent='🔔'; lb.textContent='提醒開'; wrap.style.borderColor='var(--green2)'; wrap.style.color='var(--green2)'; }
-  else { ic.textContent='🔕'; lb.textContent='提醒關'; wrap.style.borderColor=''; wrap.style.color=''; }
+  if(_notifyOn){ ic.textContent='⭐'; lb.textContent='提醒開'; wrap.style.borderColor='var(--gold)'; wrap.style.color='var(--gold)'; }
+  else { ic.textContent='☆'; lb.textContent='提醒關'; wrap.style.borderColor=''; wrap.style.color=''; }
 }
 async function toggleNotify(){
   if(!('Notification' in window)){ alert('你的瀏覽器不支援桌面通知'); return; }
