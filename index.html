@@ -2471,18 +2471,20 @@ function renderRecs(){
   // 預先計算所有幣種的綜合勝率（每幣各算一次，sort 直接查 Map 不重複呼叫）
   const _wrL = new Map(candidates.map(c=>[c.symbol, computeWR(c,'long').wr]));
   const _wrS = new Map(candidates.map(c=>[c.symbol, computeWR(c,'short').wr]));
-  // 做多Top5：完整 VEGAS 候選池；bull 直接進；neutral 需 inferNeutralDirection==='bull_lean'；bear 排除
+  // 做多Top5：硬門檻＝必須已回踩到通道（bull_pullback）；再依 VEGAS 方向 bull 直接進、neutral 需 bull_lean、bear 排除
   const longs=[...candidates].filter(c=>{
     const vd=_getVd(c);
     if(!vd) return false;
+    if(!(vd.isPullbackSignal && vd.pullbackSide==='bull_pullback')) return false; // ← 回踩硬門檻
     if(vd.signal==='bull') return true;
     if(vd.signal==='bear') return false;
     return inferNeutralDirection(c.symbol.toUpperCase())==='bull_lean';
   }).sort((a,b)=>(_wrL.get(b.symbol)||0)-(_wrL.get(a.symbol)||0)).slice(0,5);
-  // 做空Top5：完整 VEGAS 候選池；bear 直接進；neutral 需 inferNeutralDirection==='bear_lean'；bull 排除
+  // 做空Top5：硬門檻＝必須已回踩到通道（bear_pullback）；再依 VEGAS 方向 bear 直接進、neutral 需 bear_lean、bull 排除
   const shorts=[...candidates].filter(c=>{
     const vd=_getVd(c);
     if(!vd) return false;
+    if(!(vd.isPullbackSignal && vd.pullbackSide==='bear_pullback')) return false; // ← 回踩硬門檻
     if(vd.signal==='bear') return true;
     if(vd.signal==='bull') return false;
     return inferNeutralDirection(c.symbol.toUpperCase())==='bear_lean';
@@ -2583,7 +2585,7 @@ function renderRecs(){
     <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);margin-bottom:10px">
       <div style="padding:10px 13px;border-bottom:1.5px solid var(--pink4);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--pink5),var(--white))">
         <div style="font-family:Nunito,sans-serif;font-size:14px;font-weight:900;color:${type==='long'?'var(--green2)':'var(--red2)'}">${type==='long'?'🚀 做多推薦 Top5':'📉 做空推薦 Top5'}</div>
-        <div style="font-size:10px;color:var(--text3);font-weight:700">綜合勝率評比 👆</div>
+        <div style="font-size:10px;color:var(--purple);font-weight:800">🔥 僅收回踩到位</div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1.5px solid var(--pink4);background:var(--pink5)">
         <div style="padding:5px 8px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif">幣種 / 倉位</div>
@@ -2593,10 +2595,9 @@ function renderRecs(){
         <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">指標</div>
       </div>
       ${items.length===0
-        ? `<div style="padding:18px 16px;text-align:center;color:var(--text3);font-size:12px;font-weight:600">
-            ${type==='long'
-              ? '目前無符合 VEGAS 方向的做多訊號，建議觀望'
-              : '目前無符合 VEGAS 方向的做空訊號，建議觀望'}
+        ? `<div style="padding:18px 16px;text-align:center;color:var(--text3);font-size:12px;font-weight:600;line-height:1.7">
+            目前沒有「已回踩到通道」的${type==='long'?'做多':'做空'}訊號<br>
+            <span style="font-size:11px;color:var(--text4)">Top5 只收回踩到位的幣，耐心等價格回踩 VEGAS 通道再進場<br>想看哪些幣快回踩了 👉 到「MOVE 訊號」Tab 的回踩埋伏清單</span>
            </div>`
         : items.map((c,i)=>makeRow(c,i,type)).join('')}
     </div>`;
