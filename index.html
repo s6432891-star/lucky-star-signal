@@ -501,6 +501,15 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
       🎯 價格回調至 EMA144/169 通道支撐後反彈 = <strong style="color:var(--green2)">最高勝率進場點</strong>（賽克斯步驟2）
     </div>
     <div id="pullback-list"><div class="loading"><div class="spin"></div>計算回踩距離中...</div></div>
+    <!-- 快回踩預警（接近通道緣、尚未到位）-->
+    <div class="ch" style="border-top:1.5px solid var(--pink4)">
+      <div class="ct" style="font-size:13px">⏰ 快回踩預警</div>
+      <div class="cb" id="near-pullback-cnt">接近中</div>
+    </div>
+    <div style="background:linear-gradient(135deg,rgba(255,180,80,.08),var(--white));border-bottom:1.5px solid var(--pink4);padding:9px 13px;font-size:11px;color:var(--text2);line-height:1.7">
+      📍 價格接近通道緣、<strong style="color:var(--gold)">尚未到位</strong>，再靠近一點就進回踩區，可先盯著等進場
+    </div>
+    <div id="near-pullback-list"></div>
   </div>
   <!-- 全部 MOVE 訊號 -->
   <div class="card">
@@ -3143,6 +3152,47 @@ function renderPullback(){
         </div>
       </div>
       <div style="font-size:10px;color:var(--text3);margin-top:7px;font-family:JetBrains Mono,monospace">訊號時間：${now} &nbsp;|&nbsp; 點擊查看完整分析</div>
+    </div>`;
+  }).join('');
+  renderNearPullback();
+}
+
+// ═══ 快回踩預警：接近通道緣但尚未進回踩區（pullbackDist 2%~4%）═══
+function renderNearPullback(){
+  const cntEl=document.getElementById('near-pullback-cnt');
+  const listEl=document.getElementById('near-pullback-list');
+  if(!listEl) return;
+  // 條件：還沒到位(!isPullbackSignal) + 有距離資料 + 距通道緣 2%~4%（再靠近就進回踩區）+ 日線方向明確
+  const near=vegasData.filter(v=>
+    !v.isPullbackSignal &&
+    typeof v.pullbackDist==='number' &&
+    v.pullbackDist>2 && v.pullbackDist<=4 &&
+    (v.dailyTrend==='bull'||v.dailyTrend==='bear')
+  ).sort((a,b)=>a.pullbackDist-b.pullbackDist); // 越接近排越前
+  if(cntEl) cntEl.textContent = near.length?`${near.length} 個接近中`:'暫無';
+  if(!near.length){
+    listEl.innerHTML='<div class="empty" style="padding:14px;font-size:11px">目前沒有接近回踩的幣<br>價格距通道還有一段距離</div>';
+    return;
+  }
+  listEl.innerHTML=near.map(v=>{
+    const isLong=v.dailyTrend==='bull';
+    const dir=isLong?'📈 做多':'📉 做空';
+    const dirColor=isLong?'var(--green2)':'var(--red2)';
+    const dist=v.pullbackDist.toFixed(2);
+    const toZone=Math.max(0,(v.pullbackDist-2)).toFixed(2); // 還差多少進回踩區（區間上緣2%）
+    const px=v.price||v.lastPrice||0;
+    const ps=px>=1000?'$'+Number(px).toLocaleString('en-US',{maximumFractionDigits:0}):px>=0.1?'$'+Number(px).toLocaleString('en-US',{maximumFractionDigits:4}):'$'+Number(px).toFixed(6);
+    return `<div style="display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--pink4);padding:10px 14px;cursor:pointer;transition:background .15s" onclick="openVegasDetail('${v.sym}')" onmouseenter="this.style.background='var(--pink5)'" onmouseleave="this.style.background=''">
+      <div style="min-width:64px">
+        <div style="font-family:Nunito,sans-serif;font-size:14px;font-weight:900">${v.sym}</div>
+        <div style="font-size:10px;font-weight:800;color:${dirColor}">${dir}</div>
+      </div>
+      <div style="flex:1;font-size:11px;color:var(--text2);line-height:1.6">
+        現價 <strong style="font-family:JetBrains Mono,monospace">${ps}</strong>
+        距通道緣 <strong style="color:var(--gold);font-family:JetBrains Mono,monospace">${dist}%</strong><br>
+        <span style="font-size:10px;color:var(--text3)">再靠近約 <strong style="color:${dirColor}">${toZone}%</strong> 進入回踩區，${isLong?'等回調':'等反彈'}到位再進場</span>
+      </div>
+      <div style="font-size:9px;font-weight:800;color:var(--gold);background:rgba(255,180,80,.12);border:1px solid rgba(255,180,80,.35);border-radius:8px;padding:3px 8px;font-family:Nunito,sans-serif;white-space:nowrap">接近中</div>
     </div>`;
   }).join('');
 }
