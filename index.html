@@ -1429,7 +1429,6 @@ function calcRealVolPattern(ohlcvArr){
   const chg = (close-open)/open*100;
   const range = high-low;
   const upperShadow = range>0?(high-Math.max(close,open))/range:0;
-  const lowerBody = range>0?(Math.min(close,open)-low)/range:0;
   const closePos = range>0?(close-low)/range:0.5; // 0=底，1=頂
 
   // 🚀 放量突破：vol>均量×2 + 收盤突破 + 收在上75%
@@ -2109,16 +2108,6 @@ function getNewsSent(sym){
   if(bullPct<=0.40)return{label:'📰利空',color:'var(--red2)',bull:false,bear:true};
   return null; // 中性不顯示標籤
 }
-function getMA(sym){const c=Object.values(coins).find(x=>x.symbol.toLowerCase()===sym.toLowerCase());return c?calcMA(c):{label:'—',cls:'neu',desc:'—'};}
-function getVol(sym){const c=Object.values(coins).find(x=>x.symbol.toLowerCase()===sym.toLowerCase());return c?calcVol(c):{label:'—',cls:'neu',val:'—',desc:'—'};}
-
-// ═══ EV + KELLY ═══
-function computeEV(winRate, rr, slPct) {
-  const win = slPct * rr, loss = slPct, q = 1 - winRate;
-  const ev = winRate * win - q * loss;
-  const kelly = Math.max(0, (winRate * rr - q) / rr);
-  return { ev, kelly, winRate, rr, slPct };
-}
 
 // ═══ inferNeutralDirection：neutral 幣方向投票 ═══
 function inferNeutralDirection(sym) {
@@ -2153,7 +2142,6 @@ function inferNeutralDirection(sym) {
 // 註：estWinRate（舊版勝率算法）已於 2026-06-27 移除，勝率統一由 computeWR() 計算。
 //     同時移除無呼叫點的 calcRSI / calcMACD / calcBoll 工具函數。
 
-function calcMA(c){const ch=c.price_change_percentage_24h||0,hi=c.high_24h||0,lo=c.low_24h||0,px=c.current_price||0,pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5;if(pos>0.75&&ch>1)return{label:'站上MA20',cls:'bull',desc:'均線多頭排列'};if(pos<0.25&&ch<-1)return{label:'跌破MA20',cls:'bear',desc:'均線空頭排列'};if(pos>0.6&&ch>0)return{label:'MA20上方',cls:'bull',desc:'短期偏多'};if(pos<0.4&&ch<0)return{label:'MA20下方',cls:'bear',desc:'短期偏空'};return{label:'MA整理',cls:'neu',desc:'等待方向'};}
 function calcVol(c){const vol=c.total_volume||0,ch=c.price_change_percentage_24h||0;if(vol>3e9&&ch>2)return{label:'量價齊升',cls:'bull',val:(vol/1e9).toFixed(1)+'B',desc:'放量上漲，多頭確認'};if(vol>3e9&&ch<-2)return{label:'放量下跌',cls:'bear',val:(vol/1e9).toFixed(1)+'B',desc:'放量下跌，空頭確認'};if(vol>1e9&&ch>1)return{label:'量增價漲',cls:'bull',val:(vol/1e9).toFixed(1)+'B',desc:'量能支撐'};if(vol<3e8)return{label:'量能萎縮',cls:'neu',val:(vol/1e9).toFixed(2)+'B',desc:'缺乏量能'};return{label:'量能正常',cls:'neu',val:(vol/1e9).toFixed(1)+'B',desc:'成交量穩定'};}
 
 
@@ -2726,7 +2714,6 @@ function calcSaekScore(coin, type, ind){
 }
 
 // ═══ SAEK SIGNAL（真實指標，無 Math.random）═══
-const TF_LIST=['5分鐘','1小時','4小時'],TF_KEYS=['5m','1h','4h'];
 function buildSaek(){
   const data=buildTop5Candidates();if(!data.length)return[];
   const sigs=[];
@@ -3292,8 +3279,6 @@ function renderVegas(){
     const px=v.price,ps=px>=1000?'$'+Number(px).toLocaleString('en-US',{maximumFractionDigits:0}):px>=1?'$'+Number(px).toLocaleString('en-US',{maximumFractionDigits:3}):'$'+Number(px).toFixed(5);
     // 賽克斯三步驟狀態
     const s1ok=v.step1,s2ok=v.step2,s3ok=v.step3;
-    const allSteps=s1ok&&s2ok&&s3ok;
-    const stepsCount=[s1ok,s2ok,s3ok].filter(Boolean).length;
     // QQE MOD 多週期
     const q4=v.qqe4h,q1=v.qqe1h,q15=v.qqe15m;
     const resonanceLbl=v.resonance>=3?'🔥 三週期共振':v.resonance===2?'⚡ 雙週期共振':v.resonance===1?'📡 單週期':'—';
@@ -3428,9 +3413,6 @@ function openMOVEDetail(sym, type, v, c) {
 
   // ── VEGAS 條件 ──
   const vegasOK     = v && ((type==='long' && v.signal==='bull') || (type==='short' && v.signal==='bear'));
-  const vegasActive = v && v.signal !== 'neutral';
-  const dailyOK     = v && ((type==='long' && v.dailyTrend==='bull') || (type==='short' && v.dailyTrend==='bear'));
-  const h4OK        = v && ((type==='long' && v.h4AboveTunnel) || (type==='short' && v.h4BelowTunnel));
 
   // ── 三個篩選標準 ──
   const paList  = c ? detectPA(c, type)      : [];
@@ -3462,7 +3444,6 @@ function openMOVEDetail(sym, type, v, c) {
   // ── 止損/止盈建議 ──
   let slPct = 3, tpPct = 6, slDesc = '', tp1Desc = '', tp2Desc = '';
   const h4EMA144 = v?.h4_144 ? Number(v.h4_144).toFixed(2) : null;
-  const h4EMA576 = v?.h4_576 ? Number(v.h4_576).toFixed(2) : null;
   if (type === 'long') {
     slDesc  = h4EMA144 ? `4H EMA144（$${h4EMA144}）下方` : '前低下方';
     tp1Desc = '前高／下一壓力位';
@@ -3527,8 +3508,6 @@ function openMOVEDetail(sym, type, v, c) {
   const _boll = c ? getBoll(c.symbol)    : null;
   const macd_obj = _macd || {hist:'—', signal:'載入中', cls:'neu'};
   const boll_obj = _boll || {label:'載入中', cls:'neu', desc:'4H數據載入中'};
-  const ma_obj   = c ? getMA(c.symbol)  : {label:'—', cls:'neu', desc:'—'};
-  const vol_obj  = c ? getVol(c.symbol) : {label:'—', cls:'neu', val:'—', desc:'—'};
   const rsiCls   = rsi_val===null?'neu':rsi_val<30?'bull':rsi_val>70?'bear':'neu';
   const rsiLbl   = rsi_val===null?'載入中':rsi_val<30?'超賣':rsi_val>70?'超買':'中性';
 
@@ -3539,7 +3518,6 @@ function openMOVEDetail(sym, type, v, c) {
   const lsRaw  = ls_val;
   const frCls  = frRaw===null?'neu':parseFloat(frRaw)>0.01?'bear':parseFloat(frRaw)<0?'bull':'neu';
   const lsCls  = lsRaw===null?'neu':lsRaw*100>55?'bull':lsRaw*100<45?'bear':'neu';
-  const msClass= chg24>2?'bull':chg24<-2?'bear':'neu';
 
   // ── HTML helpers ──
   const checkBox = (ok, text, detail='') =>
@@ -3604,27 +3582,6 @@ function openMOVEDetail(sym, type, v, c) {
   // Verdict color
   const verdictCls = type==='long' ? 'bull' : 'bear';
 
-  // ── 評分依據 ──
-  const sb_vol = (() => {
-    const vol = c?.total_volume ?? 0;
-    return vol > 5e9 ? 22 : vol > 2e9 ? 17 : vol > 1e9 ? 12 : vol > 5e8 ? 8 : 4;
-  })();
-  const sb_mom = (() => {
-    const ch = c?.price_change_percentage_24h ?? chg24;
-    if (type === 'long') return ch > 5 ? 28 : ch > 3 ? 22 : ch > 1 ? 14 : ch > 0 ? 7 : 0;
-    return ch < -5 ? 28 : ch < -3 ? 22 : ch < -1 ? 14 : ch < 0 ? 7 : 0;
-  })();
-  const sb_pos = (() => {
-    const hi = c?.high_24h ?? 0, lo = c?.low_24h ?? 0, pxc = c?.current_price ?? v?.price ?? 0;
-    const pos = (hi - lo) > 0 ? (pxc - lo) / (hi - lo) : 0.5;
-    return type === 'long' ? Math.max(0, Math.floor(pos * 18)) : Math.max(0, Math.floor((1 - pos) * 18));
-  })();
-  const sb_pat = c ? Math.min(20, (c.pats || []).filter(p => type === 'long' ? p.bull : !p.bull).reduce((a, p) => a + p.score, 0)) : 0;
-  const sb_oi  = type === 'long' ? (c?.oi?.dir === 'long' ? 8 : 0) : (c?.oi?.dir === 'short' ? 8 : 0);
-  const sb_tech = (() => {
-    const rsiB = rsi_val !== null ? (type === 'long' ? (rsi_val < 30 ? 8 : rsi_val > 70 ? -4 : 0) : (rsi_val > 70 ? 8 : rsi_val < 30 ? -4 : 0)) : 0;
-    return Math.max(0, rsiB + (vegasOK ? 8 : 0));
-  })();
   const allTags   = [...paList, ...patList, ...srList].map(p => p.name);
   const relCoins  = c ? [...scoredCoins]
     .filter(x => x.id !== c.id && (type === 'long' ? x.longScore > 45 : x.shortScore > 45))
