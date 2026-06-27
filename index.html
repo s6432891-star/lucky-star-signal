@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>幸運星信號 ⭐ MOVE × 正EV</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -150,6 +150,8 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
 .oi-tbl th{font-size:9px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;padding:7px 11px;text-align:left;border-bottom:1.5px solid var(--pink4);font-weight:700;font-family:'Nunito',sans-serif}
 .oi-tbl td{padding:8px 11px;font-size:10px;border-bottom:1px solid var(--pink4);font-family:'JetBrains Mono',monospace}
 .oi-tbl tr:hover td{background:var(--pink5);cursor:pointer}
+#oitbl{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.oi-tbl th,.oi-tbl td{white-space:nowrap}
 .oisym{font-family:'Nunito',sans-serif;font-size:13px;font-weight:900}
 .oidir{display:inline-block;padding:2px 6px;border-radius:8px;font-size:9px;font-weight:800;font-family:'Nunito',sans-serif}
 .oidir.long{background:var(--greenb);color:var(--green2)}
@@ -335,6 +337,28 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
   .row2{grid-template-columns:1fr}
   .rec-cols,.rec-row{grid-template-columns:2fr 0fr 2.5fr 1.5fr}
   .rec-cols .rch:nth-child(2),.rec-row .rpx{display:none}
+}
+
+/* 超小螢幕（iPhone SE／小型 Android）：收緊間距與字級，避免擠版 */
+@media(max-width:380px){
+  .hdr{gap:6px}
+  .logo-t{font-size:16px}
+  .logo-s{display:none}
+  #clk{display:none}
+  .main{padding:8px 8px}
+  .tab{padding:10px 9px;font-size:12px}
+  .cbody{padding:11px 10px}
+  .ch{padding:9px 10px}
+  .rsym{font-size:15px}
+  .si{padding:8px 9px;gap:5px}
+  .si-sym{font-size:15px;min-width:42px}
+  .si-pill{min-width:34px;padding:3px 6px}
+  .si-tf{min-width:34px}
+  .vi{padding:10px 10px}
+  .vi-sym{font-size:16px;min-width:46px}
+  .oi-tbl th,.oi-tbl td{padding:7px 8px}
+  .stat-grid{gap:6px}
+  .sv{font-size:20px}
 }
 </style>
 </head>
