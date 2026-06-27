@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>幸運星信號 ⭐ MOVE × 正EV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -2885,25 +2887,70 @@ function calcQQEMOD(closes, rsiPeriod=14, smoothPeriod=5, qqeFactor=4.238){
   };
 }
 
-// 只回傳收盤價（close）
-async function fetchKlines(sym,bar,limit){
+// ── K 線快取層 ──────────────────────────────────────────────
+// 為什麼：原本每次 loadVEGAS（180秒）對 ~75 幣各重抓 1D 700根/4H/1H/15M，
+// 1D K 線一天才收一根卻每 3 分鐘重抓 700 根，浪費頻寬也容易觸發 429。
+// 解法：記憶體快取（所有週期）＋ 1D 額外持久化到 localStorage（重整頁面仍命中）。
+// rows 一律存「舊→新」（已 reverse），key = sym|bar，依週期給不同 TTL。
+const _klCache = {};                       // 記憶體：'BTC|1D' -> {ts, rows}
+const _KL_TTL = { '1D':1800000, '4H':600000, '1H':300000, '15m':180000, '5m':120000 };
+let _klLSFull = false;                      // localStorage 滿了就停止寫，避免反覆 stringify
+function _klTTL(bar){ return _KL_TTL[bar] || 180000; }
+
+// 取得「舊→新」原始 K 線列（含快取）；回傳 null 代表無資料
+async function fetchCandles(sym,bar,limit){
+  const key=sym+'|'+bar, now=Date.now(), ttl=_klTTL(bar);
+  // 1) 記憶體命中（且根數足夠）
+  let c=_klCache[key];
+  if(c && (now-c.ts)<ttl && c.rows.length>=limit) return c.rows.slice(c.rows.length-limit);
+  // 2) localStorage（僅 1D 持久化，重整後仍可命中）
+  if((!c || c.rows.length<limit) && bar==='1D'){
+    try{
+      const raw=localStorage.getItem('klc:'+key);
+      if(raw){
+        const o=JSON.parse(raw);
+        if(o && o.rows && (now-o.ts)<ttl && o.rows.length>=limit){
+          _klCache[key]=o; return o.rows.slice(o.rows.length-limit);
+        }
+      }
+    }catch(e){}
+  }
+  // 3) 真正打 API
   try{
     const j=await okxFetch(`https://www.okx.com/api/v5/market/candles?instId=${sym}-USDT-SWAP&bar=${bar}&limit=${limit}`);
-    if(!j||j.code!=='0'||!j.data?.length)return null;
-    return j.data.reverse().map(d=>parseFloat(d[4]));
-  }catch(e){return null;}
+    if(!j||j.code!=='0'||!j.data?.length){
+      // API 失敗時，若有舊快取（即使過期）先頂著用，避免畫面變空
+      if(c && c.rows.length>=limit) return c.rows.slice(c.rows.length-limit);
+      return null;
+    }
+    const rows=j.data.reverse();           // 舊→新
+    _klCache[key]={ts:now,rows};
+    if(bar==='1D' && !_klLSFull){
+      try{ localStorage.setItem('klc:'+key,JSON.stringify({ts:now,rows})); }
+      catch(e){ _klLSFull=true; }          // 配額滿：本次工作階段不再嘗試
+    }
+    return rows.slice(rows.length-limit);
+  }catch(e){
+    if(c && c.rows.length>=limit) return c.rows.slice(c.rows.length-limit);
+    return null;
+  }
+}
+
+// 只回傳收盤價（close）
+async function fetchKlines(sym,bar,limit){
+  const rows=await fetchCandles(sym,bar,limit);
+  if(!rows)return null;
+  return rows.map(d=>parseFloat(d[4]));
 }
 
 // 回傳完整 OHLCV（供量價型態計算）
 async function fetchKlinesOHLCV(sym,bar,limit){
-  try{
-    const j=await okxFetch(`https://www.okx.com/api/v5/market/candles?instId=${sym}-USDT-SWAP&bar=${bar}&limit=${limit}`);
-    if(!j||j.code!=='0'||!j.data?.length)return null;
-    return j.data.reverse().map(d=>({
-      ts:parseInt(d[0]),open:parseFloat(d[1]),high:parseFloat(d[2]),
-      low:parseFloat(d[3]),close:parseFloat(d[4]),vol:parseFloat(d[5])
-    }));
-  }catch(e){return null;}
+  const rows=await fetchCandles(sym,bar,limit);
+  if(!rows)return null;
+  return rows.map(d=>({
+    ts:parseInt(d[0]),open:parseFloat(d[1]),high:parseFloat(d[2]),
+    low:parseFloat(d[3]),close:parseFloat(d[4]),vol:parseFloat(d[5])
+  }));
 }
 
 // OI 變化（用 ticker openInterest + 快取比較）
