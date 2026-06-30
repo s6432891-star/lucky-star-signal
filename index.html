@@ -2457,7 +2457,9 @@ function buildTop5Candidates(){
   const cgBySym = new Map(Object.values(coins).map(c=>[c.symbol.toUpperCase(), c]));
   const scoredBySym = new Map(scoredCoins.map(c=>[c.symbol.toUpperCase(), c]));
   const oiBySym = new Map(oiData.map(o=>[o.sym.toUpperCase(), o]));
-  return vegasData.map(v=>{
+  // VEGAS 掃描或不同資料源可能短時間內產生同 symbol 重複資料；Top5 只允許每個幣種出現一次。
+  const top5BySym = new Map();
+  vegasData.forEach(v=>{
     const sym = v.sym.toUpperCase();
     const cg = cgBySym.get(sym) || scoredBySym.get(sym) || null;
     const oi = okxTickers[sym] || oiBySym.get(sym) || null;
@@ -2484,8 +2486,10 @@ function buildTop5Candidates(){
     base.pats = detectPats(base);
     base.oi = oi || null;
     base.vegasData = v;
-    return base;
+    const prev = top5BySym.get(sym);
+    if(!prev || (v.score||0) > (prev.vegasData?.score||0)) top5BySym.set(sym, base);
   });
+  return [...top5BySym.values()];
 }
 
 function renderRecs(){
