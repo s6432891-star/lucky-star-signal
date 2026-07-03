@@ -2010,7 +2010,10 @@ function oiQuadrant(oiChg, priceChg){
 
 // 訊號成熟度（Phase 3E）：用現有 VEGAS/賽克斯/RSI/漲跌幅 判斷生命週期，純判讀不改計算
 function signalMaturity(type, v, rsi, chg24){
-  if(!v) return {stage:'計算中', color:'var(--text3)', desc:'VEGAS 掃描中'};
+  // Phase 1：資料不足優先——不給方向判斷（純顯示，不影響任何計算）
+  if(!v) return {stage:'資料不足', color:'var(--text3)', desc:'VEGAS 通道資料未載入，資料不足不給方向判斷'};
+  if(rsi===null && (chg24===null || chg24===undefined))
+    return {stage:'資料不足', color:'var(--text3)', desc:'RSI 與 24H 漲跌皆缺，資料不足不給方向判斷'};
   const want=type==='long'?'bull':'bear', opp=type==='long'?'bear':'bull';
   const aligned=v.signal===want, against=v.signal===opp;
   const step3=type==='long'?v.step3_long:v.step3_short;
@@ -2045,6 +2048,9 @@ function updateDataCompleteness(){
   const pct=Math.round(ok/badges.length*100);
   el.textContent=`${ok}/${badges.length} 項真實資料（${pct}%）`;
   el.style.color = pct>=70?'var(--green2)':pct>=40?'var(--gold)':'var(--red2)';
+  // 同步寫進判決書的「資料完整度 n/m」欄（Phase 1，純顯示）
+  const vEl=document.getElementById('dc-count-verdict');
+  if(vEl){ vEl.textContent=`${ok}/${badges.length}`; vEl.style.color=el.style.color; }
 }
 
 // AI 訊號判決書單行（Phase 3A）：support = 'good'(綠) / 'bad'(紅) / 'neutral'(金)
@@ -2055,6 +2061,102 @@ function vRow(label, tag, support, desc){
     <div style="flex-shrink:0"><span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:7px;background:var(--white);border:1px solid ${col};color:${col};font-family:Nunito,sans-serif;white-space:nowrap">${tag}</span></div>
     <div style="flex:1;font-size:10px;color:var(--text2);line-height:1.5">${desc}</div>
   </div>`;
+}
+
+// 統一資料狀態顯示（Phase 1）：全站共用三態文字，缺資料不空白、不顯示 undefined/NaN、不補假值
+// formatDataStatus('loading')        → 載入中…
+// formatDataStatus('partial', n, m)  → 資料不足（n/m 項）
+// formatDataStatus('none') 或其他    → 無資料
+function formatDataStatus(state, n, m){
+  if(state==='loading') return '載入中…';
+  if(state==='partial' && Number.isFinite(n) && Number.isFinite(m)) return `資料不足（${n}/${m} 項）`;
+  return '無資料';
+}
+
+// AI 訊號判決書 v1（Phase 1）：純顯示層，只讀既有欄位（wrBreakdown / vegasData / maturity），
+// 不重算任何分數、不動 computeWR / Top5 / VEGAS / MOVE / 賽克斯 / EV / Kelly
+function buildSignalVerdict(ctx){
+  const {sym, type, mat, v, wrBreakdown, rsi, macdOk, priceOk, chg24Ok} = ctx;
+  const dirW = type==='long'?'做多':'做空';
+  const want = type==='long'?'bull':'bear', opp = type==='long'?'bear':'bull';
+
+  // 方向標籤：順勢多 / 弱勢空 / 逆勢反彈 / 震盪 / 無法判定（只讀 VEGAS 既有 signal）
+  let dirTag;
+  if(!v) dirTag='無法判定';
+  else if(v.signal===want) dirTag = type==='long'?'順勢多':'弱勢空';
+  else if(v.signal===opp)  dirTag = type==='long'?'逆勢反彈':'逆勢空（高風險）';
+  else dirTag='震盪';
+
+  // 一句話判決：模板拼接既有真實欄位
+  const verdictLine = !v
+    ? `${sym} 的 VEGAS 通道資料尚未載入，暫時無法判定方向，請等掃描完成。`
+    : `${sym} 目前判定為「${dirTag}」，訊號成熟度「${mat.stage}」——${mat.desc}`;
+
+  // 為什麼被抓出來：取評分明細中的加分項（排除基礎勝率），由大到小最多 3 條
+  const plus = (wrBreakdown||[]).filter(b=>b.label!=='基礎勝率' && b.pts>0)
+    .sort((a,b)=>b.pts-a.pts).slice(0,3);
+  const plusHTML = plus.length
+    ? plus.map(b=>`<li>${b.label}${b.detail?`：${b.detail}`:''}（勝率 +${Math.round(b.pts*100)}%）</li>`).join('')
+    : `<li>${wrBreakdown?'目前沒有明顯加分條件，主要靠基礎條件入選':'評分明細載入中，暫無法列出加分理由'}</li>`;
+
+  // 風險在哪：取評分明細中的扣分項，加上成熟度層級的既有風險旗標
+  const minus = (wrBreakdown||[]).filter(b=>b.pts<0)
+    .sort((a,b)=>a.pts-b.pts).slice(0,3)
+    .map(b=>`<li>${b.label}${b.detail?`：${b.detail}`:''}（勝率 ${Math.round(b.pts*100)}%）</li>`);
+  if(minus.length<3 && v?.isFakeBreakout) minus.push('<li>假突破偵測中：價格突破但 EMA12 未同步，追單易被掃損</li>');
+  if(minus.length<3 && mat.stage==='過熱') minus.push(`<li>短線已${type==='long'?'大漲':'大跌'}且 RSI 極端，此刻追${type==='long'?'高':'空'}風險高</li>`);
+  if(minus.length<3 && v && v.signal===opp) minus.push(`<li>VEGAS 目前與${dirW}方向相反，屬逆勢操作</li>`);
+  const minusHTML = minus.length ? minus.join('')
+    : '<li>目前評分明細沒有扣分項，但條件成立 ≠ 會漲，缺失的資料本身就是風險</li>';
+
+  // 缺什麼資料：同步項當下判定；FR / L/S / CVD / OI 為非同步，先顯示載入中，抓完由 fetchAndUpdateFRLS 更新
+  const missSync = [];
+  if(!priceOk)   missSync.push('價格');
+  if(!chg24Ok)   missSync.push('24H 漲跌');
+  if(!v)         missSync.push('VEGAS 通道');
+  if(rsi===null) missSync.push('RSI');
+  if(!macdOk)    missSync.push('MACD');
+  const missSyncHTML = missSync.length
+    ? `<li>${missSync.join('、')}：無資料，此項不計分，資料完整度下降</li>`
+    : '';
+  const missHTML = `${missSyncHTML}<li id="verdict-missing-async">資金費率、多空比 L/S、CVD、OI：${formatDataStatus('loading')}</li>`;
+
+  // 下一步等什麼：只讀既有旗標（賽克斯 step2/3、假突破、通道整理、過熱），最多 3 條
+  const waits = [];
+  const step2 = type==='long'?v?.step2_long:v?.step2_short;
+  const step3 = type==='long'?v?.step3_long:v?.step3_short;
+  if(!v) waits.push('等 VEGAS 掃描完成，先有方向再談進場');
+  else {
+    if(v.isFakeBreakout) waits.push('等 EMA12 與 K 棒同步突破，排除假突破');
+    if(mat.stage==='過熱') waits.push(`等回調降溫、RSI 離開極端區，不追${type==='long'?'高':'空'}`);
+    if(v.signal===want && !step2) waits.push(`等價格回踩 EMA144/169 小通道${type==='long'?'支撐':'壓力'}再找位`);
+    if(step2 && !step3) waits.push(`等 K 棒收盤${type==='long'?'站上':'貫穿'} EMA12＋QQE ${type==='long'?'藍':'紅'}柱啟動`);
+    if(v.h4InTunnel) waits.push('等 VEGAS 通道突破，確認方向後再評估操作');
+    if(v.signal===opp) waits.push(`等 VEGAS 翻${type==='long'?'多':'空'}；逆勢單不符合系統紀律`);
+    if(!waits.length && step3) waits.push('進場條件已成立：依紀律設好止損再操作，跌破止損無條件離場');
+    if(!waits.length) waits.push('續觀察，等更多條件到齊');
+  }
+  const waitHTML = waits.slice(0,3).map(w=>`<li>${w}</li>`).join('');
+
+  const nowTW = new Date().toLocaleTimeString('zh-TW',{timeZone:'Asia/Taipei',hour12:false,hour:'2-digit',minute:'2-digit'});
+  const secT = t=>`<div style="font-size:10px;font-weight:900;color:var(--text3);font-family:Nunito,sans-serif;letter-spacing:.5px;margin:9px 0 3px">${t}</div>`;
+  const ul = inner=>`<ul style="margin:0;padding-left:16px;font-size:10px;color:var(--text2);line-height:1.7">${inner}</ul>`;
+
+  return `
+    <div style="font-size:10px;color:var(--text3);line-height:1.5;margin:2px 0 6px">這不是叫你買，而是告訴你這顆幣為什麼被系統抓出來。</div>
+    <div style="background:var(--white);border:1px solid var(--pink4);border-radius:9px;padding:8px 11px;font-size:11px;font-weight:700;color:var(--text);line-height:1.6">
+      ⚖️ 判決：${verdictLine}
+      <span style="display:inline-block;font-size:9px;font-weight:800;padding:1px 7px;border-radius:6px;margin-left:4px;background:var(--pink5);border:1px solid var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">方向：${dirTag}</span>
+    </div>
+    ${secT('✅ 為什麼被抓出來')}${ul(plusHTML)}
+    ${secT('⚠️ 風險在哪')}${ul(minusHTML)}
+    ${secT('🔍 缺什麼資料')}${ul(missHTML)}
+    ${secT('⏭️ 下一步等什麼')}${ul(waitHTML)}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:9px;font-size:9px;color:var(--text3)">
+      <span>資料完整度 <strong id="dc-count-verdict" style="font-family:'JetBrains Mono',monospace">檢查中…</strong></span>
+      <span>更新時間 ${nowTW}（台北）</span>
+    </div>
+    <div style="background:var(--pink5);border-radius:8px;padding:7px 10px;margin-top:7px;font-size:9px;color:var(--text3);line-height:1.6">⚠️ 本判決書為資料整理，非投資建議。系統條件成立 ≠ 會漲。請自行評估，只用你賠得起的錢。</div>`;
 }
 
 // ── 真實指標 Getter（null = 數據載入中，禁止估算）──
@@ -3634,15 +3736,16 @@ function openMOVEDetail(sym, type, v, c) {
       </div>
     </div>
 
-    <!-- AI 訊號判決書（Phase 3A）：白話綜合判讀，不改任何計算 -->
+    <!-- AI 訊號判決書（Phase 3A + Phase 1 v1 補齊欄位）：白話綜合判讀，純顯示層，不改任何計算 -->
     <div class="m-sec" style="background:${verdictGrad};border:1.5px solid ${verdictBorder}">
-      <div class="m-sec-t">🧭 AI 訊號判決書 — ${dirW}依據</div>
+      <div class="m-sec-t">📋 AI 訊號判決書 — ${sym}（${dirW}依據）</div>
       ${vRow('趨勢結構', vegasTag, vegasSup, vegasDesc)}
       ${vRow('相對強弱', relTag, relSup, relDesc)}
       <div id="verdict-oi">${vRow('OI 行為','讀取中','neutral','抓取中…')}</div>
       <div id="verdict-fr">${vRow('資金費率','讀取中','neutral','抓取中…')}</div>
       <div id="verdict-ls">${vRow('散戶情緒','讀取中','neutral','抓取中…')}</div>
       <div id="verdict-cvd">${vRow('市場動能','讀取中','neutral','抓取中…')}</div>
+      ${buildSignalVerdict({sym, type, mat, v, wrBreakdown, rsi: rsi_val, macdOk: !!_macd, priceOk: px>0, chg24Ok: Number.isFinite(chg24)})}
     </div>
 
     <!-- MOVE 評分 + 建議倉位 -->
@@ -3965,6 +4068,19 @@ async function fetchAndUpdateFRLS(sym, type) {
   dcUpd('dc-cvd', cvd!==null, 'CVD');
   dcUpd('dc-oi',  oiq!==null, 'OI 行為');
   updateDataCompleteness();
+
+  // 更新判決書「缺什麼資料」的非同步項（Phase 1，純顯示：抓不到就誠實列出，不補假值）
+  const missEl = document.getElementById('verdict-missing-async');
+  if (missEl) {
+    const missAsync = [];
+    if (fr === null)  missAsync.push('資金費率');
+    if (ls === null)  missAsync.push('多空比 L/S');
+    if (cvd === null) missAsync.push('CVD');
+    if (oiq === null) missAsync.push('OI 行為');
+    missEl.textContent = missAsync.length
+      ? `${missAsync.join('、')}：${formatDataStatus('none')}，此項不計分，資料完整度下降`
+      : '資金費率、多空比 L/S、CVD、OI：已全部載入真實資料';
+  }
 
   // 更新 FR 格子
   const frCell = document.getElementById('modal-fr-cell');
