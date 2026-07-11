@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>幸運星回測研究室｜VEGAS Phase 1</title>
+  <meta name="description" content="幸運星交易系統的獨立 VEGAS 歷史回測研究頁。只使用 OKX 公開歷史 K 線，不下單。">
+  <style>
+    :root{--bg:#0d0b14;--card:#171321;--card2:#211a30;--text:#f8f1ff;--muted:#ad9dbd;--pink:#ff72ba;--purple:#9d7cff;--green:#58dfa7;--red:#ff7185;--gold:#ffd66b;--line:#342943}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0,#281737 0,#0d0b14 42%);color:var(--text);font-family:system-ui,"Noto Sans TC",sans-serif;line-height:1.55}.wrap{width:min(1180px,calc(100% - 28px));margin:auto;padding:28px 0 56px}.top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:22px}.brand h1{font-size:clamp(24px,4vw,38px);margin:0}.brand p{margin:4px 0 0;color:var(--muted)}a{color:var(--pink)}.badge{border:1px solid #6f568e;background:#241b31;border-radius:999px;padding:7px 12px;font-size:12px;color:#dcc8f3}.grid{display:grid;grid-template-columns:360px 1fr;gap:18px}.card{background:rgba(23,19,33,.94);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 16px 48px #0005}.card h2{font-size:17px;margin:0 0 14px}.field{margin-bottom:13px}.field label{display:block;font-size:12px;font-weight:750;color:#dfd1eb;margin-bottom:5px}.field input,.field select{width:100%;background:#0f0c16;border:1px solid #463650;color:var(--text);border-radius:10px;padding:11px 12px;font:inherit}.field small{display:block;color:var(--muted);font-size:11px;margin-top:4px}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.run{width:100%;border:0;border-radius:12px;padding:13px;background:linear-gradient(100deg,var(--pink),var(--purple));color:white;font-weight:900;font-size:15px;cursor:pointer}.run:disabled{opacity:.45;cursor:not-allowed}.notice{font-size:12px;color:var(--muted);background:#100d17;border:1px solid var(--line);padding:11px;border-radius:11px;margin-top:12px}.status{padding:12px;border-radius:11px;background:#120f1a;border:1px solid var(--line);font-size:13px;margin-bottom:14px}.status.good{color:var(--green)}.status.bad{color:var(--red)}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.metric{background:var(--card2);border:1px solid var(--line);border-radius:13px;padding:13px}.metric b{display:block;font-size:20px}.metric span{font-size:11px;color:var(--muted)}.empty{padding:46px 15px;text-align:center;color:var(--muted)}.chart{width:100%;height:210px;background:#100d17;border:1px solid var(--line);border-radius:13px;margin-top:14px}.table-wrap{overflow:auto;margin-top:14px;border:1px solid var(--line);border-radius:13px}table{border-collapse:collapse;width:100%;min-width:920px;font-size:12px}th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}th{color:#cfbddc;background:#211a30;position:sticky;top:0}tr:last-child td{border-bottom:0}.long{color:var(--green)}.short{color:var(--red)}.method{margin-top:18px}.method ol{padding-left:20px}.method li{margin:7px 0}.warn{border-color:#72572d;background:#201a10;color:#ffe3a0}@media(max-width:900px){.grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}.top{align-items:flex-start;flex-direction:column}}@media(max-width:480px){.two{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}.metric b{font-size:16px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><h1>⭐ 幸運星回測研究室</h1><p>VEGAS Phase 1｜4H 定方向 × 1H 找突破</p></div>
+    <div><span class="badge">研究模式｜不登入・不下單</span>　<a href="index.html">返回信號站</a></div>
+  </div>
+
+  <div class="grid">
+    <aside class="card">
+      <h2>回測設定</h2>
+      <div class="field"><label for="symbol">商品</label><select id="symbol"><option value="BTC">BTC-USDT-SWAP</option><option value="ETH">ETH-USDT-SWAP</option></select></div>
+      <div class="field"><label for="bars">1H 歷史根數</label><select id="bars"><option value="1000">1,000 根（約 42 天）</option><option value="2000" selected>2,000 根（約 83 天）</option><option value="3000">3,000 根（約 125 天）</option></select><small>4H 另抓 800 根，供 EMA676 暖機。</small></div>
+      <div class="two">
+        <div class="field"><label for="sl">止損（%）*</label><input id="sl" type="number" min="0.01" step="0.01" placeholder="請自行輸入"></div>
+        <div class="field"><label for="tp">止盈（%）*</label><input id="tp" type="number" min="0.01" step="0.01" placeholder="請自行輸入"></div>
+      </div>
+      <div class="two">
+        <div class="field"><label for="fee">單邊手續費（%）*</label><input id="fee" type="number" min="0" step="0.001" placeholder="請自行輸入"></div>
+        <div class="field"><label for="slippage">單邊滑價（%）*</label><input id="slippage" type="number" min="0" step="0.001" placeholder="請自行輸入"></div>
+      </div>
+      <button class="run" id="run" disabled>輸入完整參數後開始</button>
+      <div class="notice">不輸入本金或槓桿；結果統一用 <b>R</b> 表示。1R＝你自行定義的單筆止損風險。</div>
+      <div class="notice warn">本頁只研究歷史規則。過去績效不代表未來結果，不構成投資建議。</div>
+    </aside>
+
+    <main class="card">
+      <h2>研究結果</h2>
+      <div id="status" class="status">請先輸入止損、止盈、手續費與滑價。</div>
+      <div id="results" class="empty">尚未執行回測</div>
+    </main>
+  </div>
+
+  <section class="card method">
+    <h2>本版規則與防作弊設計</h2>
+    <ol>
+      <li>只使用 OKX 公開歷史 K 線；API 失敗就顯示無資料，不製造替代數字。</li>
+      <li>4H：收盤價與 EMA12 同在 EMA576／676 上方＝多頭；同在下方＝空頭。</li>
+      <li>1H：價格與 EMA12 同時穿越 EMA144／169，且方向符合 4H，才產生訊號。</li>
+      <li>訊號於本根收盤確認，下一根開盤進場，避免偷看未來資料。</li>
+      <li>同根同時碰到止損與止盈，採保守假設：先止損。</li>
+      <li>一次只持有一筆；手續費與滑價按進出場雙邊扣除。</li>
+      <li>本版尚未加入 PA、W／M、支撐壓力、成交量或自動調參。</li>
+    </ol>
+  </section>
+</div>
+<script src="backtest-engine.js"></script>
+<script>
+'use strict';
+const PROXY='https://young-glade-8c18lucky-star-proxy.s6432891.workers.dev';
+const $=id=>document.getElementById(id);
+const inputs=['sl','tp','fee','slippage'].map($);
+const runBtn=$('run'),statusEl=$('status'),resultsEl=$('results');
+
+function paramsReady(){return inputs.every(el=>el.value!==''&&Number.isFinite(Number(el.value))&&Number(el.value)>=Number(el.min||0));}
+function syncButton(){const ok=paramsReady();runBtn.disabled=!ok;runBtn.textContent=ok?'開始回測':'輸入完整參數後開始';}
+inputs.forEach(el=>el.addEventListener('input',syncButton));
+
+function proxy(url){return `${PROXY}/?url=${encodeURIComponent(url)}`;}
+function parseRows(rows){return rows.map(d=>({ts:+d[0],open:+d[1],high:+d[2],low:+d[3],close:+d[4],vol:+d[5]}));}
+async function fetchHistory(symbol,bar,total){
+  const byTs=new Map();let after='';let attempts=0;
+  while(byTs.size<total&&attempts<Math.ceil(total/100)+3){
+    const base=`https://www.okx.com/api/v5/market/history-candles?instId=${symbol}-USDT-SWAP&bar=${bar}&limit=100${after?`&after=${after}`:''}`;
+    let resp;
+    for(let retry=0;retry<4;retry+=1){
+      try{resp=await fetch(base);}catch(_){resp=await fetch(proxy(base));}
+      if(resp.status!==429)break;
+      await new Promise(r=>setTimeout(r,1000*(retry+1)));
+    }
+    if(!resp.ok)throw new Error(`OKX ${bar} HTTP ${resp.status}`);
+    const json=await resp.json();
+    if(json.code!=='0'||!Array.isArray(json.data)||!json.data.length)break;
+    for(const row of json.data)byTs.set(String(row[0]),row);
+    const oldest=Math.min(...json.data.map(r=>Number(r[0])));
+    if(String(oldest)===after)break;
+    after=String(oldest);attempts+=1;
+    await new Promise(r=>setTimeout(r,350));
+  }
+  return parseRows([...byTs.values()].sort((a,b)=>Number(a[0])-Number(b[0]))).slice(-total);
+}
+function f(n,d=2){return Number.isFinite(n)?n.toFixed(d):'—';}
+function date(ts){return new Date(ts).toLocaleString('zh-TW',{timeZone:'Asia/Taipei',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});}
+function equitySvg(curve){
+  if(!curve||curve.length<2)return '<div class="chart empty">交易不足，無法繪製資金曲線</div>';
+  const w=900,h=210,p=18,min=Math.min(...curve),max=Math.max(...curve),range=max-min||1;
+  const pts=curve.map((v,i)=>`${p+i*(w-2*p)/(curve.length-1)},${h-p-(v-min)*(h-2*p)/range}`).join(' ');
+  const zeroY=h-p-(0-min)*(h-2*p)/range;
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="累積 R 資金曲線"><line x1="${p}" y1="${zeroY}" x2="${w-p}" y2="${zeroY}" stroke="#463650"/><polyline points="${pts}" fill="none" stroke="#ff72ba" stroke-width="3"/><text x="${p}" y="16" fill="#ad9dbd" font-size="11">最高 ${f(max)}R｜最低 ${f(min)}R</text></svg>`;
+}
+function render(result,signals,h1,h4,symbol){
+  const m=result.metrics,pf=m.profitFactor===Infinity?'∞':f(m.profitFactor);
+  const rows=result.trades.map((t,i)=>`<tr><td>${i+1}</td><td class="${t.side}">${t.side==='long'?'做多':'做空'}</td><td>${date(t.signalTs)}</td><td>${date(t.entryTs)}</td><td>${date(t.exitTs)}</td><td>${f(t.entryPrice,4)}</td><td>${f(t.exitPrice,4)}</td><td>${t.exitReason==='take_profit'?'止盈':t.exitReason==='stop_loss'?'止損':'資料結束'}</td><td class="${t.rMultiple>=0?'long':'short'}">${f(t.rMultiple)}R</td><td>${t.barsHeld}</td></tr>`).join('');
+  resultsEl.className='';resultsEl.innerHTML=`
+    <div class="metrics">
+      <div class="metric"><b>${m.totalTrades}</b><span>完成交易</span></div><div class="metric"><b>${f(m.winRate)}%</b><span>勝率</span></div>
+      <div class="metric"><b>${f(m.expectancyR)}R</b><span>每筆期望值</span></div><div class="metric"><b>${pf}</b><span>Profit Factor</span></div>
+      <div class="metric"><b>${f(m.netR)}R</b><span>累積結果</span></div><div class="metric"><b>${f(m.maxDrawdownR)}R</b><span>最大回撤</span></div>
+      <div class="metric"><b>${m.maxLosingStreak}</b><span>最大連敗</span></div><div class="metric"><b>${signals.length}</b><span>原始訊號</span></div>
+    </div>${equitySvg(m.equityCurve)}
+    <div class="notice">資料：${symbol}｜1H ${h1.length} 根｜4H ${h4.length} 根。訊號數不等於交易數，持倉期間的新訊號會略過。</div>
+    <div class="table-wrap"><table><thead><tr><th>#</th><th>方向</th><th>訊號時間</th><th>進場時間</th><th>出場時間</th><th>進場價</th><th>出場價</th><th>原因</th><th>結果</th><th>持有H</th></tr></thead><tbody>${rows||'<tr><td colspan="10">此期間沒有符合且完成的交易</td></tr>'}</tbody></table></div>`;
+}
+runBtn.addEventListener('click',async()=>{
+  if(!paramsReady())return;
+  runBtn.disabled=true;runBtn.textContent='下載真實 K 線中…';statusEl.className='status';statusEl.textContent='正在從 OKX 公開 API 分頁下載歷史資料，請稍候。';resultsEl.className='empty';resultsEl.textContent='載入中…';
+  try{
+    const symbol=$('symbol').value,bars=Number($('bars').value);
+    const h4=await fetchHistory(symbol,'4H',800);
+    statusEl.textContent='4H 大方向資料完成，正在下載 1H 進場資料。';
+    const h1=await fetchHistory(symbol,'1H',bars);
+    if(h1.length<170)throw new Error(`1H 資料不足（${h1.length}/170）`);
+    if(h4.length<677)throw new Error(`4H 資料不足（${h4.length}/677）`);
+    const signals=LuckyStarBacktest.buildVegasSignals(h1,h4);
+    const result=LuckyStarBacktest.runBacktest(h1,signals,{stopLossPct:+$('sl').value,takeProfitPct:+$('tp').value,feePct:+$('fee').value,slippagePct:+$('slippage').value});
+    statusEl.className='status good';statusEl.textContent=`完成：使用 OKX 真實歷史資料，找到 ${signals.length} 個訊號、${result.metrics.totalTrades} 筆完成交易。`;
+    render(result,signals,h1,h4,symbol);
+  }catch(err){statusEl.className='status bad';statusEl.textContent=`無法完成：${err.message}`;resultsEl.className='empty';resultsEl.textContent='無資料；沒有使用任何假值替代。';}
+  finally{syncButton();}
+});
+</script>
+</body>
+</html>

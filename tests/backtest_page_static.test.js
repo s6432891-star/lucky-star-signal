@@ -1,0 +1,20 @@
+const fs = require('fs');
+const path = require('path');
+const assert = require('assert');
+const html = fs.readFileSync(path.join(__dirname, '..', 'backtest.html'), 'utf8');
+const engine = fs.readFileSync(path.join(__dirname, '..', 'backtest-engine.js'), 'utf8');
+
+assert(html.includes('VEGAS Phase 1'), '頁面應標示 VEGAS Phase 1');
+assert(html.includes('backtest-engine.js'), '頁面應載入獨立回測引擎');
+assert(html.includes('market/history-candles'), '必須使用 OKX 歷史 K 線 API');
+assert(html.includes('輸入完整參數後開始'), '未輸入參數前不可執行');
+assert(/id="sl"[^>]*placeholder="請自行輸入"/.test(html), '止損不得預填');
+assert(/id="tp"[^>]*placeholder="請自行輸入"/.test(html), '止盈不得預填');
+assert(/id="fee"[^>]*placeholder="請自行輸入"/.test(html), '手續費不得預填');
+assert(/id="slippage"[^>]*placeholder="請自行輸入"/.test(html), '滑價不得預填');
+assert(!/Math\.random\s*\(/.test(html + engine), '不得用 Math.random 產生市場或績效資料');
+assert(html.includes('同根同時碰到止損與止盈，採保守假設：先止損'), '必須揭露同根衝突的保守規則');
+assert(html.includes('過去績效不代表未來結果'), '必須有回測風險提醒');
+assert(!html.includes('api/v5/trade/'), '回測頁不得含下單 API');
+assert(!html.includes('API Key'), '回測頁不得要求 API Key');
+console.log('✅ backtest_page_static.test.js passed');
