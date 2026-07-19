@@ -944,18 +944,20 @@ let apiKey = localStorage.getItem('angel_complete') || '';
 let coins = {}, oiData = [], okxTickers = {}, scoredCoins = [], saekSigs = [], vegasData = [];
 
 // ═══ API 狀態燈號 ═══
-const _apiState = { okx: null, cg: null };
+const _apiState = { okx: null, cg: null, vegas: null };
 function setApiStatus(src, ok) {
   _apiState[src] = ok;
   const dot = document.getElementById('api-dot');
   const lbl = document.getElementById('api-label');
   if (!dot || !lbl) return;
-  const { okx, cg } = _apiState;
+  const { okx, cg, vegas } = _apiState;
   if (okx === null && cg === null) { dot.className='api-dot'; lbl.textContent='連線中'; return; }
   if (okx === false) { dot.className='api-dot err'; lbl.textContent='OKX 無法連線'; return; }
+  if (vegas === false) { dot.className='api-dot err'; lbl.textContent='VEGAS 計算失敗'; return; }
+  if (okx === true && vegas === null) { dot.className='api-dot warn'; lbl.textContent='VEGAS 掃描中'; return; }
   if (okx === true && cg === false) { dot.className='api-dot warn'; lbl.textContent='CG 異常'; return; }
-  if (okx === true && cg === true)  { dot.className='api-dot ok';  lbl.textContent='數據正常'; return; }
-  dot.className='api-dot ok'; lbl.textContent='數據正常';
+  if (okx === true && cg === true && vegas === true) { dot.className='api-dot ok'; lbl.textContent='數據正常'; return; }
+  dot.className='api-dot warn'; lbl.textContent='部分數據載入中';
 }
 let saekFilter='all', vegasFilter='all', vegasSearch='', moverFilter='all';
 let chatHistory = [];
@@ -964,6 +966,12 @@ let SYMS = ['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','DOT','LINK']; // 
 const CG_IDS='bitcoin,ethereum,solana,binancecoin,ripple,dogecoin,cardano,avalanche-2,polkadot,chainlink,uniswap,near,polygon,litecoin,arbitrum,optimism,sui,aptos,pepe,floki';
 const MAX_SYMS = 60; // 最多掃描幣種數（按成交量排序前60）
 const SIGNUP_FORM_URL = ''; // 填入 Google Form 網址後訂閱功能自動啟用
+
+// OKX SWAP 的 volCcy24h 是標的幣數量（例如 BTC），乘 last 才是 USDT 名目成交額。
+function notionalVolumeUSDT(t){
+  const baseVol=Number(t?.volCcy24h),last=Number(t?.last);
+  return Number.isFinite(baseVol)&&baseVol>=0&&Number.isFinite(last)&&last>0?baseVol*last:null;
+}
 
 // 從 OKX 動態取得所有 USDT 永續合約，按成交量排序
 async function loadAllSymbols(){
@@ -974,8 +982,8 @@ async function loadAllSymbols(){
     if(j.code!=='0')return;
     const syms=j.data
       .filter(t=>t.instId.endsWith('-USDT-SWAP'))
-      .map(t=>({sym:t.instId.replace('-USDT-SWAP',''),vol:parseFloat(t.volCcy24h)||0}))
-      .filter(t=>t.vol>500000) // 過濾低流動性（24H量>50萬U）
+      .map(t=>({sym:t.instId.replace('-USDT-SWAP',''),vol:notionalVolumeUSDT(t)}))
+      .filter(t=>Number.isFinite(t.vol)&&t.vol>500000) // 24H USDT 名目成交額 > 50萬
       .sort((a,b)=>b.vol-a.vol)
       .slice(0,MAX_SYMS)
       .map(t=>t.sym);
@@ -1045,6 +1053,7 @@ async function loadFast(){
 }
 
 async function loadVEGAS(){
+  setApiStatus('vegas', null);
   document.getElementById('vlist').innerHTML=`<div class="loading"><div class="spin"></div>掃描 ${SYMS.length} 個幣種中，請稍候...</div>`;
   const vbarWrap=document.getElementById('vbar-wrap');
   const vbarFill=document.getElementById('vbar-fill');
@@ -1068,6 +1077,10 @@ async function loadVEGAS(){
     if(i+batchSize<SYMS.length) await sleep(500);
   }
   if(vbarWrap) vbarWrap.style.display='none';
+  setApiStatus('vegas', vegasData.length>0);
+  if(!vegasData.length){
+    document.getElementById('vlist').innerHTML='<div class="empty">⚠️ VEGAS 計算失敗，請稍後重試；目前不產生交易建議。</div>';
+  }
   const done=vegasData.filter(v=>v.signal!=='neutral').length;
   document.getElementById('vcnt').textContent=done;
   document.getElementById('vtime').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
@@ -1084,6 +1097,24 @@ function sw(t){
   document.getElementById('panel-'+t).classList.add('active');
 }
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// 外部資料只可當文字顯示，禁止新聞標題／AI 回覆注入 HTML。
+function escapeHTML(value){
+  return String(value??'').replace(/[&<>"]/g,ch=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'
+  })[ch]);
+}
+function safeExternalUrl(value){
+  try{
+    const u=new URL(String(value||''),location.href);
+    return (u.protocol==='https:'||u.protocol==='http:')?u.href:'#';
+  }catch(e){return '#';}
+}
+function setSafeMultilineText(el,value){
+  if(!el)return;
+  el.textContent=String(value??'');
+  el.style.whiteSpace='pre-wrap';
+}
 
 // 全域 OKX API 限速器（最多同時 3 個請求，429 自動退讓重試）
 const _okxRL = { running: 0, max: 3 };
@@ -1381,16 +1412,15 @@ async function loadOI(){
     const r=await fetch('https://www.okx.com/api/v5/market/tickers?instType=SWAP');
     if(!r.ok)throw new Error();
     const j=await r.json();if(j.code!=='0')throw new Error();
-    const rows=j.data.filter(t=>t.instId.endsWith('USDT-SWAP')&&parseFloat(t.vol24h)>2000).map(t=>{
-      const px=parseFloat(t.last),op=parseFloat(t.open24h),hi=parseFloat(t.high24h),lo=parseFloat(t.low24h),vol=parseFloat(t.volCcy24h||t.vol24h);
-      const pchg=op>0?(px-op)/op*100:0,pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5;
-      const dir=pchg>2?'long':pchg<-2?'short':'neu';
-      const str=Math.min(5,Math.max(1,Math.floor(Math.abs(pchg)/1.5)));
-      return{sym:t.instId.replace('-USDT-SWAP',''),pchg,vol,score:Math.abs(pchg)*(vol/5000),dir,dirLabel:pchg>2?'多頭建倉':pchg<-2?'空頭建倉':'震蕩',str,px,pos,hi,lo,op};
-    });
+    const rows=j.data.filter(t=>t.instId.endsWith('USDT-SWAP')).map(t=>{
+      const px=Number(t.last),op=Number(t.open24h),hi=Number(t.high24h),lo=Number(t.low24h),vol=notionalVolumeUSDT(t);
+      if(!(px>0)||!Number.isFinite(vol)||vol<500000)return null;
+      const pchg=op>0?(px-op)/op*100:null,pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5;
+      return{sym:t.instId.replace('-USDT-SWAP',''),pchg,vol,score:vol,dir:'neu',dirLabel:'等待 OI 變化',str:1,px,pos,hi,lo,op};
+    }).filter(Boolean);
     okxTickers=Object.fromEntries(rows.map(a=>[a.sym.toUpperCase(),a]));
-    oiData=rows.sort((a,b)=>b.score-a.score).slice(0,30);
-    document.getElementById('ocnt').textContent=oiData.filter(a=>Math.abs(a.pchg)>3).length;
+    oiData=rows.sort((a,b)=>b.vol-a.vol).slice(0,30);
+    document.getElementById('ocnt').textContent='—';
     // 真實 OI 四象限：批量抓 OI，與視窗內最舊快照（同窗口）比對 OI 與價格變化
     const oiMap=await fetchAllOI();
     if(oiMap){
@@ -1403,11 +1433,18 @@ async function loadOI(){
             a.oiChgReal=(oiUsd-base.oiUsd)/base.oiUsd*100;
             const pxChgReal=(a.px-base.px)/base.px*100;
             a.quadrant=oiQuadrant(a.oiChgReal, pxChgReal);
+            if(a.quadrant){
+              a.dir=a.quadrant.side||'neu';
+              a.dirLabel=a.quadrant.name;
+              a.str=Math.min(5,Math.max(1,Math.ceil(Math.abs(a.oiChgReal))));
+              a.score=Math.abs(a.oiChgReal)*Math.log10(Math.max(a.vol,10));
+            }
           }
           pushOISnap(a.sym, oiUsd, a.px, now);
         }
       });
     }
+    document.getElementById('ocnt').textContent=oiData.filter(a=>Number.isFinite(a.oiChgReal)&&Math.abs(a.oiChgReal)>3).length;
     renderOI();
     renderVolSpike();
     renderVolRank();
@@ -1664,10 +1701,10 @@ function renderNews(items){
     <div data-ni="${i}" style="padding:11px 13px;border-bottom:1.5px solid var(--pink4);background:${n.sentBg};cursor:pointer">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;pointer-events:none">
         <span style="font-size:11px;font-weight:900;padding:3px 9px;border-radius:20px;border:1.5px solid ${n.sentColor};color:${n.sentColor};font-family:Nunito,sans-serif;white-space:nowrap;background:${n.sentBg}">${n.sentiment}</span>
-        ${n.coins.map(c=>`<span style="font-size:11px;font-weight:900;padding:2px 7px;border-radius:7px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">${c}</span>`).join('')||'<span style="font-size:11px;padding:2px 7px;border-radius:7px;background:var(--pink4);color:var(--text3);font-family:Nunito,sans-serif">市場</span>'}
-        <span style="font-size:10px;color:var(--text3);margin-left:auto;font-family:JetBrains Mono,monospace">${n.agoTxt}</span>
+        ${n.coins.map(c=>`<span style="font-size:11px;font-weight:900;padding:2px 7px;border-radius:7px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">${escapeHTML(c)}</span>`).join('')||'<span style="font-size:11px;padding:2px 7px;border-radius:7px;background:var(--pink4);color:var(--text3);font-family:Nunito,sans-serif">市場</span>'}
+        <span style="font-size:10px;color:var(--text3);margin-left:auto;font-family:JetBrains Mono,monospace">${escapeHTML(n.agoTxt)}</span>
       </div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.6;pointer-events:none">${n.title}</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.6;pointer-events:none">${escapeHTML(n.title)}</div>
       <div style="font-size:10px;color:var(--pink3);margin-top:3px;font-family:Nunito,sans-serif;font-weight:700;pointer-events:none">點擊查看 AI 新聞總結 →</div>
     </div>`).join('');
   // 用事件委派綁定點擊
@@ -1697,14 +1734,14 @@ function openNewsSummary(idx){
         <div style="padding:12px 15px;border-bottom:1.5px solid var(--pink4);display:flex;align-items:center;justify-content:space-between">
           <div>
             <div style="font-size:10px;font-weight:900;padding:2px 9px;border-radius:20px;display:inline-block;background:${n.sentBg};border:1.5px solid ${n.sentColor};color:${n.sentColor};font-family:Nunito,sans-serif;margin-bottom:5px">${n.sentiment}</div>
-            <div style="font-family:Nunito,sans-serif;font-size:14px;font-weight:900;color:var(--text);line-height:1.5">${n.title}</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:4px;font-family:JetBrains Mono,monospace">${n.source} &nbsp;·&nbsp; ${n.agoTxt}</div>
+            <div style="font-family:Nunito,sans-serif;font-size:14px;font-weight:900;color:var(--text);line-height:1.5">${escapeHTML(n.title)}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:4px;font-family:JetBrains Mono,monospace">${escapeHTML(n.source)} &nbsp;·&nbsp; ${escapeHTML(n.agoTxt)}</div>
           </div>
           <button onclick="closeNewsModal()" style="background:var(--pink4);border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px;font-weight:900;color:var(--text2);flex-shrink:0;margin-left:10px">✕</button>
         </div>
         <!-- 幣種標籤 -->
         <div style="padding:10px 15px;border-bottom:1.5px solid var(--pink4);display:flex;gap:6px;flex-wrap:wrap">
-          ${(n.coins||[]).map(c=>`<span style="font-size:11px;font-weight:900;padding:3px 10px;border-radius:10px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">${c}</span>`).join('')||'<span style="font-size:11px;color:var(--text3)">市場新聞</span>'}
+          ${(n.coins||[]).map(c=>`<span style="font-size:11px;font-weight:900;padding:3px 10px;border-radius:10px;background:var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">${escapeHTML(c)}</span>`).join('')||'<span style="font-size:11px;color:var(--text3)">市場新聞</span>'}
         </div>
         <!-- AI 總結區 -->
         <div style="padding:13px 15px">
@@ -1713,7 +1750,7 @@ function openNewsSummary(idx){
             <div style="display:flex;align-items:center;gap:6px;color:var(--text3)"><div class="spin"></div>AI 分析中...</div>
           </div>
           <div style="display:flex;gap:8px;margin-top:10px">
-            <a href="${n.url}" target="_blank" style="flex:1;background:linear-gradient(135deg,var(--pink3),var(--pink2));color:white;border:none;border-radius:12px;padding:11px;font-size:12px;font-weight:900;font-family:Nunito,sans-serif;text-align:center;cursor:pointer;text-decoration:none;display:block">📖 閱讀原文</a>
+            <a href="${safeExternalUrl(n.url)}" target="_blank" rel="noopener noreferrer" style="flex:1;background:linear-gradient(135deg,var(--pink3),var(--pink2));color:white;border:none;border-radius:12px;padding:11px;font-size:12px;font-weight:900;font-family:Nunito,sans-serif;text-align:center;cursor:pointer;text-decoration:none;display:block">📖 閱讀原文</a>
           </div>
         </div>
       </div>`;
@@ -1734,8 +1771,8 @@ async function summarizeNews(title, coins, sentiment){
   if(!apiKey){
     el.innerHTML=`<div style="line-height:1.8;color:var(--text2)">
       <strong style="color:${sentiment.includes('利多')?'var(--green2)':'sentiment'.includes('利空')?'var(--red2)':'var(--gold)'}">判斷：${sentiment}</strong><br><br>
-      ${coins.length>0?`相關幣種：<strong>${coins.join('、')}</strong><br><br>`:''}
-      📌 <strong>新聞標題：</strong>${title}<br><br>
+      ${coins.length>0?`相關幣種：<strong>${coins.map(escapeHTML).join('、')}</strong><br><br>`:''}
+      📌 <strong>新聞標題：</strong>${escapeHTML(title)}<br><br>
       <span style="color:var(--text3)">💡 設定 AI API Key 後可獲得更詳細的中文分析與交易建議</span>
     </div>`;
     return;
@@ -1753,11 +1790,11 @@ async function summarizeNews(title, coins, sentiment){
     if(!res.ok)throw new Error();
     const d=await res.json();
     const reply=d.content.find(b=>b.type==='text')?.text||'';
-    if(el)el.innerHTML=reply.replace(/\n/g,'<br>');
+    setSafeMultilineText(el, reply);
   }catch(e){
-    if(el)el.innerHTML=`<strong style="color:${sentiment.includes('利多')?'var(--green2)':'var(--red2)'}">判斷：${sentiment}</strong><br><br>
-      ${coins.length>0?`相關幣種：<strong>${coins.join('、')}</strong><br>`:''}
-      ${title}<br><br><span style="font-size:11px;color:var(--text3)">（AI分析失敗，請檢查API Key及餘額）</span>`;
+    if(el)el.innerHTML=`<strong style="color:${sentiment.includes('利多')?'var(--green2)':'var(--red2)'}">判斷：${escapeHTML(sentiment)}</strong><br><br>
+      ${coins.length>0?`相關幣種：<strong>${coins.map(escapeHTML).join('、')}</strong><br>`:''}
+      ${escapeHTML(title)}<br><br><span style="font-size:11px;color:var(--text3)">（AI分析失敗，請檢查API Key及餘額）</span>`;
   }
 }
 
@@ -1817,7 +1854,7 @@ function renderNewsFromMarket(){
   vegasData.filter(v=>v.signal!=='neutral').slice(0,5).forEach(v=>{
     items.push({
       title:`${v.sym} VEGAS通道${v.signal==='bull'?'做多訊號，EMA12突破通道上方':'做空訊號，EMA12跌破通道下方'}，評分 ${v.score}分${v.resonance>=2?`，${v.resonance}TF 共振`:''}`,
-      url:`https://www.tradingview.com/chart/?symbol=BINANCE:${v.sym}USDT.P`,
+      url:`https://www.tradingview.com/chart/?symbol=OKX:${v.sym}USDT.P`,
       published_at:now,
       source:{title:'MOVE通道訊號'},
       currencies:[{code:v.sym}],
@@ -2883,12 +2920,15 @@ function buildSaek(){
     else if(vol.label==='放量下跌') sigs.push({coin:c,type:'short',tf:'1小時',tfKey:'1h',ind:'量能',
       score:calcSaekScore(c,'short','量能'),
       desc:`<strong>${vol.val}</strong> 放量下跌，空頭確認`,detail:`${vol.desc}`});
-    // OI 異常訊號
-    if(oi&&Math.abs(oi.pchg)>3) sigs.push({coin:c,type:oi.dir==='long'?'long':'short',
-      tf:'5分鐘',tfKey:'5m',ind:'OI異常',
-      score:calcSaekScore(c,oi.dir==='long'?'long':'short','OI異常'),
-      desc:`OI異常 <strong>${oi.dirLabel}</strong>，主力資金進場`,
-      detail:`OI 24H:${oi.pchg>=0?'+':''}${oi.pchg.toFixed(2)}%`});
+    // OI 異常訊號：只使用同一時間窗口的真實 ΔOI × ΔPrice 四象限；沒有基準就不出訊號。
+    if(oi&&Number.isFinite(oi.oiChgReal)&&Math.abs(oi.oiChgReal)>3&&['long','short'].includes(oi.quadrant?.side)){
+      const oiType=oi.quadrant.side;
+      sigs.push({coin:c,type:oiType,
+        tf:'約6分鐘',tfKey:'oi-window',ind:'OI異常',
+        score:calcSaekScore(c,oiType,'OI異常'),
+        desc:`OI異常 <strong>${oi.quadrant.name}</strong>，${oi.quadrant.desc}`,
+        detail:`OI窗口:${oi.oiChgReal>=0?'+':''}${oi.oiChgReal.toFixed(2)}%`});
+    }
     // VEGAS 訊號
     if(vd?.signal==='bull') sigs.push({coin:c,type:'long', tf:'4小時',tfKey:'4h',ind:'VEGAS',
       score:calcSaekScore(c,'long','VEGAS'),
@@ -3025,41 +3065,56 @@ const _KL_TTL = { '1D':1800000, '4H':600000, '1H':300000, '15m':180000, '5m':120
 let _klLSFull = false;                      // localStorage 滿了就停止寫，避免反覆 stringify
 function _klTTL(bar){ return _KL_TTL[bar] || 180000; }
 
-// 取得「舊→新」原始 K 線列（含快取）；回傳 null 代表無資料
+// 分頁取得 OKX K 線：最新頁用 candles，較舊頁用 history-candles；每頁最多 300 根。
+async function fetchCandlePages(sym,bar,limit){
+  const byTs=new Map();
+  let after=null;
+  const maxPages=Math.ceil(limit/300)+2;
+  for(let page=0;page<maxPages&&byTs.size<limit;page++){
+    const pageLimit=Math.min(300,limit-byTs.size);
+    const endpoint=after?'history-candles':'candles';
+    const cursor=after?`&after=${encodeURIComponent(after)}`:'';
+    const url=`https://www.okx.com/api/v5/market/${endpoint}?instId=${sym}-USDT-SWAP&bar=${bar}&limit=${pageLimit}${cursor}`;
+    const j=await okxFetch(url);
+    if(!j||j.code!=='0'||!Array.isArray(j.data)||!j.data.length) return null;
+    j.data.forEach(row=>byTs.set(String(row[0]),row));
+    const oldest=j.data.reduce((min,row)=>Number(row[0])<Number(min)?row[0]:min,j.data[0][0]);
+    if(String(oldest)===String(after)||j.data.length<pageLimit) break;
+    after=oldest;
+    if(byTs.size<limit) await sleep(80);
+  }
+  const rows=[...byTs.values()].sort((a,b)=>Number(a[0])-Number(b[0]));
+  return rows.length>=limit?rows.slice(rows.length-limit):null;
+}
+
+// 取得「舊→新」原始 K 線列（含快取）；回傳 null 代表資料不足或 API 失敗。
 async function fetchCandles(sym,bar,limit){
   const key=sym+'|'+bar, now=Date.now(), ttl=_klTTL(bar);
-  // 1) 記憶體命中（且根數足夠）
   let c=_klCache[key];
   if(c && (now-c.ts)<ttl && c.rows.length>=limit) return c.rows.slice(c.rows.length-limit);
-  // 2) localStorage（僅 1D 持久化，重整後仍可命中）
   if((!c || c.rows.length<limit) && bar==='1D'){
     try{
       const raw=localStorage.getItem('klc:'+key);
       if(raw){
         const o=JSON.parse(raw);
-        if(o && o.rows && (now-o.ts)<ttl && o.rows.length>=limit){
-          _klCache[key]=o; return o.rows.slice(o.rows.length-limit);
+        if(o && Array.isArray(o.rows) && (now-o.ts)<ttl && o.rows.length>=limit){
+          _klCache[key]=o;
+          return o.rows.slice(o.rows.length-limit);
         }
       }
     }catch(e){}
   }
-  // 3) 真正打 API
   try{
-    const j=await okxFetch(`https://www.okx.com/api/v5/market/candles?instId=${sym}-USDT-SWAP&bar=${bar}&limit=${limit}`);
-    if(!j||j.code!=='0'||!j.data?.length){
-      // API 失敗時，若有舊快取（即使過期）先頂著用，避免畫面變空
-      if(c && c.rows.length>=limit) return c.rows.slice(c.rows.length-limit);
-      return null;
-    }
-    const rows=j.data.reverse();           // 舊→新
+    const rows=await fetchCandlePages(sym,bar,limit);
+    if(!rows) return null;
     _klCache[key]={ts:now,rows};
     if(bar==='1D' && !_klLSFull){
       try{ localStorage.setItem('klc:'+key,JSON.stringify({ts:now,rows})); }
-      catch(e){ _klLSFull=true; }          // 配額滿：本次工作階段不再嘗試
+      catch(e){ _klLSFull=true; }
     }
-    return rows.slice(rows.length-limit);
+    return rows;
   }catch(e){
-    if(c && c.rows.length>=limit) return c.rows.slice(c.rows.length-limit);
+    console.warn(`[KLINE] ${sym} ${bar} 抓取失敗`,e);
     return null;
   }
 }
@@ -3104,36 +3159,38 @@ async function fetchOIChange(sym){
 async function computeVEGAS(sym){
   try{
     // 同時抓 日線、4H、1H、15M（賽克斯多週期共振）
-    const[daily,h4raw,h1,m15]=await Promise.all([
-      fetchKlines(sym,'1D',700),
-      fetchKlinesOHLCV(sym,'4H',300),
+    const[dailyRaw,h4raw,h1,m15]=await Promise.all([
+      fetchKlinesOHLCV(sym,'1D',700),
+      fetchKlinesOHLCV(sym,'4H',700),
       fetchKlines(sym,'1H',150),
       fetchKlines(sym,'15m',150)
     ]);
-    if(!daily||daily.length<100||!h4raw||h4raw.length<100)return null;
+    if(!dailyRaw||!h4raw)return null;
+    const daily=getConfirmedCloses(dailyRaw);
     const h4 = h4raw.map(d=>d.close);
     const h4Confirmed=getConfirmedCloses(h4raw);
-    if(h4Confirmed.length<169)return null;
+    if(daily.length<677||h4Confirmed.length<677)return null;
 
-    // ── VEGAS EMA ──
+    // ── VEGAS EMA：資料不足就停止，不用短週期冒充 EMA576/676 ──
     const d12=calcEMA(daily,12),d144=calcEMA(daily,144),d169=calcEMA(daily,169);
-    const d576=calcEMA(daily,Math.min(576,daily.length-1)),d676=calcEMA(daily,Math.min(676,daily.length-1));
-    const h4_12=calcEMA(h4,12),h4_144=calcEMA(h4,Math.min(144,h4.length-1)),h4_169=calcEMA(h4,Math.min(169,h4.length-1));
-    const h4_576=calcEMA(h4,Math.min(576,h4.length-1));
-    if(!d12||!h4_12||!h4_144)return null;
+    const d576=calcEMA(daily,576),d676=calcEMA(daily,676);
+    const h4_12=calcEMA(h4,12),h4_144=calcEMA(h4,144),h4_169=calcEMA(h4,169);
+    const h4_576=calcEMA(h4,576),h4_676=calcEMA(h4,676);
+    if(!d12||!d144||!d169||!d576||!d676||!h4_12||!h4_144||!h4_169||!h4_576||!h4_676)return null;
 
-    // ══ MOVE 日線方向（EMA12 vs EMA576/676 大通道）══
-    // 講義定義：EMA12和K棒必須在EMA576/676之上/下
-    const moveDailyBull = d576 ? (d12 > d576) : (d12 > d144);
-    const moveDailyBear = d576 ? (d12 < d576) : (d12 < d144);
+    // ══ MOVE 日線方向：EMA12 與已收盤日 K 都必須完全站在 EMA576/676 大通道同側 ══
+    const dailyClose=daily[daily.length-1];
+    const dailyBigTop=Math.max(d576,d676),dailyBigBot=Math.min(d576,d676);
+    const moveDailyBull = d12>dailyBigTop && dailyClose>dailyBigTop;
+    const moveDailyBear = d12<dailyBigBot && dailyClose<dailyBigBot;
     const moveDailyTrend = moveDailyBull?'bull':moveDailyBear?'bear':'neutral';
 
     // ══ 賽克斯三步驟 ══════════════════════════════════════
 
     // ── 步驟1 判勢：EMA144/169 小通道 vs EMA576/676 大通道 ──
     // 賽克斯獨立判勢邏輯，與MOVE使用不同EMA組合
-    const bigTunnelBull = d576 ? (d144>d576 && (d169||d144)>d576) : (d12>d144);
-    const bigTunnelBear = d576 ? (d144<d576 && (d169||d144)<d576) : (d12<d144);
+    const bigTunnelBull = d144>dailyBigTop && d169>dailyBigTop;
+    const bigTunnelBear = d144<dailyBigBot && d169<dailyBigBot;
     const dailyTrend = bigTunnelBull?'bull':bigTunnelBear?'bear':'neutral';
 
     // ── 步驟2 找位：「價格」回調至 EMA144/169 小通道區間 ──
@@ -3235,8 +3292,13 @@ async function computeVEGAS(sym){
       if(m15_dir===targetDir && (isBullTarget?qqe15m?.isBull:qqe15m?.isBear)) resonance++;
     }
 
-    // ── 假突破偵測（EMA12 沒有同時突破 = 假突破）──
-    const isFakeBreakout = (h4Above && !priceAboveEMA12) || (h4Below && !priceBelowEMA12);
+    // ── 假突破偵測（僅使用已收盤 4H；價格越過通道但 EMA12 未同步）──
+    const confirmedTunnelBull=confirmedPrice>confirmedTop;
+    const confirmedTunnelBear=confirmedPrice<confirmedBot;
+    const confirmedEMA12Bull=confirmedH4_12>confirmedTop;
+    const confirmedEMA12Bear=confirmedH4_12<confirmedBot;
+    const isFakeBreakout = (confirmedTunnelBull && !confirmedEMA12Bull) ||
+      (confirmedTunnelBear && !confirmedEMA12Bear);
 
     // ── 評分 ──
     let score=0;
@@ -3272,7 +3334,9 @@ async function computeVEGAS(sym){
       step1,step2,step3,
       step1_long,step1_short,step2_long,step2_short,step3_long,step3_short,
       isFakeBreakout,
-      priceAboveEMA12,priceBelowEMA12,
+      priceAboveEMA12:confirmedPriceAboveEMA12,
+      priceBelowEMA12:confirmedPriceBelowEMA12,
+      confirmedPrice,confirmedH4_12,confirmedQQE4h,
       // QQE MOD 多週期
       qqe4h,qqe1h,qqe15m,resonance,
       // 多週期 EMA 方向
@@ -3280,12 +3344,15 @@ async function computeVEGAS(sym){
       // 通道回踩
       pullbackDist,pullbackSide,pullbackWR,pullbackLabel,pullbackState,isPullbackSignal,
       lastPrice,
-      d12:d12?.toFixed(4),d144:d144?.toFixed(4),d576:d576?.toFixed(4),d676:d676?.toFixed(4),
-      h4_12:h4_12?.toFixed(4),h4_144:h4_144?.toFixed(4),h4_169:h4_169?.toFixed(4),h4_576:h4_576?.toFixed(4),
+      d12:d12?.toFixed(4),d144:d144?.toFixed(4),d169:d169?.toFixed(4),d576:d576?.toFixed(4),d676:d676?.toFixed(4),dailyClose,
+      h4_12:h4_12?.toFixed(4),h4_144:h4_144?.toFixed(4),h4_169:h4_169?.toFixed(4),h4_576:h4_576?.toFixed(4),h4_676:h4_676?.toFixed(4),
       price:cgCoin?cgCoin.current_price:h4[h4.length-1],chg24:cgCoin?cgCoin.price_change_percentage_24h||0:0,
       volPat4H // 真實量價型態
     };
-  }catch(e){return null;}
+  }catch(e){
+    console.error(`[VEGAS] ${sym} 計算失敗`,e);
+    return null;
+  }
 }
 
 const CG_MAP={BTC:'bitcoin',ETH:'ethereum',SOL:'solana',BNB:'binancecoin',XRP:'ripple',DOGE:'dogecoin',ADA:'cardano',AVAX:'avalanche-2',DOT:'polkadot',LINK:'chainlink',UNI:'uniswap',NEAR:'near',MATIC:'polygon',LTC:'litecoin',ARB:'arbitrum',OP:'optimism',SUI:'sui',APT:'aptos',PEPE:'pepe',FLOKI:'floki'};
@@ -3538,11 +3605,21 @@ function openScoreDetail(coinId, type) {
 }
 
 function openMOVEDetail(sym, type, v, c) {
-  const px = c?.current_price || v?.price || 0;
+  if(!v){
+    showToast(`⚠️ ${sym} VEGAS K線尚無可靠資料，暫不產生交易判決`);
+    return;
+  }
+  const pxRaw = c?.current_price ?? v.price ?? v.lastPrice ?? null;
+  const px = Number(pxRaw);
+  if(!Number.isFinite(px)||px<=0){
+    showToast(`⚠️ ${sym} 價格資料不足，暫不產生交易判決`);
+    return;
+  }
   const ps = px >= 1000 ? '$' + Number(px).toLocaleString('en-US', {maximumFractionDigits:0})
            : px >= 1    ? '$' + Number(px).toLocaleString('en-US', {maximumFractionDigits:3})
            :               '$' + Number(px).toFixed(5);
-  const chg24 = c?.price_change_percentage_24h || v?.chg24 || 0;
+  const chgRaw = c?.price_change_percentage_24h ?? v.chg24 ?? null;
+  const chg24 = Number.isFinite(Number(chgRaw)) ? Number(chgRaw) : null;
 
   // ── VEGAS 條件 ──
   const vegasOK     = v && ((type==='long' && v.signal==='bull') || (type==='short' && v.signal==='bear'));
