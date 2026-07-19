@@ -2944,6 +2944,17 @@ function calcEMA(prices,period){
   return ema;
 }
 
+// 回踩距離分級：真正貼近通道（±0.5%）才算到位；0.5%~2% 只列接近，不加分。
+function classifyPullbackDistance(dist){
+  if(!Number.isFinite(dist)) return {state:'none',isPullback:false,wr:0,label:'—'};
+  if(dist>=-0.5&&dist<=0.5){
+    const wr=Math.abs(dist)<=0.3?0.74:0.68;
+    return {state:'at',isPullback:true,wr,label:wr>=0.74?'🔥 極佳回踩':'✅ 優質回踩'};
+  }
+  if(dist>0.5&&dist<=2) return {state:'near',isPullback:false,wr:0,label:'⏰ 接近回踩'};
+  return {state:'none',isPullback:false,wr:0,label:'—'};
+}
+
 // ═══ QQE MOD 動能指標（O(n) 高效版，保留規格精神）═══
 // 藍柱=多頭強勁，紅柱=空頭強勁
 function calcQQEMOD(closes, rsiPeriod=14, smoothPeriod=5, qqeFactor=4.238){
@@ -3066,8 +3077,13 @@ async function fetchKlinesOHLCV(sym,bar,limit){
   if(!rows)return null;
   return rows.map(d=>({
     ts:parseInt(d[0]),open:parseFloat(d[1]),high:parseFloat(d[2]),
-    low:parseFloat(d[3]),close:parseFloat(d[4]),vol:parseFloat(d[5])
+    low:parseFloat(d[3]),close:parseFloat(d[4]),vol:parseFloat(d[5]),confirmed:d[8]==='1'
   }));
+}
+
+function getConfirmedCloses(candles){
+  if(!Array.isArray(candles)) return [];
+  return candles.filter(c=>c?.confirmed&&Number.isFinite(c.close)).map(c=>c.close);
 }
 
 // OI 變化（用 ticker openInterest + 快取比較）
@@ -3096,6 +3112,8 @@ async function computeVEGAS(sym){
     ]);
     if(!daily||daily.length<100||!h4raw||h4raw.length<100)return null;
     const h4 = h4raw.map(d=>d.close);
+    const h4Confirmed=getConfirmedCloses(h4raw);
+    if(h4Confirmed.length<169)return null;
 
     // ── VEGAS EMA ──
     const d12=calcEMA(daily,12),d144=calcEMA(daily,144),d169=calcEMA(daily,169);
@@ -3123,20 +3141,21 @@ async function computeVEGAS(sym){
     const h4Above=h4_12>h4Top,h4Below=h4_12<h4Bot,h4In=!h4Above&&!h4Below;
     const lastPrice=h4[h4.length-1];
     const prevPrice=h4[h4.length-2]||lastPrice;
-    // 價格在通道內或距通道上方2%以內（做多）/ 下方2%以內（做空）
-    const priceNearTunnel_long  = lastPrice<=h4Top*1.02 && lastPrice>=h4Bot*0.97;
-    const priceNearTunnel_short = lastPrice>=h4Bot*0.98 && lastPrice<=h4Top*1.03;
-    const nearTunnel = priceNearTunnel_long || priceNearTunnel_short;
-
     // ── 通道回踩精確距離（核心勝率計算）──
-    let pullbackDist=null, pullbackSide=null, pullbackWR=0;
+    const distToTop=(lastPrice-h4Top)/h4Top*100; // 做多：正=在通道上方，負=進入通道
+    const distToBot=(h4Bot-lastPrice)/h4Bot*100; // 做空：正=在通道下方，負=進入通道
+    const bullPullback=classifyPullbackDistance(distToTop);
+    const bearPullback=classifyPullbackDistance(distToBot);
+    const priceNearTunnel_long=bullPullback.isPullback;
+    const priceNearTunnel_short=bearPullback.isPullback;
+    const nearTunnel=priceNearTunnel_long||priceNearTunnel_short;
+    let pullbackDist=null, pullbackSide=null, pullbackWR=0,pullbackLabel='—',pullbackState='none';
     if(dailyTrend==='bull'){
       // 做多：價格從上方回踩EMA144
-      const distToTop=(lastPrice-h4Top)/h4Top*100; // 正=在通道上方，負=跌入
       pullbackDist=distToTop;
-      if(distToTop>=-0.5&&distToTop<=2){
-        // 最佳回踩區間：通道上方0-2%
-        pullbackWR=distToTop<=0.3?0.74:distToTop<=1?0.68:0.61;
+      pullbackState=bullPullback.state;pullbackLabel=bullPullback.label;
+      if(bullPullback.isPullback){
+        pullbackWR=bullPullback.wr;
         pullbackSide='bull_pullback';
       } else if(h4In&&lastPrice>prevPrice){
         // 在通道內且反彈
@@ -3144,17 +3163,16 @@ async function computeVEGAS(sym){
       }
     } else if(dailyTrend==='bear'){
       // 做空：價格從下方回踩EMA144
-      const distToBot=(h4Bot-lastPrice)/h4Bot*100;
       pullbackDist=distToBot;
-      if(distToBot>=-0.5&&distToBot<=2){
-        pullbackWR=distToBot<=0.3?0.74:distToBot<=1?0.68:0.61;
+      pullbackState=bearPullback.state;pullbackLabel=bearPullback.label;
+      if(bearPullback.isPullback){
+        pullbackWR=bearPullback.wr;
         pullbackSide='bear_pullback';
       } else if(h4In&&lastPrice<prevPrice){
         pullbackWR=0.58;pullbackSide='bear_bounce';
       }
     }
     const isPullbackSignal=pullbackWR>=0.61;
-    const pullbackLabel=pullbackWR>=0.74?'🔥 極佳回踩':pullbackWR>=0.68?'✅ 優質回踩':pullbackWR>=0.61?'📡 回踩中':'—';
 
     // ── QQE MOD 多週期 ──
     const qqe4h  = calcQQEMOD(h4);
@@ -3176,11 +3194,20 @@ async function computeVEGAS(sym){
     const isBear = moveDailyBear && h4Below;
 
     // ── 步驟3 進場：K棒收盤站上/貫穿EMA12 + QQE MOD同步啟動 ──
-    // 做多：lastPrice > h4_12（收盤站上EMA12）且 QQE藍柱
-    const priceAboveEMA12 = lastPrice > h4_12;
-    const priceBelowEMA12 = lastPrice < h4_12;
-    const step3_long  = bigTunnelBull && priceNearTunnel_long  && priceAboveEMA12 && qqe4h?.isBull;
-    const step3_short = bigTunnelBear && priceNearTunnel_short && priceBelowEMA12 && qqe4h?.isBear;
+    // 僅用已收盤 4H K 棒確認；同時要求即時價格仍在 ±0.5% 到位區，避免舊訊號在價格遠離後仍顯示可執行。
+    const confirmedPrice=h4Confirmed[h4Confirmed.length-1];
+    const confirmedH4_12=calcEMA(h4Confirmed,12);
+    const confirmedH4_144=calcEMA(h4Confirmed,144);
+    const confirmedH4_169=calcEMA(h4Confirmed,169);
+    const confirmedTop=Math.max(confirmedH4_144,confirmedH4_169);
+    const confirmedBot=Math.min(confirmedH4_144,confirmedH4_169);
+    const confirmedLong=classifyPullbackDistance((confirmedPrice-confirmedTop)/confirmedTop*100).isPullback;
+    const confirmedShort=classifyPullbackDistance((confirmedBot-confirmedPrice)/confirmedBot*100).isPullback;
+    const confirmedQQE4h=calcQQEMOD(h4Confirmed);
+    const confirmedPriceAboveEMA12=confirmedPrice>confirmedH4_12;
+    const confirmedPriceBelowEMA12=confirmedPrice<confirmedH4_12;
+    const step3_long  = bigTunnelBull && priceNearTunnel_long  && confirmedLong  && confirmedPriceAboveEMA12 && confirmedQQE4h?.isBull;
+    const step3_short = bigTunnelBear && priceNearTunnel_short && confirmedShort && confirmedPriceBelowEMA12 && confirmedQQE4h?.isBear;
 
     // ── 賽克斯三步驟（依方向） ──
     // 步驟1：EMA144/169 小通道 vs EMA576/676 大通道
@@ -3251,7 +3278,7 @@ async function computeVEGAS(sym){
       // 多週期 EMA 方向
       h4_dir,h1_dir,m15_dir,
       // 通道回踩
-      pullbackDist,pullbackSide,pullbackWR,pullbackLabel,isPullbackSignal,
+      pullbackDist,pullbackSide,pullbackWR,pullbackLabel,pullbackState,isPullbackSignal,
       lastPrice,
       d12:d12?.toFixed(4),d144:d144?.toFixed(4),d576:d576?.toFixed(4),d676:d676?.toFixed(4),
       h4_12:h4_12?.toFixed(4),h4_144:h4_144?.toFixed(4),h4_169:h4_169?.toFixed(4),h4_576:h4_576?.toFixed(4),
@@ -3327,16 +3354,16 @@ function renderPullback(){
   renderNearPullback();
 }
 
-// ═══ 快回踩預警：接近通道緣但尚未進回踩區（pullbackDist 2%~5%）═══
+// ═══ 快回踩預警：距通道 0.5%~5%，尚未真正到位 ═══
 function renderNearPullback(){
   const cntEl=document.getElementById('near-pullback-cnt');
   const listEl=document.getElementById('near-pullback-list');
   if(!listEl) return;
-  // 條件：還沒到位(!isPullbackSignal) + 有距離資料 + 距通道緣 2%~5%（再靠近就進回踩區）+ 日線方向明確
+  // 條件：0.5%~2% 使用明確 near 狀態；舊有 2%~5% 預警保留。真正到位者不進本區。
   const near=vegasData.filter(v=>
     !v.isPullbackSignal &&
     typeof v.pullbackDist==='number' &&
-    v.pullbackDist>2 && v.pullbackDist<=5 &&
+    (v.pullbackState==='near'||(v.pullbackDist>2&&v.pullbackDist<=5)) &&
     (v.dailyTrend==='bull'||v.dailyTrend==='bear')
   ).sort((a,b)=>a.pullbackDist-b.pullbackDist); // 越接近排越前
   if(cntEl) cntEl.textContent = near.length?`${near.length} 個接近中`:'暫無';
@@ -3349,7 +3376,7 @@ function renderNearPullback(){
     const dir=isLong?'📈 做多':'📉 做空';
     const dirColor=isLong?'var(--green2)':'var(--red2)';
     const dist=v.pullbackDist.toFixed(2);
-    const toZone=Math.max(0,(v.pullbackDist-2)).toFixed(2); // 還差多少進回踩區（區間上緣2%）
+    const toZone=Math.max(0,(v.pullbackDist-0.5)).toFixed(2); // 還差多少進入真正到位區（距通道≤0.5%）
     const px=v.price||v.lastPrice||0;
     const ps=px>=1000?'$'+Number(px).toLocaleString('en-US',{maximumFractionDigits:0}):px>=0.1?'$'+Number(px).toLocaleString('en-US',{maximumFractionDigits:4}):'$'+Number(px).toFixed(6);
     return `<div style="display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--pink4);padding:10px 14px;cursor:pointer;transition:background .15s" onclick="openVegasDetail('${v.sym}')" onmouseenter="this.style.background='var(--pink5)'" onmouseleave="this.style.background=''">
