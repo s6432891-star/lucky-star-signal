@@ -19,14 +19,14 @@ new Function(`${src}\nthis.classifyPullbackDistance=classifyPullbackDistance;`).
 const bnb = sandbox.classifyPullbackDistance(1.3673);
 assert.strictEqual(bnb.state, 'near', 'BNB 距通道 1.3673% 應是接近回踩');
 assert.strictEqual(bnb.isPullback, false, 'BNB 距通道 1.3673% 不得算回踩到位');
-assert.strictEqual(bnb.wr, 0, '接近回踩不得給回踩勝率加分');
+assert.strictEqual(bnb.quality, 0, '接近回踩不得給回踩品質加分');
 assert.match(bnb.label, /接近回踩/, '接近回踩應使用誠實標籤');
 
 // 真正貼近通道（±0.5%）才可算回踩到位；≤0.3% 才能稱為極佳。
 const touched = sandbox.classifyPullbackDistance(0.3);
 assert.strictEqual(touched.state, 'at', '距通道 0.3% 應算回踩到位');
 assert.strictEqual(touched.isPullback, true, '距通道 0.3% 應可標示回踩到位');
-assert.strictEqual(touched.wr, 0.74, '距通道 0.3% 維持極佳回踩品質');
+assert.strictEqual(touched.quality, 74, '距通道 0.3% 應給極佳回踩品質74分');
 assert.match(touched.label, /極佳回踩/, '距通道 0.3% 可標示極佳回踩');
 
 const outside = sandbox.classifyPullbackDistance(2.01);

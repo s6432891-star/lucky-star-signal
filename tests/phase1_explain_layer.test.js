@@ -34,21 +34,22 @@ function extractFn(name) {
 }
 const srcFDS = extractFn('formatDataStatus');
 const srcBSV = extractFn('buildSignalVerdict');
+const srcERS = extractFn('executionRiskState');
 const srcSM  = extractFn('signalMaturity');
 
 // ── 4. 判決書為純顯示層：不得呼叫核心計算函數 ──
-for (const core of ['computeWR(', 'buildTop5Candidates(', 'inferNeutralDirection(']) {
+for (const core of ['computeConfidenceScore(', 'buildTop5Candidates(', 'inferNeutralDirection(']) {
   assert(!srcBSV.includes(core), `buildSignalVerdict() 不得呼叫核心計算 ${core}`);
   assert(!srcSM.includes(core), `signalMaturity() 不得呼叫核心計算 ${core}`);
 }
 assert(!/Math\.random/.test(srcBSV + srcSM + srcFDS), 'Phase 1 helper 不得使用 Math.random');
 
-// 評分拆解層只讀取 computeWR 既有明細，核心簽名不可被改動
-assert(html.includes('function computeWR(c, type, wantBreakdown)'), 'computeWR 簽名不可被修改（評分拆解只讀不寫）');
+// 評分拆解層只讀取信心分數既有明細，核心簽名不可被改動
+assert(html.includes('function computeConfidenceScore(c,type,wantBreakdown)'), '信心分數 helper 簽名不可被修改（評分拆解只讀不寫）');
 
 // ── 5. helper 行為測試：缺資料時輸出誠實狀態，不出現 undefined / NaN ──
 const sandbox = {};
-new Function(`${srcFDS}\n${srcSM}\n${srcBSV}\nthis.formatDataStatus=formatDataStatus;this.signalMaturity=signalMaturity;this.buildSignalVerdict=buildSignalVerdict;`).call(sandbox);
+new Function(`${srcFDS}\n${srcERS}\n${srcSM}\n${srcBSV}\nthis.formatDataStatus=formatDataStatus;this.signalMaturity=signalMaturity;this.buildSignalVerdict=buildSignalVerdict;`).call(sandbox);
 
 // formatDataStatus 三態
 assert(sandbox.formatDataStatus('loading') === '載入中…', "formatDataStatus('loading') 應回傳「載入中…」");
@@ -86,14 +87,14 @@ const verdictFull = sandbox.buildSignalVerdict({
   sym: 'BTC', type: 'long',
   mat: matOk, v: { signal: 'bull', step2_long: true, step3_long: false },
   wrBreakdown: [
-    { label: '基礎勝率', detail: '每筆訊號起算', pts: 0.40 },
+    { label: '基礎分數', detail: '條件排序起點', pts: 0.40 },
     { label: 'VEGAS 順勢', detail: '日線＋4H 多頭排列', pts: 0.08 },
     { label: 'RSI 超買', detail: 'RSI 75', pts: -0.03 },
   ],
   rsi: 75, macdOk: true, priceOk: true, chg24Ok: true,
 });
 assert(verdictFull.includes('VEGAS 順勢'), 'buildSignalVerdict 加分理由應來自既有評分明細');
-assert(verdictFull.includes('+8%'), 'buildSignalVerdict 加分幅度應等於明細 pts×100，不另造數');
+assert(verdictFull.includes('分數 +8'), 'buildSignalVerdict 加分幅度應等於明細 pts×100，不另造數');
 assert(verdictFull.includes('RSI 超買'), 'buildSignalVerdict 風險應列出明細中的扣分項');
 
 // ── 6. 免責聲明與判決書卡存在於頁面 ──

@@ -372,7 +372,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
     </div>
     <div class="hright">
       <div class="api-status" id="api-status"><div class="api-dot" id="api-dot"></div><span id="api-label">連線中</span></div>
-      <div class="api-status" id="notify-toggle" onclick="toggleNotify()" title="高勝率訊號（勝率≥70%）出現時，跳瀏覽器通知提醒你" style="cursor:pointer"><span id="notify-icon">☆</span><span id="notify-label">提醒關</span></div>
+      <div class="api-status" id="notify-toggle" onclick="toggleNotify()" title="已收盤 Step3 與風險閘門通過時提醒" style="cursor:pointer"><span id="notify-icon">☆</span><span id="notify-label">提醒關</span></div>
       <div class="livebadge"><div class="ldot"></div>LIVE</div>
       <div id="clk">--:--:--</div>
     </div>
@@ -524,7 +524,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
       <div class="cb" id="pullback-cnt">即時偵測</div>
     </div>
     <div style="background:linear-gradient(135deg,rgba(0,200,150,.06),var(--white));border-bottom:1.5px solid var(--pink4);padding:9px 13px;font-size:11px;color:var(--text2);line-height:1.7">
-      🎯 價格回調至 EMA144/169 通道支撐後反彈 = <strong style="color:var(--green2)">最高勝率進場點</strong>（賽克斯步驟2）
+      🎯 價格回調至 EMA144/169 通道後，仍須等待已收盤 Step3；回踩品質只是<strong style="color:var(--green2)">信心條件</strong>，不是勝率。
     </div>
     <div id="pullback-list"><div class="loading"><div class="spin"></div>計算回踩距離中...</div></div>
     <!-- 快回踩預警（接近通道緣、尚未到位）-->
@@ -770,7 +770,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
       </div>
       <div class="msgs" id="msgs">
         <div class="msg bot"><div class="mav">⭐</div><div>
-          <div class="mbub">嗨！我是幸運星信號 ⭐ AI！<br>整合 <strong>MOVE通道系統</strong>、真實EMA、PA裸K型態、正EV計算，幫你找最高勝率進場點！<br><br>💡 可以問：<br>⭐ VEGAS最強做多訊號？<br>📊 符合2個以上篩選標準的幣？<br>🎯 BTC止損止盈怎麼設？<br>⚖️ 這筆交易EV是正的嗎？<br><br>請先在右側設定 API Key 💕</div>
+          <div class="mbub">嗨！我是幸運星信號 ⭐ AI！<br>整合 <strong>MOVE通道系統</strong>、真實EMA與已收盤PA裸K型態，協助你整理條件；信心分數不是勝率，也不承諾獲利。<br><br>💡 可以問：<br>⭐ VEGAS目前方向？<br>📊 哪些幣已完成Step3？<br>🎯 失效點應看哪些結構？<br>⚖️ 如何用自己的回測參數算EV？<br><br>請先在右側設定 API Key 💕</div>
           <div class="mtime">幸運星信號</div>
         </div></div>
       </div>
@@ -813,7 +813,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
     <div class="card">
       <div class="ch"><div class="ct">⭐ 幸運星信號是什麼？</div></div>
       <div class="cbody" style="font-size:13px;line-height:1.9;color:var(--text2)">
-        <p style="margin:0 0 10px">幸運星信號是一個<strong>加密貨幣技術分析訊號站</strong>，整合多種指標幫你找高勝率進場機會，適合有一定交易基礎的使用者輔助判斷。</p>
+        <p style="margin:0 0 10px">幸運星信號是一個<strong>加密貨幣技術分析訊號站</strong>，整合多種指標整理觀察條件；信心分數不是勝率，也不承諾獲利。</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div style="background:var(--pink5);border-radius:8px;padding:10px 12px">
             <div style="font-weight:800;color:var(--pink3);margin-bottom:4px">📡 即時數據</div>
@@ -841,11 +841,11 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
       <div class="cbody" style="display:flex;flex-direction:column;gap:8px">
         <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:12px;align-items:start">
           <span style="font-weight:800;color:var(--pink3);white-space:nowrap">📊 多空推薦</span>
-          <span style="color:var(--text2)">整合所有指標自動排出做多/做空前5名，附勝率、EV、建議倉位</span>
+          <span style="color:var(--text2)">整合真實指標排出做多／做空前5名；信心分數只供排序，不自動計算EV或倉位</span>
           <span style="font-weight:800;color:var(--pink3);white-space:nowrap">⚖️ 正EV</span>
-          <span style="color:var(--text2)">所有幣種 EV 排行，只看 EV&gt;0 的機會，搭配 Kelly 公式算倉位</span>
+          <span style="color:var(--text2)">輸入自己已回測的勝率、RR與單筆風險，手動試算EV與Kelly；不取用自動信號分數</span>
           <span style="font-weight:800;color:var(--pink3);white-space:nowrap">🌿 MOVE訊號</span>
-          <span style="color:var(--text2)">VEGAS 通道狀態 + 三個篩選條件，回踩距離與止損建議</span>
+          <span style="color:var(--text2)">VEGAS 通道狀態、三個篩選條件與回踩距離；不自動提供止損或倉位</span>
           <span style="font-weight:800;color:var(--pink3);white-space:nowrap">⚡ 技術訊號</span>
           <span style="color:var(--text2)">賽克斯三步驟核對、QQE MOD 多週期共振強度</span>
           <span style="font-weight:800;color:var(--pink3);white-space:nowrap">🔥 OI異常</span>
@@ -871,7 +871,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
         <div style="display:flex;flex-direction:column;gap:10px">
           <div style="display:flex;gap:10px;align-items:flex-start">
             <span style="background:var(--pink3);color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;margin-top:2px">1</span>
-            <span><strong>看多空推薦</strong> — 找 VEGAS ✅ 勝率 ≥ 60% 的幣，這是系統認為今日最值得關注的機會</span>
+            <span><strong>看多空推薦</strong> — 依 VEGAS 與已收盤條件的信心分數排序，Step3 未完成時只觀察、不進場</span>
           </div>
           <div style="display:flex;gap:10px;align-items:flex-start">
             <span style="background:var(--pink3);color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;margin-top:2px">2</span>
@@ -933,7 +933,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
 <footer style="text-align:center;padding:18px 16px 24px;border-top:1.5px solid var(--pink4);margin-top:8px;background:var(--pink5)">
   <div style="font-size:10px;color:var(--text3);line-height:1.9;max-width:600px;margin:0 auto">
     <div style="font-weight:800;color:var(--text2);margin-bottom:4px;font-size:11px">⚠️ 免責聲明</div>
-    本站所有訊號、勝率、EV 數值均為技術指標計算結果，<strong>不構成任何投資建議</strong>。加密貨幣市場波動極大，過去績效不代表未來結果。請根據自身風險承受能力獨立判斷，並在進場前自行設定止損。本站不負任何因參考本站訊號而產生之投資損失責任。
+    本站自動訊號僅為技術條件與信心分數整理，並非統計勝率；正EV計算機只使用你自行輸入的已驗證參數。所有內容<strong>不構成任何投資建議</strong>。加密貨幣市場波動極大，過去績效不代表未來結果。請根據自身風險承受能力獨立判斷，並自行設定風險。本站不負任何因參考本站訊號而產生之投資損失責任。
     <div style="margin-top:8px;color:var(--pink3);font-weight:700">⭐ 幸運星信號 · 數據來源：OKX / CoinGecko / RSS</div>
   </div>
 </footer>
@@ -964,7 +964,7 @@ let chatHistory = [];
 // 動態幣種列表（從OKX即時抓取，按成交量排序）
 let SYMS = ['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','DOT','LINK']; // 初始值，啟動後會被替換
 const CG_IDS='bitcoin,ethereum,solana,binancecoin,ripple,dogecoin,cardano,avalanche-2,polkadot,chainlink,uniswap,near,polygon,litecoin,arbitrum,optimism,sui,aptos,pepe,floki';
-const MAX_SYMS = 60; // 最多掃描幣種數（按成交量排序前60）
+const MAX_SYMS=40; // 純前端公開API：掃描高流動性前40，避免初次載入撞限流。
 const SIGNUP_FORM_URL = ''; // 填入 Google Form 網址後訂閱功能自動啟用
 
 // OKX SWAP 的 volCcy24h 是標的幣數量（例如 BTC），乘 last 才是 USDT 名目成交額。
@@ -976,10 +976,8 @@ function notionalVolumeUSDT(t){
 // 從 OKX 動態取得所有 USDT 永續合約，按成交量排序
 async function loadAllSymbols(){
   try{
-    const r=await fetch('https://www.okx.com/api/v5/market/tickers?instType=SWAP');
-    if(!r.ok)return;
-    const j=await r.json();
-    if(j.code!=='0')return;
+    const j=await okxFetch('https://www.okx.com/api/v5/market/tickers?instType=SWAP');
+    if(!j||j.code!=='0')return;
     const syms=j.data
       .filter(t=>t.instId.endsWith('-USDT-SWAP'))
       .map(t=>({sym:t.instId.replace('-USDT-SWAP',''),vol:notionalVolumeUSDT(t)}))
@@ -1036,23 +1034,32 @@ document.addEventListener('DOMContentLoaded',()=>{
   loadFearGreed();
   // 價格/OI/EV 每60秒更新
   setInterval(()=>{loadFast();loadRealIndicators();},60000);
-  // VEGAS 全幣掃描每3分鐘更新
-  setInterval(()=>{loadAllSymbols().then(()=>loadVEGAS());},180000);
+  // 全幣長週期掃描每15分鐘更新；短週期資料仍由各自TTL控制，且禁止重疊掃描。
+  setInterval(()=>{loadAllSymbols().then(()=>loadVEGAS());},900000);
   // 新聞每5分鐘更新（恐懼貪婪每日更新，跟著刷新即可）
   setInterval(()=>{loadNews();loadFearGreed();},300000);
 });
 
+let _fastRunning=false;
 async function loadFast(){
-  await Promise.all([loadCoins(),loadOI()]);
-  scoredCoins=scoreAll();
-  saekSigs=buildSaek();
-  renderOverviewStats(Object.values(coins)); // oiData 已就緒，更新為60幣總覽
-  renderMarketBrief();renderHotMovers();
-  renderRecs();renderSaek();renderSectors();
-  document.getElementById('stime').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
+  if(_fastRunning)return;
+  _fastRunning=true;
+  try{
+    await Promise.all([loadCoins(),loadOI()]);
+    scoredCoins=scoreAll();
+    saekSigs=buildSaek();
+    renderOverviewStats(Object.values(coins)); // oiData 已就緒，更新為60幣總覽
+    renderMarketBrief();renderHotMovers();
+    renderRecs();renderSaek();renderSectors();
+    document.getElementById('stime').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
+  }finally{_fastRunning=false;}
 }
 
+let _vegasRunning=false;
 async function loadVEGAS(){
+  if(_vegasRunning)return;
+  _vegasRunning=true;
+  try{
   setApiStatus('vegas', null);
   document.getElementById('vlist').innerHTML=`<div class="loading"><div class="spin"></div>掃描 ${SYMS.length} 個幣種中，請稍候...</div>`;
   const vbarWrap=document.getElementById('vbar-wrap');
@@ -1088,6 +1095,9 @@ async function loadVEGAS(){
   renderMarketBrief();renderHotMovers();
   renderSaek();
   renderRecs();
+  }finally{
+    _vegasRunning=false;
+  }
 }
 
 function sw(t){
@@ -1116,16 +1126,19 @@ function setSafeMultilineText(el,value){
   el.style.whiteSpace='pre-wrap';
 }
 
-// 全域 OKX API 限速器（最多同時 3 個請求，429 自動退讓重試）
-const _okxRL = { running: 0, max: 3 };
+// 全域 OKX API 限速器：單通道＋最小間隔，429 指數退讓，避免全幣掃描打爆公開API。
+const _okxRL={running:0,max:1,lastAt:0,minGap:250};
 async function okxFetch(url) {
   while (_okxRL.running >= _okxRL.max) await sleep(120);
   _okxRL.running++;
   try {
     for (let i = 0; i < 3; i++) {
       try {
+        const wait=Math.max(0,_okxRL.minGap-(Date.now()-_okxRL.lastAt));
+        if(wait)await sleep(wait);
+        _okxRL.lastAt=Date.now();
         const r = await fetch(url);
-        if (r.status === 429) { await sleep(700 * (i + 1)); continue; }
+        if(r.status===429){await sleep(2000*(2**i));continue;}
         if (!r.ok) return null;
         return await r.json();
       } catch(e) { return null; }
@@ -1233,6 +1246,24 @@ function fmtUSD(px){
 function fmtPct(v){
   if(v===null||v===undefined||Number.isNaN(Number(v))) return '無資料';
   const n=Number(v);return `${n>=0?'+':''}${n.toFixed(2)}%`;
+}
+function formatMarketChange(v,digits=1){
+  if(v===null||v===undefined||!Number.isFinite(Number(v)))return{value:null,text:'無資料',cls:'neu'};
+  const value=Number(v);
+  return{value,text:`${value>=0?'+':''}${value.toFixed(digits)}%`,cls:value>=0?'up':'dn'};
+}
+function compareToBTC(assetChg,btcChg,type){
+  if(assetChg===null||assetChg===undefined||btcChg===null||btcChg===undefined||!Number.isFinite(Number(assetChg))||!Number.isFinite(Number(btcChg))){
+    return{tag:'資料不足',sup:'neutral',desc:'24H 漲跌資料不足，無法比較相對 BTC 強弱',value:null};
+  }
+  const value=Number(assetChg)-Number(btcChg),abs=Math.abs(value).toFixed(1);
+  if(Math.abs(value)<0.5)return{tag:'與BTC同步',sup:'neutral',desc:'與 BTC 走勢接近，無明顯獨立強弱',value};
+  if(type==='long')return value>0
+    ?{tag:'強於BTC',sup:'good',desc:`相較 BTC 強 ${abs}%，有額外買盤支撐`,value}
+    :{tag:'弱於BTC',sup:'bad',desc:`相較 BTC 弱 ${abs}%，本身存在額外賣壓`,value};
+  return value<0
+    ?{tag:'弱於BTC',sup:'good',desc:`相較 BTC 弱 ${abs}%，下跌動能較強，利於做空`,value}
+    :{tag:'強於BTC',sup:'bad',desc:`相較 BTC 強 ${abs}%，逆勢做空風險高`,value};
 }
 function getCoinBySym(sym){
   return Object.values(coins).find(c=>c.symbol?.toUpperCase()===sym.toUpperCase())||null;
@@ -1409,9 +1440,8 @@ async function fetchAllOI(){
 }
 async function loadOI(){
   try{
-    const r=await fetch('https://www.okx.com/api/v5/market/tickers?instType=SWAP');
-    if(!r.ok)throw new Error();
-    const j=await r.json();if(j.code!=='0')throw new Error();
+    const j=await okxFetch('https://www.okx.com/api/v5/market/tickers?instType=SWAP');
+    if(!j||j.code!=='0')throw new Error();
     const rows=j.data.filter(t=>t.instId.endsWith('USDT-SWAP')).map(t=>{
       const px=Number(t.last),op=Number(t.open24h),hi=Number(t.high24h),lo=Number(t.low24h),vol=notionalVolumeUSDT(t);
       if(!(px>0)||!Number.isFinite(vol)||vol<500000)return null;
@@ -1456,9 +1486,10 @@ async function loadOI(){
 
 // ═══ 真實量價型態（依規格：用K線OHLCV + 20根均量）═══
 function calcRealVolPattern(ohlcvArr){
-  if(!ohlcvArr||ohlcvArr.length<21) return null;
-  const last = ohlcvArr[ohlcvArr.length-1];
-  const prev20 = ohlcvArr.slice(-21,-1);
+  const closed=(ohlcvArr||[]).filter(k=>k.confirmed===true);
+  if(closed.length<21)return null;
+  const last=closed[closed.length-1];
+  const prev20=closed.slice(-21,-1);
   const avgVol = prev20.reduce((a,b)=>a+b.vol,0)/20;
   if(!avgVol) return null;
   const vol = last.vol, close=last.close, open=last.open;
@@ -1470,52 +1501,25 @@ function calcRealVolPattern(ohlcvArr){
 
   // 🚀 放量突破：vol>均量×2 + 收盤突破 + 收在上75%
   if(vol>avgVol*2 && chg>1.5 && closePos>0.75)
-    return{name:'🚀 放量突破',signal:'long',wr:0.72,rr:3.0,color:'var(--green2)',bg:'rgba(0,200,150,.08)'};
+    return{name:'🚀 放量突破',desc:'已收盤4H放量突破，方向偏多',signal:'long',quality:72,color:'var(--green2)',bg:'rgba(0,200,150,.08)'};
   // 📈 量增價漲：vol>均量×1.5 + 漲>2% + 上影線不長
   if(vol>avgVol*1.5 && chg>2 && upperShadow<0.3)
-    return{name:'📈 量增價漲',signal:'long',wr:0.65,rr:2.0,color:'var(--green2)',bg:'rgba(0,200,150,.06)'};
+    return{name:'📈 量增價漲',desc:'已收盤4H量增價漲，動能偏多',signal:'long',quality:65,color:'var(--green2)',bg:'rgba(0,200,150,.06)'};
   // 📉 量增價跌：vol>均量×1.5 + 跌>2%
   if(vol>avgVol*1.5 && chg<-2)
-    return{name:'📉 量增價跌',signal:'short',wr:0.63,rr:2.0,color:'var(--red2)',bg:'rgba(255,77,109,.06)'};
+    return{name:'📉 量增價跌',desc:'已收盤4H量增價跌，動能偏空',signal:'short',quality:63,color:'var(--red2)',bg:'rgba(255,77,109,.06)'};
   // 📉 價跌量縮：vol<均量×0.7 + 跌>1%
   if(vol<avgVol*0.7 && chg<-1)
-    return{name:'📉 價跌量縮',signal:'watch_long',wr:0.58,rr:2.0,color:'var(--gold)',bg:'var(--goldb)'};
+    return{name:'📉 價跌量縮',desc:'已收盤4H價跌量縮，僅列觀察',signal:'watch_long',quality:58,color:'var(--gold)',bg:'var(--goldb)'};
   // ⚠️ 天量天價：vol>均量×2 + 漲>8% + 收在50%以下（回撤）
   if(vol>avgVol*2 && chg>8 && closePos<0.5)
-    return{name:'⚠️ 天量天價',signal:'exit',wr:0.45,rr:1.5,color:'var(--gold)',bg:'var(--goldb)'};
+    return{name:'⚠️ 天量天價',desc:'已收盤4H爆量回撤，注意過熱',signal:'exit',quality:45,color:'var(--gold)',bg:'var(--goldb)'};
   // 💥 爆量長黑：vol>均量×2 + 單根跌>3%
   if(vol>avgVol*2 && chg<-3)
-    return{name:'💥 爆量長黑',signal:'watch',wr:0.65,rr:2.0,color:'var(--red2)',bg:'rgba(255,77,109,.08)'};
+    return{name:'💥 爆量長黑',desc:'已收盤4H爆量長黑，避免追價',signal:'watch',quality:65,color:'var(--red2)',bg:'rgba(255,77,109,.08)'};
   // ⏸ 縮量整理：vol<均量×0.7 + 波動<2%
   if(vol<avgVol*0.7 && Math.abs(chg)<2)
-    return{name:'⏸ 縮量整理',signal:'wait',wr:0.45,rr:1.5,color:'var(--text3)',bg:'var(--pink5)'};
-  return null;
-}
-
-// ═══ 量價型態偵測（OI數據版，作為fallback）═══
-function detectVolPattern(a, vd){
-  const pchg=a.pchg, vol=a.vol, pos=a.pos;
-  // 放量突破：漲幅>3% + 大量 + 在高位
-  if(pchg>3&&vol>5000000&&pos>0.7)
-    return{name:'🚀 放量突破',desc:'量價齊升，多頭啟動',signal:'long',wr:0.72,rr:2.5,color:'var(--green2)',bg:'rgba(0,200,150,.08)'};
-  // 爆量長黑：跌幅>5% + 極大量
-  if(pchg<-5&&vol>8000000)
-    return{name:'💥 爆量長黑',desc:'空方極強，避免追空，等反彈',signal:'watch',wr:0.45,rr:1.5,color:'var(--red2)',bg:'rgba(255,77,109,.08)'};
-  // 天量天價：極大量 + 接近高點 → 可能反轉
-  if(vol>20000000&&pos>0.85&&pchg>2)
-    return{name:'⚠️ 天量天價',desc:'可能見頂，分批獲利，注意反轉',signal:'exit',wr:0.55,rr:1.5,color:'var(--gold)',bg:'var(--goldb)'};
-  // 縮量整理：小幅變動 + 量縮 → 蓄勢
-  if(Math.abs(pchg)<2&&vol<2000000&&vol>500000)
-    return{name:'⏸ 縮量整理',desc:'蓄勢待發，等放量突破方向再進',signal:'wait',wr:0.50,rr:2.0,color:'var(--text3)',bg:'var(--pink5)'};
-  // 價跌量縮：跌幅<-2% + 量也縮 → 接近底部
-  if(pchg<-2&&pchg>-5&&vol<3000000&&pos<0.3)
-    return{name:'📉 價跌量縮',desc:'賣壓減弱，接近底部，等反彈確認',signal:'watch_long',wr:0.62,rr:2.0,color:'var(--gold)',bg:'var(--goldb)'};
-  // 放量上漲：漲幅>2% + 一般量
-  if(pchg>2&&vol>3000000)
-    return{name:'📈 量增價漲',desc:'有量支撐，多頭延續',signal:'long',wr:0.65,rr:2.0,color:'var(--green2)',bg:'rgba(0,200,150,.06)'};
-  // 放量下跌
-  if(pchg<-2&&vol>3000000)
-    return{name:'📉 量增價跌',desc:'有量支撐空方，空頭延續',signal:'short',wr:0.63,rr:2.0,color:'var(--red2)',bg:'rgba(255,77,109,.06)'};
+    return{name:'⏸ 縮量整理',desc:'已收盤4H縮量整理，等待方向',signal:'wait',quality:45,color:'var(--text3)',bg:'var(--pink5)'};
   return null;
 }
 
@@ -1525,7 +1529,7 @@ function renderVolSpike(){
     .filter(a=>a.vol>500000)
     .map(a=>{
       const vd = vegasData.find(v=>v.sym===a.sym);
-      const pat = detectVolPattern(a, vd);
+      const pat=vd?.volPat4H||null;
       if(!pat)return null;
       const vegasAlign = vd && (
         (pat.signal==='long'&&vd.signal==='bull')||
@@ -1536,18 +1540,17 @@ function renderVolSpike(){
         (pat.signal==='short'&&vd.qqe4h?.isBear)
       );
       const pullback = vd?.isPullbackSignal;
-      // 勝率加成
-      let wr = pat.wr;
-      if(vegasAlign) wr+=0.06;
-      if(qqeAlign)   wr+=0.04;
-      if(pullback&&pat.signal==='long') wr+=0.05;
-      wr=Math.min(0.85,wr);
-      const ev=wr*(0.03*pat.rr)-(1-wr)*0.03;
-      return{...a,pat,vegasAlign,qqeAlign,pullback,wr,ev};
+      // 條件品質只供排序，不是統計勝率，也不推導 EV/RR。
+      let quality=pat.quality;
+      if(vegasAlign)quality+=6;
+      if(qqeAlign)quality+=4;
+      if(pullback&&pat.signal==='long')quality+=5;
+      quality=Math.min(100,quality);
+      return{...a,pat,vegasAlign,qqeAlign,pullback,quality};
     })
     .filter(Boolean)
     .filter(a=>a.pat.signal!=='watch')
-    .sort((a,b)=>b.wr-a.wr)
+    .sort((a,b)=>b.quality-a.quality)
     .slice(0,20);
 
   document.getElementById('flash-cnt').textContent=results.length;
@@ -1559,7 +1562,7 @@ function renderVolSpike(){
   }
   document.getElementById('vol-list').innerHTML=results.map(s=>{
     const p=s.pat;
-    const wrColor=s.wr>=0.70?'var(--green2)':s.wr>=0.60?'var(--gold)':'var(--text3)';
+    const qualityColor=s.quality>=70?'var(--green2)':s.quality>=60?'var(--gold)':'var(--text3)';
     const tags=[];
     if(s.vegasAlign) tags.push({t:'VEGAS✅',c:'var(--green2)'});
     if(s.qqeAlign)   tags.push({t:'QQE✅',c:'var(--green2)'});
@@ -1575,12 +1578,12 @@ function renderVolSpike(){
       <div style="font-size:12px;color:var(--text2);margin-bottom:7px;line-height:1.5">${p.desc}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:7px">
         <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:8px;padding:6px;text-align:center">
-          <div style="font-size:9px;color:var(--text3);font-family:Nunito;font-weight:700">勝率</div>
-          <div style="font-family:Nunito,sans-serif;font-size:17px;font-weight:900;color:${wrColor}">${Math.round(s.wr*100)}%</div>
+          <div style="font-size:9px;color:var(--text3);font-family:Nunito;font-weight:700">品質分數</div>
+          <div style="font-family:Nunito,sans-serif;font-size:17px;font-weight:900;color:${qualityColor}">${Math.round(s.quality)}</div>
         </div>
         <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:8px;padding:6px;text-align:center">
-          <div style="font-size:9px;color:var(--text3);font-family:Nunito;font-weight:700">RR</div>
-          <div style="font-family:Nunito,sans-serif;font-size:17px;font-weight:900;color:var(--gold)">${p.rr}:1</div>
+          <div style="font-size:9px;color:var(--text3);font-family:Nunito;font-weight:700">方向</div>
+          <div style="font-family:Nunito,sans-serif;font-size:14px;font-weight:900;color:${p.color}">${p.signal==='long'?'偏多':p.signal==='short'?'偏空':'觀察'}</div>
         </div>
         <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:8px;padding:6px;text-align:center">
           <div style="font-size:9px;color:var(--text3);font-family:Nunito;font-weight:700">24H量</div>
@@ -1901,13 +1904,18 @@ const realInd = {}; // sym -> {rsi, macd, boll, fr, lsRatio}
 const IND_SYMS = ['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','LINK','LTC',
   'DOT','ARB','OP','SUI','APT','TRX','TON','INJ','PEPE','WIF'];
 
-async function loadRealIndicators() {
-  const batchSize = 2;
-  for(let i=0;i<IND_SYMS.length;i+=batchSize){
-    const batch=IND_SYMS.slice(i,i+batchSize);
-    await Promise.all(batch.map(s=>loadRealForSym(s)));
-    if(i+batchSize<IND_SYMS.length) await sleep(700);
-  }
+let _realIndicatorsRunning=false;
+async function loadRealIndicators(){
+  if(_realIndicatorsRunning)return;
+  _realIndicatorsRunning=true;
+  try{
+    const batchSize=2;
+    for(let i=0;i<IND_SYMS.length;i+=batchSize){
+      const batch=IND_SYMS.slice(i,i+batchSize);
+      await Promise.all(batch.map(s=>loadRealForSym(s)));
+      if(i+batchSize<IND_SYMS.length)await sleep(700);
+    }
+  }finally{_realIndicatorsRunning=false;}
 }
 
 async function loadRealForSym(sym) {
@@ -2045,20 +2053,28 @@ function oiQuadrant(oiChg, priceChg){
   return {name:'變化不明顯', side:'neutral', desc:'近1H 持倉與價格變化都不大'};
 }
 
-// 訊號成熟度（Phase 3E）：用現有 VEGAS/賽克斯/RSI/漲跌幅 判斷生命週期，純判讀不改計算
+// 成熟度與通知共用的風險閘門；缺任何必要資料或過熱都不可執行。
+function executionRiskState(type,rsi,chg24){
+  if(!Number.isFinite(rsi)||!Number.isFinite(chg24))
+    return {blocked:true,reason:'資料不足'};
+  const overheated=(type==='long'&&rsi>72&&chg24>8)||(type==='short'&&rsi<28&&chg24<-8);
+  return overheated?{blocked:true,reason:'過熱'}:{blocked:false,reason:'通過'};
+}
+
+// 訊號成熟度：用現有 VEGAS/賽克斯/RSI/漲跌幅判斷生命週期。
 function signalMaturity(type, v, rsi, chg24){
-  // Phase 1：資料不足優先——不給方向判斷（純顯示，不影響任何計算）
   if(!v) return {stage:'資料不足', color:'var(--text3)', desc:'VEGAS 通道資料未載入，資料不足不給方向判斷'};
-  if(rsi===null && (chg24===null || chg24===undefined))
-    return {stage:'資料不足', color:'var(--text3)', desc:'RSI 與 24H 漲跌皆缺，資料不足不給方向判斷'};
+  const risk=executionRiskState(type,rsi,chg24);
+  if(risk.reason==='資料不足')
+    return {stage:'資料不足', color:'var(--text3)', desc:'RSI 或 24H 漲跌缺資料，不產生可執行判斷'};
   const want=type==='long'?'bull':'bear', opp=type==='long'?'bear':'bull';
   const aligned=v.signal===want, against=v.signal===opp;
   const step3=type==='long'?v.step3_long:v.step3_short;
   const step2=type==='long'?v.step2_long:v.step2_short;
-  const ch=Number(chg24)||0;
+  const ch=chg24;
   if(against) return {stage:'失效', color:'var(--red2)', desc:'逆 VEGAS，方向相反，不建議操作'};
   if(aligned){
-    if(rsi!==null && ((type==='long'&&rsi>72&&ch>8)||(type==='short'&&rsi<28&&ch<-8)))
+    if(risk.reason==='過熱')
       return {stage:'過熱', color:'#ff8c42', desc:`已${type==='long'?'大漲':'大跌'} ${Math.abs(ch).toFixed(1)}%、RSI 極端，追${type==='long'?'高':'空'}風險高`};
     if(v.isFakeBreakout) return {stage:'等確認', color:'var(--gold)', desc:'假突破偵測中，等 EMA12 與 K 棒同步突破'};
     if(step3) return {stage:'可執行', color:'var(--green2)', desc:'VEGAS 雙確認＋進場訊號成立，可依紀律進場'};
@@ -2130,16 +2146,16 @@ function buildSignalVerdict(ctx){
     : `${sym} 目前判定為「${dirTag}」，訊號成熟度「${mat.stage}」——${mat.desc}`;
 
   // 為什麼被抓出來：取評分明細中的加分項（排除基礎勝率），由大到小最多 3 條
-  const plus = (wrBreakdown||[]).filter(b=>b.label!=='基礎勝率' && b.pts>0)
+  const plus = (wrBreakdown||[]).filter(b=>b.label!=='基礎分數' && b.pts>0)
     .sort((a,b)=>b.pts-a.pts).slice(0,3);
   const plusHTML = plus.length
-    ? plus.map(b=>`<li>${b.label}${b.detail?`：${b.detail}`:''}（勝率 +${Math.round(b.pts*100)}%）</li>`).join('')
+    ? plus.map(b=>`<li>${b.label}${b.detail?`：${b.detail}`:''}（分數 +${Math.round(b.pts*100)}）</li>`).join('')
     : `<li>${wrBreakdown?'目前沒有明顯加分條件，主要靠基礎條件入選':'評分明細載入中，暫無法列出加分理由'}</li>`;
 
   // 風險在哪：取評分明細中的扣分項，加上成熟度層級的既有風險旗標
   const minus = (wrBreakdown||[]).filter(b=>b.pts<0)
     .sort((a,b)=>a.pts-b.pts).slice(0,3)
-    .map(b=>`<li>${b.label}${b.detail?`：${b.detail}`:''}（勝率 ${Math.round(b.pts*100)}%）</li>`);
+    .map(b=>`<li>${b.label}${b.detail?`：${b.detail}`:''}（分數 ${Math.round(b.pts*100)}）</li>`);
   if(minus.length<3 && v?.isFakeBreakout) minus.push('<li>假突破偵測中：價格突破但 EMA12 未同步，追單易被掃損</li>');
   if(minus.length<3 && mat.stage==='過熱') minus.push(`<li>短線已${type==='long'?'大漲':'大跌'}且 RSI 極端，此刻追${type==='long'?'高':'空'}風險高</li>`);
   if(minus.length<3 && v && v.signal===opp) minus.push(`<li>VEGAS 目前與${dirW}方向相反，屬逆勢操作</li>`);
@@ -2278,7 +2294,7 @@ function inferNeutralDirection(sym) {
   return null;
 }
 
-// 註：estWinRate（舊版勝率算法）已於 2026-06-27 移除，勝率統一由 computeWR() 計算。
+// 註：舊版勝率算法已移除；目前只保留未校準的條件信心分數。
 //     同時移除無呼叫點的 calcRSI / calcMACD / calcBoll 工具函數。
 
 function calcVol(c){const vol=c.total_volume||0,ch=c.price_change_percentage_24h||0;if(vol>3e9&&ch>2)return{label:'量價齊升',cls:'bull',val:(vol/1e9).toFixed(1)+'B',desc:'放量上漲，多頭確認'};if(vol>3e9&&ch<-2)return{label:'放量下跌',cls:'bear',val:(vol/1e9).toFixed(1)+'B',desc:'放量下跌，空頭確認'};if(vol>1e9&&ch>1)return{label:'量增價漲',cls:'bull',val:(vol/1e9).toFixed(1)+'B',desc:'量能支撐'};if(vol<3e8)return{label:'量能萎縮',cls:'neu',val:(vol/1e9).toFixed(2)+'B',desc:'缺乏量能'};return{label:'量能正常',cls:'neu',val:(vol/1e9).toFixed(1)+'B',desc:'成交量穩定'};}
@@ -2290,178 +2306,123 @@ function calcVol(c){const vol=c.total_volume||0,ch=c.price_change_percentage_24h
 //  篩選標準1：裸K / PA
 //  篩選標準2：型態（反轉/中繼）
 //  篩選標準3：支撐壓力區間
-//  1標準=50% 2標準=100% 3標準=200%（加槓桿）
+//  標準數量只作條件品質排序，不映射倉位或槓桿。
 // ══════════════════════════════════════════════════════
 
-// ── 篩選標準1：裸K型態偵測（PA）──
-function detectPA(c, type) {
-  const ch=c.price_change_percentage_24h||0;
-  const hi=c.high_24h||0,lo=c.low_24h||0,px=c.current_price||0;
-  const range=hi-lo, pos=range>0?(px-lo)/range:0.5;
-  const shadow_lower=(px-lo), shadow_upper=(hi-px);
-  const body=Math.abs(ch), vol=c.total_volume||0;
-  const found=[];
+// ── MOVE 型態資料：只接受 OKX 已收盤 4H OHLCV ──
+function getClosedH4(c){
+  const sym=String(c?.symbol||'').toUpperCase();
+  const vd=vegasData.find(v=>v.sym===sym);
+  return (vd?.closedH4||[]).filter(k=>k.confirmed===true&&
+    [k.open,k.high,k.low,k.close,k.vol].every(Number.isFinite));
+}
+function volumeAverage(candles){
+  if(!candles.length)return null;
+  return candles.reduce((sum,k)=>sum+k.vol,0)/candles.length;
+}
+function findLocalExtrema(candles,key){
+  const points=[];
+  for(let i=2;i<candles.length-2;i++){
+    const v=candles[i][key];
+    const around=[candles[i-2][key],candles[i-1][key],candles[i+1][key],candles[i+2][key]];
+    if(key==='low'?around.every(x=>v<=x):around.every(x=>v>=x))points.push({i,value:v});
+  }
+  return points;
+}
 
+// ── 篩選標準1：真實已收盤裸K／PA ──
+function detectPA(c,type){
+  const candles=getClosedH4(c);
+  if(candles.length<22)return[];
+  const found=[],last=candles.at(-1),prev=candles.at(-2),a=candles.at(-3);
+  const body=Math.abs(last.close-last.open),range=Math.max(last.high-last.low,Number.EPSILON);
+  const lower=Math.min(last.open,last.close)-last.low;
+  const upper=last.high-Math.max(last.open,last.close);
+  const avgVol=volumeAverage(candles.slice(-21,-1));
+  const prevHigh=Math.max(...candles.slice(-21,-1).map(k=>k.high));
+  const prevLow=Math.min(...candles.slice(-21,-1).map(k=>k.low));
+  const bullish=last.close>last.open,bearish=last.close<last.open;
+  const hammer=lower>=body*2&&upper<=Math.max(body,range*0.2)&&last.close>=last.low+range*0.6;
+  const shooting=upper>=body*2&&lower<=Math.max(body,range*0.2)&&last.close<=last.low+range*0.4;
+  const bullEngulf=prev.close<prev.open&&bullish&&last.open<=prev.close&&last.close>=prev.open;
+  const bearEngulf=prev.close>prev.open&&bearish&&last.open>=prev.close&&last.close<=prev.open;
+  const morning=a.close<a.open&&Math.abs(prev.close-prev.open)<=Math.abs(a.close-a.open)*0.45&&bullish&&last.close>(a.open+a.close)/2;
+  const evening=a.close>a.open&&Math.abs(prev.close-prev.open)<=Math.abs(a.close-a.open)*0.45&&bearish&&last.close<(a.open+a.close)/2;
+  const volBreak=Number.isFinite(avgVol)&&last.vol>=avgVol*1.3;
   if(type==='long'||type==='both'){
-    // 錘子線：下影線 > 實體2倍，收盤在上半段
-    if(shadow_lower>shadow_upper*2&&pos>0.6&&body<3)
-      found.push({name:'🔨 錘子線',desc:'下影線長，多頭力量增強',score:18});
-    // 早晨之星：下跌後十字+長陽
-    if(ch>3&&pos>0.7&&shadow_lower>shadow_upper*0.5)
-      found.push({name:'⭐ 早晨之星',desc:'三根K確認，看漲訊號',score:20});
-    // 陽包陰：大陽線包住前根陰線
-    if(ch>2&&pos>0.65&&vol>1e9)
-      found.push({name:'📗 陽包陰',desc:'多頭吞噬，趨勢轉多',score:18});
-    // 123突破
-    if(ch>3&&pos>0.7&&vol>1.5e9)
-      found.push({name:'🔺 123突破',desc:'價格突破壓力+量增',score:22});
-    // 反K（錘子）：在下跌趨勢低點出現
-    if(shadow_lower>shadow_upper*2&&pos>0.55)
-      found.push({name:'🔄 反K',desc:'下影線長，底部反轉信號',score:15});
+    if(hammer)found.push({name:'🔨 錘子線',desc:'已收盤4H長下影、收盤位於上方',score:18});
+    if(morning)found.push({name:'⭐ 早晨之星',desc:'三根已收盤4H完成底部反轉結構',score:20});
+    if(bullEngulf)found.push({name:'📗 陽包陰',desc:'已收盤4H多頭吞噬前一根陰K',score:18});
+    if(last.close>prevHigh&&volBreak)found.push({name:'🔺 123突破',desc:'4H收盤突破前20根高點且成交量放大',score:22});
   }
   if(type==='short'||type==='both'){
-    // 流星線：上影線 > 實體2倍，收盤在下半段
-    if(shadow_upper>shadow_lower*2&&pos<0.4&&body<3)
-      found.push({name:'🌟 流星線',desc:'上影線長，空頭力量增強',score:18,bear:true});
-    // 黃昏之星
-    if(ch<-3&&pos<0.3&&shadow_upper>shadow_lower*0.5)
-      found.push({name:'🌆 黃昏之星',desc:'三根K確認，看跌訊號',score:20,bear:true});
-    // 陰包陽
-    if(ch<-2&&pos<0.35&&vol>1e9)
-      found.push({name:'📕 陰包陰',desc:'空頭吞噬，趨勢轉空',score:18,bear:true});
-    // 反K流星
-    if(shadow_upper>shadow_lower*2&&pos<0.45)
-      found.push({name:'🔄 反K流星',desc:'上影線長，頭部反轉信號',score:15,bear:true});
+    if(shooting)found.push({name:'🌟 流星線',desc:'已收盤4H長上影、收盤位於下方',score:18,bear:true});
+    if(evening)found.push({name:'🌆 黃昏之星',desc:'三根已收盤4H完成頂部反轉結構',score:20,bear:true});
+    if(bearEngulf)found.push({name:'📕 陰包陽',desc:'已收盤4H空頭吞噬前一根陽K',score:18,bear:true});
+    if(last.close<prevLow&&volBreak)found.push({name:'🔻 123跌破',desc:'4H收盤跌破前20根低點且成交量放大',score:22,bear:true});
   }
   return found.slice(0,3);
 }
 
-// ── 篩選標準2：型態偵測（反轉/中繼）──
-function detectPattern(c, type) {
-  const ch=c.price_change_percentage_24h||0;
-  const hi=c.high_24h||0,lo=c.low_24h||0,px=c.current_price||0;
-  const pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5;
-  const vol=c.total_volume||0;
-  const found=[];
-
-  if(type==='long'||type==='both'){
-    // 雙底W（反轉）：長期下跌後低點相近
-    if(ch>2&&pos>0.55&&pos<0.75)
-      found.push({name:'〰️ 雙底(W)',type:'反轉',desc:'突破頸線後進場，止損最近低點',score:20});
-    // 牛旗（中繼）：上漲後小幅整理
-    if(ch>1&&ch<5&&pos>0.5)
-      found.push({name:'🚩 牛旗',type:'中繼',desc:'突破旗幟上界，目標=旗桿高度',score:18});
-    // 上升趨勢中繼
-    if(ch>3&&pos>0.7)
-      found.push({name:'📈 趨勢中繼',type:'中繼',desc:'順勢做多，止損EMA144下方',score:16});
-  }
-  if(type==='short'||type==='both'){
-    // 雙頂M（反轉）
-    if(ch<-2&&pos<0.45&&pos>0.25)
-      found.push({name:'〰️ 雙頂(M)',type:'反轉',desc:'跌破頸線後做空，止損最近高點',score:20,bear:true});
-    // 熊旗（中繼）
-    if(ch<-1&&ch>-5&&pos<0.5)
-      found.push({name:'🚩 熊旗',type:'中繼',desc:'跌破旗幟下界，目標=旗桿長度',score:18,bear:true});
-    // 下降趨勢中繼
-    if(ch<-3&&pos<0.3)
-      found.push({name:'📉 趨勢中繼',type:'中繼',desc:'順勢做空，止損EMA144上方',score:16,bear:true});
-  }
-  return found.slice(0,2);
-}
-
-// ── 篩選標準3：支撐壓力位 ──
-function detectSR(c, type, vegasData) {
-  const ch=c.price_change_percentage_24h||0;
-  const hi=c.high_24h||0,lo=c.low_24h||0,px=c.current_price||0;
-  const pos=(hi-lo)>0?(px-lo)/(hi-lo):0.5;
-  const vd=vegasData.find(v=>v.sym===c.symbol.toUpperCase());
-  const found=[];
-
-  if(type==='long'||type==='both'){
-    // 在支撐位附近（價格在區間下1/3，反彈）
-    if(pos<0.3&&ch>0)
-      found.push({name:'🟢 支撐反彈',desc:'觸及支撐後反彈，確認支撐有效',score:18});
-    // VEGAS通道作為動態支撐
-    if(vd&&vd.h4InTunnel&&ch>0)
-      found.push({name:'🌿 VEGAS通道支撐',desc:'EMA144/169作為動態支撐，回踩進場',score:20});
-    // 123突破後回踩
-    if(ch>1&&pos>0.55&&pos<0.75)
-      found.push({name:'🔺 突破回踩',desc:'突破壓力後回測（支撐確認），123法則進場',score:22});
-  }
-  if(type==='short'||type==='both'){
-    // 在壓力位附近（價格在區間上1/3，回落）
-    if(pos>0.7&&ch<0)
-      found.push({name:'🔴 壓力回落',desc:'觸及壓力後回落，確認壓力有效',score:18,bear:true});
-    // VEGAS通道作為動態壓力
-    if(vd&&vd.h4InTunnel&&ch<0)
-      found.push({name:'🌿 VEGAS通道壓力',desc:'EMA144/169作為動態壓力，反彈做空',score:20,bear:true});
-    // 假突破後做空
-    if(ch<-1&&pos<0.45&&pos>0.25)
-      found.push({name:'❌ 假突破做空',desc:'突破後迅速回落，空頭陷阱，止損前高',score:20,bear:true});
-  }
-  return found.slice(0,2);
-}
-
-// ── MOVE 綜合評分 ──
-function calcMOVE(c, type, vd) {
-  const paList = detectPA(c, type);
-  const patList = detectPattern(c, type);
-  const srList = detectSR(c, type, vegasData);
-
-  // 計算每個篩選標準是否滿足
-  const hasPA = paList.length > 0;
-  const hasPat = patList.length > 0;
-  const hasSR = srList.length > 0;
-  const criteriaCount = [hasPA, hasPat, hasSR].filter(Boolean).length;
-
-  // VEGAS 核心是否滿足
-  const vegasOK = vd && ((type==='long'&&vd.signal==='bull')||(type==='short'&&vd.signal==='bear'));
-  const vegasPartial = vd && vd.h4InTunnel;
-  // MOVE日線確認（EMA12>EMA576，但4H尚未突破EMA144/169 → 輕倉等待）
-  const dailyConfirmed = vd && (
-    (type==='long'&&vd.moveDailyTrend==='bull') ||
-    (type==='short'&&vd.moveDailyTrend==='bear')
-  );
-
-  // 建議倉位（講義邏輯）
-  let positionPct = 0;
-  if(vegasOK){
-    if(criteriaCount>=3) positionPct=200;
-    else if(criteriaCount>=2) positionPct=100;
-    else if(criteriaCount>=1) positionPct=50;
-    else positionPct=25; // VEGAS alone, wait for confirmation
-  } else if(vegasPartial && criteriaCount>=2){
-    positionPct=30; // VEGAS整理中但有2個篩選，輕倉等待
-  } else if(dailyConfirmed){
-    positionPct=25; // 日線確認，等4H突破通道再加倉
-  }
-
-  // MOVE 評分（0-100）
-  let moveScore = 0;
-  if(vegasOK) moveScore += 40;
-  else if(vegasPartial) moveScore += 15;
-  moveScore += criteriaCount * 15; // 每個篩選+15
-  const paScore = paList.reduce((a,p)=>a+p.score,0);
-  const patScore = patList.reduce((a,p)=>a+p.score,0);
-  const srScore = srList.reduce((a,p)=>a+p.score,0);
-  moveScore += Math.min(10, (paScore+patScore+srScore)/10);
-  moveScore = Math.min(100, Math.round(moveScore));
-
-  // 止損/止盈建議
-  const ch=c.price_change_percentage_24h||0, px=c.current_price||0;
-  let slPct=3, tpPct=6, slDesc='', tpDesc='';
-  if(hasSR){slPct=2;slDesc='設在支撐/壓力位下方';}
-  else if(vd?.h4_144){slDesc='設在4H EMA144下方';}
-  else{slDesc='設在前低下方';}
-  tpDesc=criteriaCount>=3?'目標前高/下一壓力，可加倉':'目標前高/壓力位';
-  const rr=tpPct/slPct;
-
-  return {
-    vegasOK, criteriaCount, positionPct, moveScore,
-    paList, patList, srList,
-    slPct, tpPct, tpDesc, slDesc, rr,
-    signals123: hasSR&&hasPA  // 123突破法則適用
+// ── 篩選標準2：真實多根 K 棒結構（雙頂底／旗形／中繼）──
+function detectPattern(c,type){
+  const candles=getClosedH4(c);
+  if(candles.length<45)return[];
+  const found=[],window=candles.slice(-45),last=window.at(-1);
+  const lows=findLocalExtrema(window,'low'),highs=findLocalExtrema(window,'high');
+  const avgVol=volumeAverage(window.slice(-21,-1));
+  const volConfirmed=Number.isFinite(avgVol)&&last.vol>=avgVol*1.2;
+  const pair=(points,tolerance=0.018)=>{
+    for(let j=points.length-1;j>0;j--)for(let i=j-1;i>=0;i--){
+      if(points[j].i-points[i].i<5)continue;
+      if(Math.abs(points[j].value-points[i].value)/Math.max(points[i].value,Number.EPSILON)<=tolerance)return[points[i],points[j]];
+    }
+    return null;
   };
+  const bottoms=pair(lows),tops=pair(highs);
+  const impulseStart=window.at(-15).close,impulseEnd=window.at(-8).close;
+  const impulse=(impulseEnd-impulseStart)/impulseStart;
+  const consolidation=window.slice(-7,-1),conHigh=Math.max(...consolidation.map(k=>k.high)),conLow=Math.min(...consolidation.map(k=>k.low));
+  const bullFlag=impulse>=0.04&&last.close>conHigh&&volConfirmed;
+  const bearFlag=impulse<=-0.04&&last.close<conLow&&volConfirmed;
+  if(type==='long'||type==='both'){
+    if(bottoms){
+      const neckline=Math.max(...window.slice(bottoms[0].i,bottoms[1].i+1).map(k=>k.high));
+      if(last.close>neckline)found.push({name:'〰️ 雙底(W)',type:'反轉',desc:'兩個相近4H低點後收盤突破頸線',score:20});
+    }
+    if(bullFlag)found.push({name:'🚩 牛旗',type:'中繼',desc:'4H上漲旗桿、整理後放量收盤突破',score:18});
+    if(last.close>window.at(-21).close&&last.close>conHigh)found.push({name:'📈 趨勢中繼',type:'中繼',desc:'4H多根結構維持較高收盤',score:16});
+  }
+  if(type==='short'||type==='both'){
+    if(tops){
+      const neckline=Math.min(...window.slice(tops[0].i,tops[1].i+1).map(k=>k.low));
+      if(last.close<neckline)found.push({name:'〰️ 雙頂(M)',type:'反轉',desc:'兩個相近4H高點後收盤跌破頸線',score:20,bear:true});
+    }
+    if(bearFlag)found.push({name:'🚩 熊旗',type:'中繼',desc:'4H下跌旗桿、整理後放量收盤跌破',score:18,bear:true});
+    if(last.close<window.at(-21).close&&last.close<conLow)found.push({name:'📉 趨勢中繼',type:'中繼',desc:'4H多根結構維持較低收盤',score:16,bear:true});
+  }
+  return found.slice(0,2);
+}
+
+// ── 篩選標準3：真實4H支撐壓力與 VEGAS 回踩 ──
+function detectSR(c,type,allVegas){
+  const candles=getClosedH4(c);
+  if(candles.length<32)return[];
+  const vd=allVegas.find(v=>v.sym===String(c?.symbol||'').toUpperCase());
+  const found=[],last=candles.at(-1),prev=candles.at(-2),history=candles.slice(-32,-2);
+  const support=Math.min(...history.map(k=>k.low)),resistance=Math.max(...history.map(k=>k.high));
+  const near=(a,b)=>Math.abs(a-b)/Math.max(Math.abs(b),Number.EPSILON)<=0.006;
+  if(type==='long'||type==='both'){
+    if(near(last.low,support)&&last.close>last.open)found.push({name:'🟢 支撐反彈',desc:'已收盤4H觸及近30根支撐後收高',score:18});
+    if(vd?.isPullbackSignal&&vd.pullbackSide==='bull_pullback')found.push({name:'🌿 VEGAS通道支撐',desc:'已收盤4H確認通道回踩支撐',score:20});
+    if(prev.close>resistance&&last.low<=resistance&&last.close>resistance)found.push({name:'🔺 突破回踩',desc:'4H突破後回測壓力轉支撐並收回上方',score:22});
+  }
+  if(type==='short'||type==='both'){
+    if(near(last.high,resistance)&&last.close<last.open)found.push({name:'🔴 壓力回落',desc:'已收盤4H觸及近30根壓力後收低',score:18,bear:true});
+    if(vd?.isPullbackSignal&&vd.pullbackSide==='bear_pullback')found.push({name:'🌿 VEGAS通道壓力',desc:'已收盤4H確認通道回踩壓力',score:20,bear:true});
+    if(prev.close<support&&last.high>=support&&last.close<support)found.push({name:'🔻 跌破回抽',desc:'4H跌破後回抽支撐轉壓力並收回下方',score:22,bear:true});
+  }
+  return found.slice(0,2);
 }
 
 // 舊版 detectPats（相容保留）
@@ -2506,23 +2467,22 @@ function scoreAll(){
   });
 }
 
-// ═══ 全指標綜合勝率計算（供 Top5 排序使用）═══
-// wantBreakdown=true 時額外回傳每項加扣分明細（給詳情頁用，不影響 wr 數值）
-function computeWR(c, type, wantBreakdown) {
+// ═══ 全指標信心分數（只供 Top5 相對排序，不是勝率）═══
+function computeConfidenceScore(c,type,wantBreakdown){
   const vd  = vegasData.find(v=>v.sym===c.symbol.toUpperCase());
   const rsi = getRSI(c.symbol);
   const fr  = getFR(c.symbol);
-  const oi  = oiData.find(o=>o.sym.toLowerCase()===c.symbol.toLowerCase());
-  const volPat = vd?.volPat4H || (oi?detectVolPattern(oi,vd):null);
+  const oi=oiData.find(o=>o.sym.toLowerCase()===c.symbol.toLowerCase())||null;
+  const volPat=vd?.volPat4H||null;
   const oiChg  = getOIChg(c.symbol);
   const paList  = detectPA(c, type);
   const patList = detectPattern(c, type);
   const srList  = detectSR(c, type, vegasData);
   const critCount = [paList.length>0, patList.length>0, srList.length>0].filter(Boolean).length;
 
-  let wr = 0.40;
-  const bd = wantBreakdown ? [{label:'基礎勝率', detail:'每筆訊號起算', pts:0.40}] : null;
-  const add = (delta, label, detail) => { wr += delta; if(bd && delta!==0) bd.push({label, detail, pts:delta}); };
+  let score=0.40;
+  const bd=wantBreakdown?[{label:'基礎分數',detail:'條件排序起點',pts:0.40}]:null;
+  const add=(delta,label,detail)=>{score+=delta;if(bd&&delta!==0)bd.push({label,detail,pts:delta});};
   const vegasAligned = vd&&((vd.signal==='bull'&&type==='long')||(vd.signal==='bear'&&type==='short'));
   const vegasAgainst = vd&&((vd.signal==='bull'&&type==='short')||(vd.signal==='bear'&&type==='long'));
   if(vegasAligned) add(0.08,'VEGAS 順勢',`日線+4H ${type==='long'?'多頭':'空頭'}排列，方向一致`);
@@ -2547,11 +2507,11 @@ function computeWR(c, type, wantBreakdown) {
   if(vd?.isPullbackSignal){
     const pbLong=vd?.pullbackSide==='bull_pullback'||vd?.pullbackSide==='bull_bounce';
     const pbMatch=(pbLong&&type==='long')||(!pbLong&&type==='short');
-    // 分級加成：依回踩品質（pullbackWR）給分，回踩越到位加越多；反向統一 -6%
-    const pbWR=vd?.pullbackWR||0;
-    const pbTier=pbWR>=0.74?0.10:pbWR>=0.68?0.08:0.06;
-    const pbLabel=pbWR>=0.74?'極佳回踩':pbWR>=0.68?'優質回踩':'回踩中';
-    add(pbMatch?pbTier:-0.06,`通道回踩（${pbLabel}）`, pbMatch?`回踩到位、進場時機佳（品質越高加分越多）`:'回踩方向與操作相反');
+    // 分級加成：依回踩品質（pullbackQuality）給分，回踩越到位加越多；反向統一 -6%
+    const pbQuality=vd?.pullbackQuality||0;
+    const pbTier=pbQuality>=74?0.10:pbQuality>=68?0.08:0.06;
+    const pbLabel=pbQuality>=74?'極佳回踩':pbQuality>=68?'優質回踩':'回踩中';
+    add(pbMatch?pbTier:-0.06,`通道回踩（${pbLabel}）`, pbMatch?`回踩條件加分（品質越高加分越多；仍須通過已收盤 Step3）`:'回踩方向與操作相反');
   }
   if(critCount>=2&&saekOK) add(vegasAligned?0.05:-0.05,'MOVE+賽克斯雙共振', vegasAligned?'兩系統同時確認':'雙系統但逆 VEGAS');
   if(rsi!==null){
@@ -2585,10 +2545,10 @@ function computeWR(c, type, wantBreakdown) {
     if(volPat.signal==='wait')       add(-0.02,`量價：${volPat.name}`,'縮量整理，觀望');
     if(volPat.name.includes('低量')) add(type==='long'?-0.03:0.03,`量價：${volPat.name}`,'低量');
   }
-  const wrRaw = wr;
-  const wrFinal = Math.min(0.75, Math.max(0.30, wr));
+  const rawScore=score;
+  const finalScore=Math.min(0.75,Math.max(0.30,score));
   const moveOK = vegasAligned && critCount >= 1;
-  return { wr: wrFinal, wrRaw, breakdown: bd, critCount, vegasAligned, vegasAgainst, saekFull, saekPartial, saekOK, moveOK };
+  return {score:finalScore,rawScore,breakdown:bd,critCount,vegasAligned,vegasAgainst,saekFull,saekPartial,saekOK,moveOK};
 }
 
 // ═══ RECS ═══
@@ -2602,11 +2562,11 @@ function buildTop5Candidates(){
     const sym = v.sym.toUpperCase();
     const cg = cgBySym.get(sym) || scoredBySym.get(sym) || null;
     const oi = okxTickers[sym] || oiBySym.get(sym) || null;
-    const chg = cg?.price_change_percentage_24h ?? oi?.pchg ?? v.chg24 ?? 0;
-    const px = cg?.current_price ?? oi?.px ?? v.price ?? v.lastPrice ?? null;
-    const hi = cg?.high_24h ?? oi?.hi ?? null;
-    const lo = cg?.low_24h ?? oi?.lo ?? null;
-    const vol = cg?.total_volume ?? oi?.vol ?? null;
+    const chg=Number.isFinite(oi?.pchg)?oi.pchg:Number.isFinite(v.chg24)?v.chg24:Number.isFinite(cg?.price_change_percentage_24h)?cg.price_change_percentage_24h:null;
+    const px=oi?.px ?? v.lastPrice ?? v.price ?? cg?.current_price ?? null;
+    const hi=oi?.hi ?? cg?.high_24h ?? null;
+    const lo=oi?.lo ?? cg?.low_24h ?? null;
+    const vol=oi?.vol ?? cg?.total_volume ?? null;
     const base = cg ? {...cg} : {
       id:`okx-${sym.toLowerCase()}`,
       symbol:sym,
@@ -2622,13 +2582,29 @@ function buildTop5Candidates(){
     base.low_24h = lo;
     base.total_volume = vol;
     base.ch = chg;
-    base.pats = detectPats(base);
     base.oi = oi || null;
     base.vegasData = v;
+    base.pats = detectPats(base);
     const prev = top5BySym.get(sym);
     if(!prev || (v.score||0) > (prev.vegasData?.score||0)) top5BySym.set(sym, base);
   });
   return [...top5BySym.values()];
+}
+
+// 唯一可執行閘門：方向一致、已收盤 Step3、非假突破，且資料完整與風險檢查通過。
+function isExecutableSignal(type,v,rsi,chg24){
+  if(!v||v.isFakeBreakout)return false;
+  const confirmed=type==='long'
+    ? v.signal==='bull'&&v.step3_long===true
+    : v.signal==='bear'&&v.step3_short===true;
+  return confirmed&&!executionRiskState(type,rsi,chg24).blocked;
+}
+function positionGuidance(type,v,rsi,chg24){
+  const executable=isExecutableSignal(type,v,rsi,chg24);
+  const maturity=signalMaturity(type,v,rsi,chg24);
+  return executable
+    ? {executable,label:'條件已成立；請自行設定單筆風險',short:'自行設定',color:'var(--green2)',reason:maturity.desc}
+    : {executable,label:'條件未完成：不進場',short:'不進場',color:'var(--text3)',reason:maturity.desc};
 }
 
 function renderRecs(){
@@ -2638,10 +2614,10 @@ function renderRecs(){
     return;
   }
   const _getVd=c=>vegasData.find(v=>v.sym===c.symbol.toUpperCase());
-  // 預先計算所有幣種的綜合勝率（每幣各算一次，sort 直接查 Map 不重複呼叫）
-  const _wrL = new Map(candidates.map(c=>[c.symbol, computeWR(c,'long').wr]));
-  const _wrS = new Map(candidates.map(c=>[c.symbol, computeWR(c,'short').wr]));
-  // 做多Top5：依綜合勝率排序（回踩為分級加權之一，非硬門檻）；bull 直接進、neutral 需 bull_lean、bear 排除
+  // 每幣各算一次信心分數，僅供相對排序。
+  const _wrL=new Map(candidates.map(c=>[c.symbol,computeConfidenceScore(c,'long').score]));
+  const _wrS=new Map(candidates.map(c=>[c.symbol,computeConfidenceScore(c,'short').score]));
+  // 做多Top5：依信心分數排序；bull 直接進、neutral 需 bull_lean、bear 排除
   const longs=[...candidates].filter(c=>{
     const vd=_getVd(c);
     if(!vd) return false;
@@ -2649,7 +2625,7 @@ function renderRecs(){
     if(vd.signal==='bear') return false;
     return inferNeutralDirection(c.symbol.toUpperCase())==='bull_lean';
   }).sort((a,b)=>(_wrL.get(b.symbol)||0)-(_wrL.get(a.symbol)||0)).slice(0,5);
-  // 做空Top5：依綜合勝率排序（回踩為分級加權之一，非硬門檻）；bear 直接進、neutral 需 bear_lean、bull 排除
+  // 做空Top5：依信心分數排序；bear 直接進、neutral 需 bear_lean、bull 排除
   const shorts=[...candidates].filter(c=>{
     const vd=_getVd(c);
     if(!vd) return false;
@@ -2662,28 +2638,13 @@ function renderRecs(){
   const makeRow=(c,i,type)=>{
     const vd=vegasData.find(v=>v.sym===c.symbol.toUpperCase());
     const rsi=getRSI(c.symbol);
-    const oi=oiData.find(o=>o.sym.toLowerCase()===c.symbol.toLowerCase());
-    // 優先使用真實K線計算的量價型態，否則fallback OI估算
-    const volPat = vd?.volPat4H || (oi?detectVolPattern(oi,vd):null);
+    const volPat=vd?.volPat4H||null;
 
-    // ── 全指標綜合勝率（computeWR 統一計算，排序與顯示結果一致）──
-    const { wr, critCount, vegasAligned, vegasAgainst, saekFull, saekPartial, saekOK, moveOK } = computeWR(c, type);
-
-    // 新聞情緒（僅顯示標籤，不影響勝率）
-    const newsSent = getNewsSent(c.symbol);
-
-    // 指標標籤補充量價型態
-    const volTag = volPat?volPat.name.replace(/[🚀📈📉💥⚠️⏸]/g,'').trim():null;
-
-    // RR動態（量價型態也影響）
-    const saekAllLong  = vd?.step1_long  && vd?.step2_long  && vd?.step3_long;
-    const saekAllShort = vd?.step1_short && vd?.step2_short && vd?.step3_short;
-    const rr=volPat?.signal==='long'&&type==='long'&&volPat.name.includes('突破')?3.0:
-              (type==='long'?saekAllLong:saekAllShort)?3.0:
-              vd?.isPullbackSignal?2.5:2.0;
-    const ev=wr*(0.03*rr)-(1-wr)*0.03;
-    const evColor=ev>0?'var(--green2)':'var(--red2)';
-    const wrColor=wr>=0.70?'var(--green2)':wr>=0.60?'var(--gold)':'var(--text3)';
+    // 手工加權僅作排序用，名稱明確標為信心分數，不是統計勝率。
+    const {score:confidence,critCount,vegasAligned,vegasAgainst,saekFull,saekPartial,saekOK,moveOK}=computeConfidenceScore(c,type);
+    const confidenceColor=confidence>=0.70?'var(--green2)':confidence>=0.60?'var(--gold)':'var(--text3)';
+    const newsSent=getNewsSent(c.symbol); // 只顯示，不計分
+    const volTag=volPat?volPat.name.replace(/[🚀📈📉💥⚠️⏸]/g,'').trim():null;
     // 指標標籤（精簡）
     const tags=[];
     // 新聞情緒（優先顯示）
@@ -2708,42 +2669,33 @@ function renderRecs(){
     if(vd?.resonance>=2) tags.push(`共振${vd.resonance}TF`);
     // 回踩到位改用獨立放大徽章顯示（見下方 row HTML），不再擠在小標籤裡
     const pbMatchRow = vd?.isPullbackSignal && ((type==='long'&&vd.pullbackSide==='bull_pullback')||(type==='short'&&vd.pullbackSide==='bear_pullback'));
-    const pbWRrow = vd?.pullbackWR||0;
-    const pbBadge = pbMatchRow ? (pbWRrow>=0.74?'🔥回踩極佳':pbWRrow>=0.68?'🔥回踩優質':'🔥回踩到位') : null;
+    const pbQualityRow = vd?.pullbackQuality||0;
+    const pbBadge = pbMatchRow ? (pbQualityRow>=74?'🔥回踩極佳':pbQualityRow>=68?'🔥回踩優質':'🔥回踩到位') : null;
     if(rsi!==null&&rsi<32&&type==='long') tags.push(`RSI ${rsi}`);
     if(rsi!==null&&rsi>68&&type==='short') tags.push(`RSI ${rsi}`);
     if(volTag) tags.push(volTag);
-    // 建議倉位（與 calcMOVE 邏輯一致）
-    const _dailyOK=vd&&((type==='long'&&vd.moveDailyTrend==='bull')||(type==='short'&&vd.moveDailyTrend==='bear'));
-    let posPct=0;
-    if(vegasAligned){
-      posPct=critCount>=3?200:critCount>=2?100:critCount>=1?50:25;
-    } else if(vd?.h4InTunnel&&critCount>=2){
-      posPct=30;
-    } else if(_dailyOK){
-      posPct=25;
-    }
-    const posClr=posPct>=200?'var(--purple)':posPct>=100?'var(--green2)':posPct>0?'var(--gold)':'var(--text4)';
+    const guidance=positionGuidance(type,vd,rsi,c.ch);
     const mat=signalMaturity(type,vd,rsi,c.ch);
+    const chFmt=formatMarketChange(c.ch,1);
     const _rank=ranks[i]||`${i+1}`;
     return `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1.5px solid var(--pink4);cursor:pointer;padding:10px 8px;align-items:center;transition:background .15s" onclick="openScoreDetail('${c.id}','${type}')" onmouseenter="this.style.background='var(--pink5)'" onmouseleave="this.style.background=''">
       <div style="display:flex;align-items:center;gap:5px">
         <span style="font-size:12px">${_rank}</span>
         <div>
           <div style="font-family:Nunito,sans-serif;font-size:15px;font-weight:900">${c.symbol.toUpperCase()}</div>
-          <div style="font-size:10px;font-weight:700" class="${c.ch>=0?'up':'dn'}">${c.ch>=0?'+':''}${c.ch.toFixed(1)}%</div>
-          <div style="font-size:9px;font-weight:800;font-family:Nunito,sans-serif;color:${posClr}">${posPct>0?posPct+'%':'—'}</div>
+          <div style="font-size:10px;font-weight:700" class="${chFmt.cls}">${chFmt.text}</div>
+          <div style="font-size:9px;font-weight:800;font-family:Nunito,sans-serif;color:${guidance.color}">${guidance.short}</div>
           <div style="display:inline-block;font-size:8px;font-weight:900;padding:1px 5px;border-radius:5px;margin-top:2px;background:var(--pink5);border:1px solid var(--pink4);color:${mat.color};font-family:Nunito,sans-serif">${mat.stage}</div>
         </div>
       </div>
       <div style="text-align:center">
-        <div style="font-family:Nunito,sans-serif;font-size:17px;font-weight:900;color:${wrColor}">${Math.round(wr*100)}%</div>
+        <div style="font-family:Nunito,sans-serif;font-size:17px;font-weight:900;color:${confidenceColor}">${Math.round(confidence*100)}</div>
       </div>
       <div style="text-align:center">
-        <div style="font-family:Nunito,sans-serif;font-size:14px;font-weight:900;color:${evColor}">${ev>=0?'+':''}${(ev*100).toFixed(1)}%</div>
+        <div style="font-family:Nunito,sans-serif;font-size:11px;font-weight:900;color:${mat.color}">${mat.stage}</div>
       </div>
       <div style="text-align:center">
-        <div style="font-family:Nunito,sans-serif;font-size:15px;font-weight:900;color:var(--gold)">${rr.toFixed(1)}:1</div>
+        <div style="font-family:Nunito,sans-serif;font-size:11px;font-weight:900;color:${guidance.color}">${guidance.executable?'✅ 可執行':'⏳ 觀察'}</div>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end">
         ${pbBadge?`<span style="font-size:10px;font-weight:900;padding:2px 7px;border-radius:6px;background:linear-gradient(135deg,rgba(0,200,150,.18),rgba(0,200,150,.08));color:var(--green2);border:1.5px solid rgba(0,200,150,.45);font-family:Nunito,sans-serif">${pbBadge}</span>`:''}
@@ -2757,33 +2709,33 @@ function renderRecs(){
     <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);margin-bottom:10px">
       <div style="padding:10px 13px;border-bottom:1.5px solid var(--pink4);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--pink5),var(--white))">
         <div style="font-family:Nunito,sans-serif;font-size:14px;font-weight:900;color:${type==='long'?'var(--green2)':'var(--red2)'}">${type==='long'?'🚀 做多推薦 Top5':'📉 做空推薦 Top5'}</div>
-        <div style="font-size:10px;color:var(--text3);font-weight:700">綜合勝率評比 · 🔥=回踩到位</div>
+        <div style="font-size:10px;color:var(--text3);font-weight:700">信心分數排序（非統計勝率） · 🔥=回踩到位</div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:1.5px solid var(--pink4);background:var(--pink5)">
-        <div style="padding:5px 8px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif">幣種 / 倉位</div>
-        <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">勝率</div>
-        <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">EV</div>
-        <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">RR</div>
+        <div style="padding:5px 8px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif">幣種 / 風險</div>
+        <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">信心分數</div>
+        <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">成熟度</div>
+        <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">狀態</div>
         <div style="padding:5px 4px;font-size:9px;font-weight:800;color:var(--text3);font-family:Nunito,sans-serif;text-align:center">指標</div>
       </div>
       ${items.length===0
         ? `<div style="padding:18px 16px;text-align:center;color:var(--text3);font-size:12px;font-weight:600;line-height:1.7">
             目前無符合 VEGAS 方向的${type==='long'?'做多':'做空'}訊號，建議觀望<br>
-            <span style="font-size:11px;color:var(--text4)">🔥 標籤＝已回踩到位（進場時機最佳）；想看接近回踩的幣 👉「MOVE 訊號」Tab</span>
+            <span style="font-size:11px;color:var(--text4)">🔥 標籤＝回踩條件成立；是否可執行仍須通過已收盤 Step3 與風險閘門</span>
            </div>`
         : items.map((c,i)=>makeRow(c,i,type)).join('')}
     </div>`;
 
   _setAll(`<div style="display:flex;flex-direction:column;gap:0">${makeSection(longs,'long')}${makeSection(shorts,'short')}</div>`,'rec-wrap','rec-wrap-ov');
 
-  // C3：高勝率訊號瀏覽器推播（勝率≥70% 才提醒；同一訊號 30 分鐘內不重複）
-  const hi=[];
-  longs.forEach(c=>{ const wr=_wrL.get(c.symbol)||0; if(wr>=0.70) hi.push({sym:c.symbol.toUpperCase(),type:'long',wr}); });
-  shorts.forEach(c=>{ const wr=_wrS.get(c.symbol)||0; if(wr>=0.70) hi.push({sym:c.symbol.toUpperCase(),type:'short',wr}); });
-  notifyHighWR(hi);
+  // 只通知已收盤、方向一致且通過執行閘門的訊號；分數只作排序參考。
+  const executable=[];
+  longs.forEach(c=>{ const v=_getVd(c),rsi=getRSI(c.symbol); if(isExecutableSignal('long',v,rsi,c.ch)) executable.push({sym:c.symbol.toUpperCase(),type:'long'}); });
+  shorts.forEach(c=>{ const v=_getVd(c),rsi=getRSI(c.symbol); if(isExecutableSignal('short',v,rsi,c.ch)) executable.push({sym:c.symbol.toUpperCase(),type:'short'}); });
+  notifyExecutable(executable);
 }
 
-// ═══ C3：高勝率瀏覽器推播 ═══
+// ═══ C3：已收盤可執行訊號推播 ═══
 let _notifyOn = false;
 const _notifiedAt = {}; // key: `SYM-type` -> 上次推播的時間戳，30 分鐘冷卻避免洗版
 const NOTIFY_COOLDOWN = 30*60*1000;
@@ -2808,9 +2760,9 @@ async function toggleNotify(){
   if(perm!=='granted') perm=await Notification.requestPermission();
   if(perm!=='granted'){ alert('要先允許瀏覽器通知，提醒功能才能開啟'); paintNotifyToggle(); return; }
   _notifyOn=true; localStorage.setItem('ls_notify','1'); paintNotifyToggle();
-  try{ new Notification('幸運星信號 ⭐ 提醒已開啟',{body:'出現勝率 ≥70% 的訊號會主動通知你'}); }catch(e){}
+  try{ new Notification('幸運星信號 ⭐ 提醒已開啟',{body:'已收盤條件成立且通過風險閘門時才會通知'}); }catch(e){}
 }
-function notifyHighWR(list){
+function notifyExecutable(list){
   if(!_notifyOn || !('Notification' in window) || Notification.permission!=='granted') return;
   const now=Date.now();
   list.forEach(s=>{
@@ -2819,8 +2771,8 @@ function notifyHighWR(list){
     _notifiedAt[key]=now;
     const dir=s.type==='long'?'做多 🚀':'做空 📉';
     try{
-      const n=new Notification(`⭐ 高勝率訊號：${s.sym} ${dir}`,{
-        body:`綜合勝率 ${Math.round(s.wr*100)}%，已進入 Top5。點開查看完整判決與倉位建議。`,
+      const n=new Notification(`⭐ 已收盤條件成立：${s.sym} ${dir}`,{
+        body:'VEGAS方向、已收盤 Step3 與過熱檢查均通過；請自行設定單筆風險。',
         tag:key
       });
       n.onclick=()=>{ window.focus(); n.close(); };
@@ -2879,7 +2831,7 @@ function buildSaek(){
     if(rsi!==null){
       if(rsi<=32) sigs.push({coin:c,type:'long', tf:'4小時',tfKey:'4h',ind:'RSI',
         score:calcSaekScore(c,'long','RSI'),
-        desc:`<strong>RSI ${rsi}</strong> 超賣，高勝率反彈點`,
+        desc:`<strong>RSI ${rsi}</strong> 超賣，僅列反彈觀察`,
         detail:`RSI=${rsi} 超賣<30 ${tag}`});
       else if(rsi>=68) sigs.push({coin:c,type:'short',tf:'4小時',tfKey:'4h',ind:'RSI',
         score:calcSaekScore(c,'short','RSI'),
@@ -2986,13 +2938,13 @@ function calcEMA(prices,period){
 
 // 回踩距離分級：真正貼近通道（±0.5%）才算到位；0.5%~2% 只列接近，不加分。
 function classifyPullbackDistance(dist){
-  if(!Number.isFinite(dist)) return {state:'none',isPullback:false,wr:0,label:'—'};
+  if(!Number.isFinite(dist)) return {state:'none',isPullback:false,quality:0,label:'—'};
   if(dist>=-0.5&&dist<=0.5){
-    const wr=Math.abs(dist)<=0.3?0.74:0.68;
-    return {state:'at',isPullback:true,wr,label:wr>=0.74?'🔥 極佳回踩':'✅ 優質回踩'};
+    const quality=Math.abs(dist)<=0.3?74:68;
+    return {state:'at',isPullback:true,quality,label:quality>=74?'🔥 極佳回踩':'✅ 優質回踩'};
   }
-  if(dist>0.5&&dist<=2) return {state:'near',isPullback:false,wr:0,label:'⏰ 接近回踩'};
-  return {state:'none',isPullback:false,wr:0,label:'—'};
+  if(dist>0.5&&dist<=2) return {state:'near',isPullback:false,quality:0,label:'⏰ 接近回踩'};
+  return {state:'none',isPullback:false,quality:0,label:'—'};
 }
 
 // ═══ QQE MOD 動能指標（O(n) 高效版，保留規格精神）═══
@@ -3167,8 +3119,8 @@ async function computeVEGAS(sym){
     ]);
     if(!dailyRaw||!h4raw)return null;
     const daily=getConfirmedCloses(dailyRaw);
-    const h4 = h4raw.map(d=>d.close);
     const h4Confirmed=getConfirmedCloses(h4raw);
+    const h4=h4Confirmed;
     if(daily.length<677||h4Confirmed.length<677)return null;
 
     // ── VEGAS EMA：資料不足就停止，不用短週期冒充 EMA576/676 ──
@@ -3196,9 +3148,11 @@ async function computeVEGAS(sym){
     // ── 步驟2 找位：「價格」回調至 EMA144/169 小通道區間 ──
     const h4Top=Math.max(h4_144,h4_169||h4_144),h4Bot=Math.min(h4_144,h4_169||h4_144);
     const h4Above=h4_12>h4Top,h4Below=h4_12<h4Bot,h4In=!h4Above&&!h4Below;
-    const lastPrice=h4[h4.length-1];
-    const prevPrice=h4[h4.length-2]||lastPrice;
-    // ── 通道回踩精確距離（核心勝率計算）──
+    // 即時價只用於距離通道；EMA、方向、QQE、Step3 全部使用已收盤 h4。
+    const liveRaw=h4raw[h4raw.length-1]?.close;
+    const lastPrice=Number.isFinite(liveRaw)?liveRaw:h4[h4.length-1];
+    const prevPrice=h4[h4.length-1];
+    // ── 通道回踩精確距離（條件品質計算）──
     const distToTop=(lastPrice-h4Top)/h4Top*100; // 做多：正=在通道上方，負=進入通道
     const distToBot=(h4Bot-lastPrice)/h4Bot*100; // 做空：正=在通道下方，負=進入通道
     const bullPullback=classifyPullbackDistance(distToTop);
@@ -3206,30 +3160,30 @@ async function computeVEGAS(sym){
     const priceNearTunnel_long=bullPullback.isPullback;
     const priceNearTunnel_short=bearPullback.isPullback;
     const nearTunnel=priceNearTunnel_long||priceNearTunnel_short;
-    let pullbackDist=null, pullbackSide=null, pullbackWR=0,pullbackLabel='—',pullbackState='none';
+    let pullbackDist=null, pullbackSide=null, pullbackQuality=0,pullbackLabel='—',pullbackState='none';
     if(dailyTrend==='bull'){
       // 做多：價格從上方回踩EMA144
       pullbackDist=distToTop;
       pullbackState=bullPullback.state;pullbackLabel=bullPullback.label;
       if(bullPullback.isPullback){
-        pullbackWR=bullPullback.wr;
+        pullbackQuality=bullPullback.quality;
         pullbackSide='bull_pullback';
       } else if(h4In&&lastPrice>prevPrice){
         // 在通道內且反彈
-        pullbackWR=0.58;pullbackSide='bull_bounce';
+        pullbackQuality=58;pullbackSide='bull_bounce';
       }
     } else if(dailyTrend==='bear'){
       // 做空：價格從下方回踩EMA144
       pullbackDist=distToBot;
       pullbackState=bearPullback.state;pullbackLabel=bearPullback.label;
       if(bearPullback.isPullback){
-        pullbackWR=bearPullback.wr;
+        pullbackQuality=bearPullback.quality;
         pullbackSide='bear_pullback';
       } else if(h4In&&lastPrice<prevPrice){
-        pullbackWR=0.58;pullbackSide='bear_bounce';
+        pullbackQuality=58;pullbackSide='bear_bounce';
       }
     }
-    const isPullbackSignal=pullbackWR>=0.61;
+    const isPullbackSignal=pullbackQuality>=61;
 
     // ── QQE MOD 多週期 ──
     const qqe4h  = calcQQEMOD(h4);
@@ -3315,11 +3269,11 @@ async function computeVEGAS(sym){
     score=Math.min(100,Math.round(score));
 
     // 回踩加分
-    if(isPullbackSignal)score+=Math.round(pullbackWR*15);
+    if(isPullbackSignal)score+=Math.round(pullbackQuality/100*15);
     score=Math.min(100,Math.round(score));
 
     // 量價型態由 OI 資料計算（OHLCV 改為按需抓取）
-    const volPat4H = h4raw.length >= 21 ? calcRealVolPattern(h4raw) : null;
+    const volPat4H=calcRealVolPattern(h4raw.filter(k=>k.confirmed===true));
 
     const cgId=symToCG(sym),cgCoin=cgId?coins[cgId]:null;
     return{
@@ -3342,11 +3296,13 @@ async function computeVEGAS(sym){
       // 多週期 EMA 方向
       h4_dir,h1_dir,m15_dir,
       // 通道回踩
-      pullbackDist,pullbackSide,pullbackWR,pullbackLabel,pullbackState,isPullbackSignal,
+      pullbackDist,pullbackSide,pullbackQuality,pullbackLabel,pullbackState,isPullbackSignal,
       lastPrice,
       d12:d12?.toFixed(4),d144:d144?.toFixed(4),d169:d169?.toFixed(4),d576:d576?.toFixed(4),d676:d676?.toFixed(4),dailyClose,
       h4_12:h4_12?.toFixed(4),h4_144:h4_144?.toFixed(4),h4_169:h4_169?.toFixed(4),h4_576:h4_576?.toFixed(4),h4_676:h4_676?.toFixed(4),
-      price:cgCoin?cgCoin.current_price:h4[h4.length-1],chg24:cgCoin?cgCoin.price_change_percentage_24h||0:0,
+      price:Number.isFinite(Number(cgCoin?.current_price))?Number(cgCoin.current_price):lastPrice,
+      chg24:Number.isFinite(Number(cgCoin?.price_change_percentage_24h))?Number(cgCoin.price_change_percentage_24h):null,
+      closedH4:h4raw.filter(k=>k.confirmed===true).slice(-80),
       volPat4H // 真實量價型態
     };
   }catch(e){
@@ -3371,7 +3327,7 @@ function searchV(q){
 
 // ═══ 通道埋伏（回踩）訊號渲染 ═══
 function renderPullback(){
-  const pulls=vegasData.filter(v=>v.isPullbackSignal).sort((a,b)=>b.pullbackWR-a.pullbackWR);
+  const pulls=vegasData.filter(v=>v.isPullbackSignal).sort((a,b)=>b.pullbackQuality-a.pullbackQuality);
   document.getElementById('pullback-cnt').textContent=pulls.length?`${pulls.length} 個埋伏機會`:'掃描中...';
   if(!pulls.length){
     document.getElementById('pullback-list').innerHTML='<div class="empty">目前無回踩訊號<br>等待價格回調至通道...</div>';
@@ -3385,9 +3341,8 @@ function renderPullback(){
     const typeBg=isLong?'rgba(0,200,150,.08)':'rgba(255,77,109,.08)';
     const px=v.price||v.lastPrice||0;
     const ps=px>=1000?'$'+Number(px).toLocaleString('en-US',{maximumFractionDigits:0}):px>=0.1?'$'+Number(px).toLocaleString('en-US',{maximumFractionDigits:4}):'$'+Number(px).toFixed(6);
-    const slPct=isLong?((px-parseFloat(v.h4_144||px))/px*100+1.5).toFixed(2):((parseFloat(v.h4_144||px)-px)/px*100+1.5).toFixed(2);
-    const wrPct=Math.round(v.pullbackWR*100);
-    const wrColor=wrPct>=72?'var(--green2)':wrPct>=65?'var(--gold)':'var(--text2)';
+    const quality=Math.round(v.pullbackQuality);
+    const qualityColor=quality>=72?'var(--green2)':quality>=65?'var(--gold)':'var(--text2)';
     const distLabel=v.pullbackDist!==null?`距離通道 ${Math.abs(v.pullbackDist).toFixed(2)}%`:'通道內';
     return `<div style="border-bottom:1.5px solid var(--pink4);padding:13px 14px;cursor:pointer;background:${typeBg};transition:background .15s" onclick="openVegasDetail('${v.sym}')" onmouseenter="this.style.opacity='.85'" onmouseleave="this.style.opacity='1'">
       <div style="font-size:13px;font-weight:900;font-family:Nunito,sans-serif;color:${typeColor};margin-bottom:8px">${typeLabel}</div>
@@ -3395,19 +3350,19 @@ function renderPullback(){
       <div style="font-size:12px;color:var(--text2);line-height:2">
         - 名稱：<strong style="font-family:Nunito,sans-serif;font-size:14px">${v.sym}/USDT</strong><br>
         - 當前價格：<strong style="font-family:JetBrains Mono,monospace">${ps}</strong><br>
-        - 24H變化：<strong class="${v.chg24>=0?'up':'dn'}">${v.chg24>=0?'+':''}${v.chg24.toFixed(2)}%</strong><br>
+        - 24H變化：<strong class="${Number.isFinite(v.chg24)?(v.chg24>=0?'up':'dn'):'neu'}">${Number.isFinite(v.chg24)?`${v.chg24>=0?'+':''}${v.chg24.toFixed(2)}%`:'無資料'}</strong><br>
         - 通道位置：<strong style="color:${typeColor}">${distLabel}</strong>
       </div>
       <div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap">
         <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:10px;padding:7px 12px;text-align:center;flex:1">
-          <div style="font-size:9px;color:var(--text3);font-weight:700;font-family:Nunito,sans-serif">即時勝率</div>
-          <div style="font-family:Nunito,sans-serif;font-size:20px;font-weight:900;color:${wrColor}">${wrPct}%</div>
+          <div style="font-size:9px;color:var(--text3);font-weight:700;font-family:Nunito,sans-serif">回踩品質</div>
+          <div style="font-family:Nunito,sans-serif;font-size:20px;font-weight:900;color:${qualityColor}">${quality}</div>
           <div style="font-size:9px;color:${typeColor};font-weight:800">${v.pullbackLabel}</div>
         </div>
         <div style="background:var(--redb);border:1.5px solid rgba(255,77,109,.2);border-radius:10px;padding:7px 12px;text-align:center;flex:1">
-          <div style="font-size:9px;color:var(--red2);font-weight:700;font-family:Nunito,sans-serif">🔴 止損參考</div>
-          <div style="font-family:Nunito,sans-serif;font-size:16px;font-weight:900;color:var(--red2)">-${slPct}%</div>
-          <div style="font-size:9px;color:var(--text3)">${isLong?'EMA144下方':'EMA144上方'}</div>
+          <div style="font-size:9px;color:var(--red2);font-weight:700;font-family:Nunito,sans-serif">🔴 失效參考</div>
+          <div style="font-family:Nunito,sans-serif;font-size:14px;font-weight:900;color:var(--red2)">自行設定</div>
+          <div style="font-size:9px;color:var(--text3)">參考 EMA144 與前高低</div>
         </div>
         <div style="background:var(--greenb);border:1.5px solid rgba(0,200,150,.2);border-radius:10px;padding:7px 12px;text-align:center;flex:1">
           <div style="font-size:9px;color:var(--green2);font-weight:700;font-family:Nunito,sans-serif">QQE MOD</div>
@@ -3488,7 +3443,7 @@ function renderVegas(){
       <div class="vi-top">
         <div class="vi-sym">${v.sym}</div>
         <div class="vi-pill ${v.signal}">${v.signal==='bull'?'🚀 做多':v.signal==='bear'?'📉 做空':'⏳ 觀察'}</div>
-        <div class="vi-chg ${v.chg24>=0?'up':'dn'}">${v.chg24>=0?'+':''}${v.chg24.toFixed(2)}%</div>
+        <div class="vi-chg ${Number.isFinite(v.chg24)?(v.chg24>=0?'up':'dn'):'neu'}">${Number.isFinite(v.chg24)?`${v.chg24>=0?'+':''}${v.chg24.toFixed(2)}%`:'無資料'}</div>
         <div class="vi-score ${scCls}">${v.score}</div>
       </div>
       <!-- 賽克斯三步驟 -->
@@ -3619,7 +3574,7 @@ function openMOVEDetail(sym, type, v, c) {
            : px >= 1    ? '$' + Number(px).toLocaleString('en-US', {maximumFractionDigits:3})
            :               '$' + Number(px).toFixed(5);
   const chgRaw = c?.price_change_percentage_24h ?? v.chg24 ?? null;
-  const chg24 = Number.isFinite(Number(chgRaw)) ? Number(chgRaw) : null;
+  const chg24=chgRaw!==null&&chgRaw!==undefined&&Number.isFinite(Number(chgRaw))?Number(chgRaw):null;
 
   // ── VEGAS 條件 ──
   const vegasOK     = v && ((type==='long' && v.signal==='bull') || (type==='short' && v.signal==='bear'));
@@ -3634,61 +3589,30 @@ function openMOVEDetail(sym, type, v, c) {
   const crit3 = srList.length > 0;
   const criteriaCount = [crit1, crit2, crit3].filter(Boolean).length;
 
-  // ── 建議倉位（MOVE法則）──
-  const _dailyOK = v && (
-    (type==='long'  && v.dailyTrend==='bull') ||
-    (type==='short' && v.dailyTrend==='bear')
-  );
-  let positionPct = 0, posLabel = '', posColor = 'var(--text3)';
-  if (vegasOK) {
-    if (criteriaCount >= 3)      { positionPct=200; posLabel='加槓桿200%'; posColor='var(--purple)'; }
-    else if (criteriaCount >= 2) { positionPct=100; posLabel='滿倉100%';   posColor='var(--green2)'; }
-    else if (criteriaCount >= 1) { positionPct=50;  posLabel='半倉50%';    posColor='var(--gold)'; }
-    else                         { positionPct=25;  posLabel='輕倉25%（等待確認）'; posColor='var(--text3)'; }
-  } else if (v?.h4InTunnel && criteriaCount >= 2) {
-    positionPct = 30; posLabel = '輕倉30%（VEGAS整理中）'; posColor = 'var(--text3)';
-  } else if (_dailyOK) {
-    positionPct = 25; posLabel = '輕倉25%（日線確認，等4H突破）'; posColor = 'var(--text3)';
-  }
-
-  // ── 止損/止盈建議 ──
-  let slPct = 3, tpPct = 6, slDesc = '', tp1Desc = '', tp2Desc = '';
-  const h4EMA144 = v?.h4_144 ? Number(v.h4_144).toFixed(2) : null;
-  if (type === 'long') {
-    slDesc  = h4EMA144 ? `4H EMA144（$${h4EMA144}）下方` : '前低下方';
-    tp1Desc = '前高／下一壓力位';
-    tp2Desc = criteriaCount >= 2 ? '可考慮移動止損，抱至下一大壓力' : '';
-  } else {
-    slDesc  = h4EMA144 ? `4H EMA144（$${h4EMA144}）上方` : '前高上方';
-    tp1Desc = '前低／下一支撐位';
-    tp2Desc = criteriaCount >= 2 ? '可考慮移動止損，抱至下一大支撐' : '';
-  }
-  // 調整 RR
-  if (criteriaCount >= 3) { tpPct = 10; slPct = 3; }
-  else if (criteriaCount >= 2) { tpPct = 8; slPct = 3; }
-  else { tpPct = 6; slPct = 3; }
-  const rr = (tpPct / slPct).toFixed(1);
-
-  // ── EV 計算（與 Top5 排序統一，使用 computeWR）──
   const rsi_val = c ? getRSI(c.symbol) : null;
   const fr_val  = c ? getFR(c.symbol) : null;
   const ls_val  = c ? getLS(c.symbol) : null;
-  // c 存在時使用完整 computeWR（與 Top5 勝率一致）；否則降級簡算
-  const _wrRes = c ? computeWR(c, type, true) : null;
-  const winRate = _wrRes
-    ? _wrRes.wr
-    : Math.min(0.75, Math.max(0.30, 0.42 + (criteriaCount * 0.07) + (vegasOK ? 0.08 : 0)));
-  const wrBreakdown = _wrRes?.breakdown || null;
-  const wrRaw = _wrRes?.wrRaw ?? winRate;
-  const ev = winRate * (tpPct/100) - (1-winRate) * (slPct/100);
-  const kelly = Math.max(0, (winRate * (tpPct/slPct) - (1-winRate)) / (tpPct/slPct));
+  const guidance=positionGuidance(type,v,rsi_val,chg24);
+  const posColor=guidance.color;
+
+  // 手工加權只作信心排序，不是統計勝率；未校準前不得推導 EV／Kelly。
+  const confidenceResult=c?computeConfidenceScore(c,type,true):null;
+  const confidence=confidenceResult?.score ?? null;
+  const confidenceBreakdown=confidenceResult?.breakdown || null;
+  const confidenceRaw=confidenceResult?.rawScore ?? confidence;
+
+  // 價位僅提供結構參考，不自動套用課程示例的倉位、SL%、TP%或槓桿。
+  const h4EMA144=v?.h4_144?Number(v.h4_144).toFixed(2):null;
+  const slDesc=type==='long'
+    ? (h4EMA144?`參考 4H EMA144（$${h4EMA144}）下方與前低，自行設定失效點`:'依前低自行設定失效點')
+    : (h4EMA144?`參考 4H EMA144（$${h4EMA144}）上方與前高，自行設定失效點`:'依前高自行設定失效點');
+  const tp1Desc=type==='long'?'參考前高／下一壓力位':'參考前低／下一支撐位';
 
   // ── MOVE 評分 ──
   const moveScore = Math.min(100, Math.round(
     (vegasOK?40:v?.h4InTunnel?15:0) +
     criteriaCount*15 +
-    (rsi_val !== null && rsi_val < 30 && type==='long' ? 8 : rsi_val !== null && rsi_val > 70 && type==='short' ? 8 : 0) +
-    (fr_val!==null && ((type==='long'&&parseFloat(fr_val)<-0.0001)||(type==='short'&&parseFloat(fr_val)>0.0005)) ? 5 : 0)
+    (rsi_val !== null && rsi_val < 30 && type==='long' ? 8 : rsi_val !== null && rsi_val > 70 && type==='short' ? 8 : 0)
   ));
 
   // ── 通道回踩（顯示於 MOVE 評分下方）──
@@ -3699,18 +3623,21 @@ function openMOVEDetail(sym, type, v, c) {
   const pbReal   = !!v?.isPullbackSignal && pbDirMatch && (pbSide==='bull_pullback'||pbSide==='bear_pullback'); // 真回踩到位
   const pbBounce = pbDirMatch && (pbSide==='bull_bounce'||pbSide==='bear_bounce');                              // 通道內反彈（不算硬門檻）
   const pbDist   = (v && typeof v.pullbackDist==='number') ? v.pullbackDist : null;
-  const pbWR     = v?.pullbackWR ? Math.round(v.pullbackWR*100) : null;
+  const pbQuality = v?.pullbackQuality ? Math.round(v.pullbackQuality) : null;
   const pbLabel  = (v?.pullbackLabel && v.pullbackLabel!=='—') ? v.pullbackLabel : null;
   let pbStatus, pbColor, pbBg, pbBd, pbDesc;
-  if(pbReal){
-    pbStatus='✅ 回踩到位，可進場'; pbColor='var(--green2)'; pbBg='linear-gradient(135deg,rgba(0,200,150,.07),var(--white))'; pbBd='rgba(0,200,150,.3)';
-    pbDesc=`價格已回踩到 VEGAS 通道${type==='long'?'上緣（EMA144/169 小通道）支撐':'下緣（EMA144/169 小通道）壓力'}，是 MOVE 系統最佳進場時機。這也是進 Top5 的硬門檻。`;
+  if(pbReal&&guidance.executable){
+    pbStatus='✅ 回踩條件成立'; pbColor='var(--green2)'; pbBg='linear-gradient(135deg,rgba(0,200,150,.07),var(--white))'; pbBd='rgba(0,200,150,.3)';
+    pbDesc=`價格已回踩 VEGAS 通道${type==='long'?'上緣支撐':'下緣壓力'}，且統一執行閘門已通過；仍須自行設定風險與失效點。`;
+  } else if(pbReal){
+    pbStatus='⏳ 回踩到位但不可執行'; pbColor='var(--gold)'; pbBg='var(--goldb)'; pbBd='rgba(245,166,35,.3)';
+    pbDesc=`回踩只是其中一個條件；${guidance.reason}。目前不進場。`;
   } else if(pbBounce){
     pbStatus='⏳ 通道內反彈（未到位）'; pbColor='var(--gold)'; pbBg='var(--pink5)'; pbBd='var(--pink4)';
-    pbDesc='價格在通道內反彈，還沒回踩到通道邊緣的最佳位置，勝率較低，不列入 Top5 硬門檻，建議再等回踩到通道緣。';
+    pbDesc='價格在通道內反彈，但尚未形成完整已收盤執行條件；繼續觀察，不進場。';
   } else {
     pbStatus='○ 尚未回踩'; pbColor='var(--text3)'; pbBg='var(--pink5)'; pbBd='var(--pink4)';
-    pbDesc=`目前價格距 VEGAS 通道${type==='long'?'上緣':'下緣'}還有空間，等價格回踩到 EMA144/169 小通道${type==='long'?'上緣再做多':'下緣再做空'}。`;
+    pbDesc=`目前價格距 VEGAS 通道${type==='long'?'上緣':'下緣'}還有空間；等待回踩後重新核對已收盤 Step3，不進場。`;
   }
 
   // ── RSI / MACD / Boll（null = 真實數據載入中）──
@@ -3721,9 +3648,9 @@ function openMOVEDetail(sym, type, v, c) {
   const rsiCls   = rsi_val===null?'neu':rsi_val<30?'bull':rsi_val>70?'bear':'neu';
   const rsiLbl   = rsi_val===null?'載入中':rsi_val<30?'超賣':rsi_val>70?'超買':'中性';
 
-  const btc    = coins['bitcoin'];
-  const btcCh  = btc ? btc.price_change_percentage_24h || 0 : 0;
-  const relBTC = chg24 - btcCh;
+  const btc=coins['bitcoin'];
+  const btcCh=btc?.price_change_percentage_24h??null;
+  const relResult=compareToBTC(chg24,btcCh,type);
   const frRaw  = fr_val;
   const lsRaw  = ls_val;
   const frCls  = frRaw===null?'neu':parseFloat(frRaw)>0.01?'bear':parseFloat(frRaw)<0?'bull':'neu';
@@ -3808,16 +3735,7 @@ function openMOVEDetail(sym, type, v, c) {
   else if(v.signal===oppSig){ vegasTag='逆勢'; vegasSup='bad'; vegasDesc=`目前為${type==='long'?'空頭':'多頭'}排列，與${dirW}方向相反，風險高`; }
   else if(v.h4InTunnel){ vegasTag='整理中'; vegasSup='neutral'; vegasDesc='EMA12 在通道內，方向未明，宜等突破確認'; }
   else { vegasTag='待確認'; vegasSup='neutral'; vegasDesc='方向尚未由 VEGAS 雙確認'; }
-  let relTag, relSup, relDesc;
-  const relAbs = Math.abs(relBTC).toFixed(1);
-  if(Math.abs(relBTC)<0.5){ relTag='與BTC同步'; relSup='neutral'; relDesc='與 BTC 走勢接近，無明顯獨立強弱'; }
-  else if(type==='long'){
-    if(relBTC>0){ relTag='強於BTC'; relSup='good'; relDesc=`相較 BTC 強 ${relAbs}%，有額外買盤支撐`; }
-    else { relTag='弱於BTC'; relSup='bad'; relDesc=`相較 BTC 弱 ${relAbs}%，本身存在額外賣壓`; }
-  } else {
-    if(relBTC<0){ relTag='弱於BTC'; relSup='good'; relDesc=`相較 BTC 弱 ${relAbs}%，下跌動能較強，利於做空`; }
-    else { relTag='強於BTC'; relSup='bad'; relDesc=`相較 BTC 強 ${relAbs}%，逆勢做空風險高`; }
-  }
+  const {tag:relTag,sup:relSup,desc:relDesc}=relResult;
   const verdictGrad = type==='long'
     ? 'linear-gradient(135deg,rgba(0,200,150,.07),var(--white))'
     : 'linear-gradient(135deg,rgba(255,77,109,.07),var(--white))';
@@ -3829,8 +3747,8 @@ function openMOVEDetail(sym, type, v, c) {
     <div class="mhdr">
       <div>
         <div class="msym">${sym}/USDT 永續</div>
-        <div class="mpx">${ps} <span class="${chg24>=0?'up':'dn'}" style="font-weight:700">${chg24>=0?'+':''}${chg24.toFixed(2)}%</span>
-          &nbsp;<span style="color:var(--text3);font-size:9px;font-family:'JetBrains Mono',monospace">RSI ${rsi_val}</span>
+        <div class="mpx">${ps} <span class="${chg24!==null?(chg24>=0?'up':'dn'):'neu'}" style="font-weight:700">${chg24!==null?`${chg24>=0?'+':''}${chg24.toFixed(2)}%`:'24H無資料'}</span>
+          &nbsp;<span style="color:var(--text3);font-size:9px;font-family:'JetBrains Mono',monospace">RSI ${Number.isFinite(rsi_val)?rsi_val:'無資料'}</span>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
@@ -3849,7 +3767,7 @@ function openMOVEDetail(sym, type, v, c) {
       <div id="verdict-fr">${vRow('資金費率','讀取中','neutral','抓取中…')}</div>
       <div id="verdict-ls">${vRow('散戶情緒','讀取中','neutral','抓取中…')}</div>
       <div id="verdict-cvd">${vRow('市場動能','讀取中','neutral','抓取中…')}</div>
-      ${buildSignalVerdict({sym, type, mat, v, wrBreakdown, rsi: rsi_val, macdOk: !!_macd, priceOk: px>0, chg24Ok: Number.isFinite(chg24)})}
+      ${buildSignalVerdict({sym, type, mat, v, wrBreakdown:confidenceBreakdown, rsi:rsi_val, macdOk:!!_macd, priceOk:px>0, chg24Ok:Number.isFinite(chg24)})}
     </div>
 
     <!-- MOVE 評分 + 建議倉位 -->
@@ -3862,8 +3780,8 @@ function openMOVEDetail(sym, type, v, c) {
         </div>
         <div style="font-size:10px;color:var(--text2);line-height:1.5;margin:4px 0">${mat.desc}</div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:2px">
-          <div style="font-family:'Nunito',sans-serif;font-size:22px;font-weight:900;color:${posColor}">${positionPct}%</div>
-          <div style="font-size:10px;color:var(--text3);line-height:1.5">${posLabel}<br>符合 <strong style="color:var(--pink3)">${criteriaCount}/3</strong> 篩選標準</div>
+          <div style="font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;color:${posColor}">${guidance.short}</div>
+          <div style="font-size:10px;color:var(--text3);line-height:1.5">${guidance.label}<br>符合 <strong style="color:var(--pink3)">${criteriaCount}/3</strong> 篩選標準</div>
         </div>
       </div>
     </div>
@@ -3874,7 +3792,7 @@ function openMOVEDetail(sym, type, v, c) {
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <span style="font-size:14px;font-weight:900;color:${pbColor};font-family:Nunito,sans-serif">${pbStatus}</span>
         ${pbDist!==null?`<span style="font-size:10px;color:var(--text3)">距通道緣 <strong style="color:${pbColor};font-family:'JetBrains Mono',monospace">${(pbDist>=0?'+':'')+pbDist.toFixed(2)}%</strong></span>`:''}
-        ${pbWR!==null&&pbWR>0?`<span style="font-size:10px;color:var(--text3)">回踩勝率參考 <strong style="color:${pbColor};font-family:'JetBrains Mono',monospace">${pbWR}%</strong></span>`:''}
+        ${pbQuality!==null&&pbQuality>0?`<span style="font-size:10px;color:var(--text3)">回踩信心參考 <strong style="color:${pbColor};font-family:'JetBrains Mono',monospace">${pbQuality}</strong></span>`:''}
       </div>
       <div style="font-size:10px;color:var(--text2);line-height:1.6;margin-top:6px">${pbDesc}</div>
     </div>
@@ -3884,25 +3802,23 @@ function openMOVEDetail(sym, type, v, c) {
       <div class="m-sec-t">🎯 進場計劃（${criteriaCount}個篩選 × VEGAS ${vegasOK?'✅':'○'}）</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
         <div style="background:var(--pink5);border:1.5px solid var(--pink4);border-radius:9px;padding:9px 10px;text-align:center">
-          <div style="font-size:9px;color:var(--text3);font-weight:700;font-family:'Nunito',sans-serif;margin-bottom:3px">建議倉位</div>
-          <div style="font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;color:${posColor}">${positionPct}%</div>
-          <div style="font-size:9px;color:var(--text3);margin-top:2px">${criteriaCount}個篩選滿足</div>
+          <div style="font-size:9px;color:var(--text3);font-weight:700;font-family:'Nunito',sans-serif;margin-bottom:3px">執行狀態</div>
+          <div style="font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;color:${posColor}">${guidance.short}</div>
+          <div style="font-size:9px;color:var(--text3);margin-top:2px">${guidance.executable?'自行設定單筆風險':'條件未完成：不進場'}</div>
         </div>
         <div style="background:var(--redb);border:1.5px solid rgba(255,77,109,.25);border-radius:9px;padding:9px 10px;text-align:center">
-          <div style="font-size:9px;color:var(--red2);font-weight:700;font-family:'Nunito',sans-serif;margin-bottom:3px">止損 SL</div>
-          <div style="font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;color:var(--red2)">-${slPct}%</div>
+          <div style="font-size:9px;color:var(--red2);font-weight:700;font-family:'Nunito',sans-serif;margin-bottom:3px">失效參考</div>
+          <div style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;color:var(--red2)">自行設定</div>
           <div style="font-size:9px;color:var(--text3);margin-top:2px">${slDesc}</div>
         </div>
         <div style="background:var(--greenb);border:1.5px solid rgba(0,200,150,.25);border-radius:9px;padding:9px 10px;text-align:center">
-          <div style="font-size:9px;color:var(--green2);font-weight:700;font-family:'Nunito',sans-serif;margin-bottom:3px">止盈 TP</div>
-          <div style="font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;color:var(--green2)">+${tpPct}%</div>
+          <div style="font-size:9px;color:var(--green2);font-weight:700;font-family:'Nunito',sans-serif;margin-bottom:3px">目標參考</div>
+          <div style="font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;color:var(--green2)">結構位</div>
           <div style="font-size:9px;color:var(--text3);margin-top:2px">${tp1Desc}</div>
         </div>
       </div>
-      <div id="modal-ev-row" style="background:var(--pink5);border-radius:8px;padding:8px 11px;margin-top:8px;font-size:10px;color:var(--text2);line-height:1.7"
-        data-rr="${rr}" data-sl="${slPct}" data-tp="${tpPct}" data-base-wr="${winRate.toFixed(4)}" data-type="${type}" data-sym="${sym}">
-        RR ${rr}:1 &nbsp;|&nbsp; 估算勝率 <span id="modal-wr-val">${(winRate*100).toFixed(0)}%</span> &nbsp;|&nbsp; EV <strong id="modal-ev-val" style="color:${ev>0?'var(--green2)':'var(--red2)'}">${ev>=0?'+':''}${(ev*100).toFixed(2)}%</strong> &nbsp;|&nbsp; 凱利 <span id="modal-kelly-val">${(kelly*50).toFixed(0)}%</span>（半凱利）
-        ${tp2Desc?`<br>💡 ${tp2Desc}`:''}
+      <div style="background:var(--pink5);border-radius:8px;padding:8px 11px;margin-top:8px;font-size:10px;color:var(--text2);line-height:1.7">
+        信心分數：<strong style="color:var(--pink3)">${confidence!==null?Math.round(confidence*100):'無資料'}</strong>（手工條件加權，非統計勝率）。未完成樣本外校準前，不自動產生 EV、Kelly 或槓桿倉位；請到正EV計算機輸入你自己的已驗證參數。
       </div>
     </div>
 
@@ -3919,7 +3835,7 @@ function openMOVEDetail(sym, type, v, c) {
         return `
         ${checkBox(!!s1,
           `步驟1 判勢：EMA144/169 小通道${s1?(type==='long'?'在EMA576/676上方':'在EMA576/676下方'):'方向未確認'}`,
-          v ? `EMA144(${Number(v.h4_144||0).toFixed(2)}) ${type==='long'?'> ':'< '} EMA576(${v.h4_576?Number(v.h4_576).toFixed(2):'—'})　大通道${s1?'✅確認':'❌未確認'}` : '計算中'
+          v ? `日線 EMA144(${Number(v.d144||0).toFixed(2)}) / EMA169(${Number(v.d169||0).toFixed(2)}) ${type==='long'?'在':'在'} EMA576/676 ${type==='long'?'上方':'下方'}；日K收盤 ${Number(v.dailyClose||0).toFixed(2)}　${s1?'✅確認':'❌未確認'}` : '計算中'
         )}
         ${checkBox(!!s2,
           `步驟2 找位：價格${s2?'回調至':'尚未回調至'} EMA144/169 通道${type==='long'?'支撐':'壓力'}區間`,
@@ -3927,7 +3843,7 @@ function openMOVEDetail(sym, type, v, c) {
         )}
         ${checkBox(!!s3, `步驟3 進場：K棒收盤${type==='long'?'站上':'貫穿'} EMA12 + QQE MOD${type==='long'?'藍柱':'紅柱'}同步啟動`, step3detail)}
         ${fake?`<div style="background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.3);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--red2);margin-top:6px;font-weight:700">⚠️ 假突破偵測：價格突破通道但 EMA12 未同步突破 → 不進場，等待確認</div>`:''}
-        ${v?.h4InTunnel?`<div style="background:var(--goldb);border:1px solid rgba(245,166,35,.3);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--text2);margin-top:6px">⏳ VEGAS整理中：EMA12 在通道內，最多輕倉 30%，等待方向突破確認</div>`:''}
+        ${v?.h4InTunnel?`<div style="background:var(--goldb);border:1px solid rgba(245,166,35,.3);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--text2);margin-top:6px">⏳ VEGAS整理中：EMA12 在通道內，方向未確認，不進場</div>`:''}
         `;
       })()}
 
@@ -3958,7 +3874,7 @@ function openMOVEDetail(sym, type, v, c) {
 
     <!-- 篩選標準1：裸K/PA -->
     <div class="m-sec">
-      <div class="m-sec-t">📊 三個篩選標準 — 越多符合，勝率越高</div>
+      <div class="m-sec-t">📊 三個篩選標準 — 越多符合，信心分數越高</div>
       ${criteriaCard('1', '🕯️', '裸K / PA（價格行為）', paNames, crit1)}
       ${criteriaCard('2', '📐', `型態（${type==='long'?'反轉/中繼形態':'反轉/中繼形態'}）`, patNames, crit2)}
       ${criteriaCard('3', '🎯', '支撐壓力區間', srNames, crit3)}
@@ -3973,19 +3889,19 @@ function openMOVEDetail(sym, type, v, c) {
         <div class="tc2"><div class="tc2-n">布林帶</div><div class="tc2-v" style="font-size:11px;color:${boll_obj.cls==='bull'?'var(--green2)':boll_obj.cls==='bear'?'var(--red2)':'var(--gold)'}">${boll_obj.label}</div><div class="tc2-s ${boll_obj.cls}">${boll_obj.cls==='bull'?'偏多':boll_obj.cls==='bear'?'偏空':'整理'}</div><div class="tc2-d">${boll_obj.desc}</div></div>
         <div class="tc2" id="modal-fr-cell"><div class="tc2-n">資金費率 FR</div><div class="tc2-v" style="font-size:11px;color:var(--gold)">—</div><div class="tc2-s neu" style="display:flex;align-items:center;gap:3px"><div class="spin" style="width:8px;height:8px;border-width:1.5px"></div>抓取中</div><div class="tc2-d">—</div></div>
         <div class="tc2" id="modal-ls-cell"><div class="tc2-n">多空比 L/S</div><div class="tc2-v" style="font-size:11px;color:var(--gold)">—</div><div class="tc2-s neu" style="display:flex;align-items:center;gap:3px"><div class="spin" style="width:8px;height:8px;border-width:1.5px"></div>抓取中</div><div class="tc2-d">—</div></div>
-        <div class="tc2"><div class="tc2-n">相對強弱</div><div class="tc2-v" style="font-size:11px;color:${relBTC>=0?'var(--green2)':'var(--red2)'}">${relBTC>=0?'+':''}${relBTC.toFixed(2)}%</div><div class="tc2-s ${relBTC>=0?'bull':'bear'}">${relBTC>=0?'強於BTC':'弱於BTC'}</div><div class="tc2-d">vs BTC 24H</div></div>
+        <div class="tc2"><div class="tc2-n">相對強弱</div><div class="tc2-v" style="font-size:11px;color:${relSup==='good'?'var(--green2)':relSup==='bad'?'var(--red2)':'var(--gold)'}">${relResult.value!==null?`${relResult.value>=0?'+':''}${relResult.value.toFixed(2)}%`:'無資料'}</div><div class="tc2-s ${relSup==='good'?'bull':relSup==='bad'?'bear':'neu'}">${relTag}</div><div class="tc2-d">vs BTC 24H</div></div>
         <div class="tc2" id="modal-cvd-cell"><div class="tc2-n">CVD 主動買賣</div><div class="tc2-v" style="font-size:11px;color:var(--gold)">—</div><div class="tc2-s neu" style="display:flex;align-items:center;gap:3px"><div class="spin" style="width:8px;height:8px;border-width:1.5px"></div>抓取中</div><div class="tc2-d">—</div></div>
       </div>
     </div>
 
     <!-- 評分依據：加扣分明細（Phase 3B）-->
     <div class="m-sec">
-      <div class="m-sec-t">📊 評分依據 — 勝率怎麼算出來的</div>
-      ${wrBreakdown ? `
+      <div class="m-sec-t">📊 評分依據 — 信心分數怎麼算出來的</div>
+      ${confidenceBreakdown ? `
       <div style="display:flex;flex-direction:column;gap:0">
-        ${wrBreakdown.map(b=>{
+        ${confidenceBreakdown.map(b=>{
           const p=Math.round(b.pts*100);
-          const isBase=b.label==='基礎勝率';
+          const isBase=b.label==='基礎分數';
           const col=isBase?'var(--text2)':p>0?'var(--green2)':p<0?'var(--red2)':'var(--text3)';
           return `<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--pink4)">
             <div style="flex:1">
@@ -3996,12 +3912,12 @@ function openMOVEDetail(sym, type, v, c) {
           </div>`;
         }).join('')}
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0 2px">
-          <div style="font-size:11px;font-weight:900;color:var(--text);font-family:Nunito,sans-serif">合計勝率${Math.abs(wrRaw-winRate)>0.001?`（原始 ${(wrRaw*100).toFixed(0)}% → 觸及上下限）`:''}</div>
-          <div style="font-size:20px;font-weight:900;font-family:Nunito,sans-serif;color:var(--pink3)">${(winRate*100).toFixed(0)}%</div>
+          <div style="font-size:11px;font-weight:900;color:var(--text);font-family:Nunito,sans-serif">合計信心分數${confidenceRaw!==null&&confidence!==null&&Math.abs(confidenceRaw-confidence)>0.001?`（原始 ${Math.round(confidenceRaw*100)} → 觸及上下限）`:''}</div>
+          <div style="font-size:20px;font-weight:900;font-family:Nunito,sans-serif;color:var(--pink3)">${confidence!==null?Math.round(confidence*100):'—'}</div>
         </div>
-        <div style="font-size:9px;color:var(--text3);line-height:1.5;margin-top:4px">每項＝對勝率的加減分，基礎 40% 起算，上限 75%／下限 30%。此明細＝Top5 排序所用的真實計算，未額外造數。</div>
+        <div style="font-size:9px;color:var(--text3);line-height:1.5;margin-top:4px">每項是條件加減分，只供同批訊號排序；沒有樣本外校準，因此不是勝率，也不能用來推導 EV 或 Kelly。</div>
       </div>` : `
-      <div style="font-size:11px;color:var(--text3);line-height:1.6">此幣缺完整指標資料，僅顯示簡算勝率 <strong style="color:var(--pink3)">${(winRate*100).toFixed(0)}%</strong>。等 VEGAS 掃描與指標載入後即有完整明細。</div>`}
+      <div style="font-size:11px;color:var(--text3);line-height:1.6">此幣缺完整指標資料，信心分數顯示「無資料」，不以假值補齊。</div>`}
       ${allTags.length ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:10px">
         ${allTags.map(tag=>`<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;background:var(--pink5);border:1px solid var(--pink4);color:var(--text2);font-family:Nunito,sans-serif">${tag}</span>`).join('')}
       </div>` : ''}
@@ -4029,11 +3945,11 @@ function openMOVEDetail(sym, type, v, c) {
       <div class="m-sec-t">🔗 同期相關幣種</div>
       <div style="display:flex;flex-wrap:wrap;gap:6px">
         ${relCoins.map(rc=>{
-          const rcCh=rc.price_change_percentage_24h??0;
+          const rcCh=formatMarketChange(rc.price_change_percentage_24h,1);
           const rcSc=type==='long'?rc.longScore:rc.shortScore;
           return `<div style="background:var(--pink5);border:1.5px solid var(--pink4);border-radius:9px;padding:7px 13px;text-align:center;cursor:pointer;transition:background .15s" onclick="openScoreDetail('${rc.id}','${type}')" onmouseenter="this.style.background='var(--pink4)'" onmouseleave="this.style.background='var(--pink5)'">
             <div style="font-size:11px;font-weight:900;font-family:Nunito,sans-serif;color:var(--text)">${rc.symbol.toUpperCase()}</div>
-            <div style="font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;color:${rcCh>=0?'var(--green2)':'var(--red2)'}">${rcCh>=0?'+':''}${rcCh.toFixed(1)}%</div>
+            <div style="font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;color:${rcCh.cls==='up'?'var(--green2)':rcCh.cls==='dn'?'var(--red2)':'var(--text3)'}">${rcCh.text}</div>
             <div style="font-size:9px;color:var(--text3);margin-top:1px">評分 ${rcSc}</div>
           </div>`;
         }).join('')}
@@ -4049,9 +3965,9 @@ function openMOVEDetail(sym, type, v, c) {
           const s2ok = type==='long'?v?.step2_long:v?.step2_short;
           const fake = v?.isFakeBreakout;
           if(fake) return `<strong style="color:var(--red2)">⚠️ 假突破警告！</strong>｜價格突破通道但 EMA12 未同步 → 不進場。等待 EMA12 也突破後再考慮。`;
-          if(vegasOK && s3ok && criteriaCount>=2) return `<strong>${criteriaCount>=3?'💎 三篩選全中！加槓桿機會':'🚀 有效進場機會'}</strong>｜賽克斯三步驟✅ MOVE${criteriaCount}篩選✅。建議倉位 <strong style="color:${posColor}">${positionPct}%</strong>，止損 -${slPct}%，目標 +${tpPct}%（RR ${rr}:1）。EV <strong style="color:${ev>0?'var(--green2)':'var(--red2)'}">${ev>0?'+':''}${(ev*100).toFixed(2)}%</strong>`;
+          if(vegasOK && s3ok && criteriaCount>=2) return `<strong>✅ 已收盤條件成立</strong>｜賽克斯三步驟✅ MOVE${criteriaCount}篩選✅。${guidance.label}；失效點與目標請依圖表結構設定。`;
           if(vegasOK && s2ok) return `<strong>✅ 步驟2 找位完成</strong>｜等待步驟3：K棒收盤${type==='long'?'站上':'貫穿'}EMA12 + QQE MOD ${type==='long'?'藍':'紅'}柱同步啟動後進場。`;
-          if(vegasOK) return `<strong>VEGAS方向確認 ✅</strong>，篩選 ${criteriaCount}/3。目前 EMA12 ${v?.h4InTunnel?'整理中':'未回調至通道'}，建議輕倉 ${positionPct}%，等待回調。`;
+          if(vegasOK) return `<strong>VEGAS方向確認 ✅</strong>，篩選 ${criteriaCount}/3。目前 EMA12 ${v?.h4InTunnel?'整理中':'未回調至通道'}；Step3 未完成前不進場。`;
           return `<strong>觀察中 ⏳</strong>｜${v?.h4InTunnel?'VEGAS通道整理中，等待突破方向':'VEGAS條件未滿足'}。依紀律：VEGAS未確認→不進場，無論其他條件多強。`;
         })()}
       </div>
@@ -4211,39 +4127,6 @@ async function fetchAndUpdateFRLS(sym, type) {
       <div class="tc2-s ${lsCls}">${lsNum===null?'無數據':lsNum>0.55?'偏多':lsNum<0.45?'偏空':'均衡'}</div>
       <div class="tc2-d">${lsNum!==null?`多 ${(lsNum*100).toFixed(0)}% / 空 ${((1-lsNum)*100).toFixed(0)}%`:'OKX無此幣數據'}</div>`;
   }
-
-  // ── 重算勝率/EV/Kelly ──
-  const evRow = document.getElementById('modal-ev-row');
-  if (!evRow) return;
-  const baseWR = parseFloat(evRow.dataset.baseWr) || 0.50;
-  const rr     = parseFloat(evRow.dataset.rr) || 2.0;
-  const slPct  = parseFloat(evRow.dataset.sl) || 3;
-  const tpPct  = parseFloat(evRow.dataset.tp) || 6;
-  const mType  = evRow.dataset.type || 'long';
-  const frNum  = fr !== null ? parseFloat(fr) : null;
-  const lsNum  = ls !== null ? parseFloat(ls) : null;
-
-  let wr = baseWR;
-  if (frNum !== null && mType==='long'  && frNum < -0.0001) wr += 0.03;
-  if (frNum !== null && mType==='short' && frNum > 0.0005)  wr += 0.03;
-  if (frNum !== null && mType==='long'  && frNum > 0.0005)  wr -= 0.02;
-  if (frNum !== null && mType==='short' && frNum < -0.0001) wr -= 0.02;
-  if (lsNum !== null && mType==='long'  && lsNum < 0.4)  wr += 0.03;
-  if (lsNum !== null && mType==='short' && lsNum > 0.65) wr += 0.03;
-  if (lsNum !== null && mType==='long'  && lsNum > 0.7)  wr -= 0.02;
-  if (lsNum !== null && mType==='short' && lsNum < 0.35) wr -= 0.02;
-  wr = Math.min(0.82, Math.max(0.30, wr));
-
-  const ev    = wr * (tpPct/100) - (1-wr) * (slPct/100);
-  const kelly = Math.max(0, (wr * rr - (1-wr)) / rr);
-  const evColor = ev > 0 ? 'var(--green2)' : 'var(--red2)';
-
-  const wrEl = document.getElementById('modal-wr-val');
-  const evEl = document.getElementById('modal-ev-val');
-  const klEl = document.getElementById('modal-kelly-val');
-  if (wrEl) wrEl.textContent = Math.round(wr*100) + '%';
-  if (evEl) { evEl.textContent = (ev>=0?'+':'') + (ev*100).toFixed(2) + '%'; evEl.style.color = evColor; }
-  if (klEl) klEl.textContent = (kelly*50).toFixed(0) + '%';
 }
 
 // ── 幣種快訊 + 利多利空指數 ──
@@ -4319,13 +4202,13 @@ function renderCoinNews(sym, items, bullWords, bearWords){
           const t=new Date(n.published_at||n.created_at||Date.now());
           const ago=Math.round((Date.now()-t)/60000);
           const agoTxt=ago<60?`${ago}分前`:`${Math.floor(ago/60)}小時前`;
-          return `<div style="padding:9px 0;border-bottom:1px solid var(--pink4);cursor:pointer" onclick="window.open('${n.url}','_blank')">
+          return `<a href="${safeExternalUrl(n.url)}" target="_blank" rel="noopener noreferrer" style="display:block;padding:9px 0;border-bottom:1px solid var(--pink4);cursor:pointer;text-decoration:none">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
               <span style="font-size:10px;font-weight:900;padding:2px 7px;border-radius:8px;background:${tag.bg};color:${tag.c};font-family:Nunito,sans-serif;white-space:nowrap">${tag.t}</span>
               <span style="font-size:10px;color:var(--text3);margin-left:auto;font-family:JetBrains Mono,monospace;white-space:nowrap">${agoTxt}</span>
             </div>
-            <div style="font-size:12px;color:var(--text2);line-height:1.5">${n.title}</div>
-          </div>`;
+            <div style="font-size:12px;color:var(--text2);line-height:1.5">${escapeHTML(n.title)}</div>
+          </a>`;
         }).join('')
     }`;
 }
@@ -4366,7 +4249,7 @@ async function sendMsg(){
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,
-        system:`你是「幸運星信號 ⭐」專業加密貨幣交易AI助手，精通MOVE通道交易系統（VEGAS EMA12/144/169/576/676）、PA裸K型態（錘子線、早晨之星、陽包陰等）、123突破法則、支撐壓力、RSI、MACD、OI持倉量、資金費率、正EV計算（Kelly Criterion）。每次分析必須包含：VEGAS通道方向、篩選標準符合數（0-3個）、建議倉位（50/100/200%）、止損止盈位置、EV是否為正。用繁體中文，語氣可愛親切，給具體可操作建議，適當加emoji ⭐💕。\n當前市場快照：\n${ctx}`,
+        system:`你是「幸運星信號 ⭐」加密貨幣技術分析助手。只能根據提供的真實資料整理 VEGAS 方向、已收盤 Step1/2/3、PA型態、RSI、MACD、OI與資金費率。信心分數不是統計勝率；未提供使用者自己的樣本外勝率、盈虧比與單筆風險時，不得估算EV、Kelly、槓桿、倉位百分比或承諾獲利。缺資料要明說「無資料」，Step3未完成要明說「觀察、不進場」。使用繁體中文，白話、直接。\n當前市場快照：\n${ctx}`,
         messages:chatHistory.slice(-8)})
     });
     rmTyping(tid);
@@ -4488,71 +4371,16 @@ function setCalcDir(dir){
 }
 
 function calcSLTP(){
-  const price   = parseFloat(document.getElementById('calc-price').value);
-  const capital = parseFloat(document.getElementById('calc-capital').value) || 0;
-  const el      = document.getElementById('calc-result');
-  if(!price || price <= 0){ el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;font-family:Nunito,sans-serif">輸入價格後自動顯示所有進場方案 ✨</div>'; return; }
-
-  const isLong = calcDir === 'long';
-  const slPct  = 0.03; // 固定止損 3%
-
-  // MOVE 四個方案（勝率：底40% + VEGAS+8% + 每個篩選+4%）
-  const plans = [
-    { label:'VEGAS only', wr:0.48, icon:'⏳', pos:0.25, tp:0.06, rr:'2:1',   color:'var(--text3)',   bg:'var(--pink5)',           border:'var(--pink4)',  note:'等待篩選確認' },
-    { label:'1個篩選',    wr:0.52, icon:'🌱', pos:0.50, tp:0.06, rr:'2:1',   color:'var(--gold)',    bg:'rgba(245,166,35,.08)',   border:'var(--gold)',   note:'半倉 — 保守進場' },
-    { label:'2個篩選',    wr:0.56, icon:'🚀', pos:1.00, tp:0.08, rr:'2.7:1', color:'var(--green2)',  bg:'rgba(0,200,150,.08)',    border:'var(--green2)', note:'滿倉 — 移動止損至成本後加碼' },
-    { label:'3個篩選',    wr:0.65, icon:'💎', pos:2.00, tp:0.10, rr:'3.3:1', color:'var(--purple)',  bg:'rgba(192,132,252,.1)',   border:'var(--purple)', note:'加槓桿 — 50%在+6%止盈，50%在+10%' },
-  ];
-
-  const fmt = (p) => p >= 1000 ? '$'+p.toLocaleString('en-US',{maximumFractionDigits:0}) : p >= 1 ? '$'+p.toLocaleString('en-US',{maximumFractionDigits:4}) : '$'+p.toFixed(6);
-
-  el.innerHTML = plans.map(p=>{
-    const slPrice  = isLong ? price*(1-slPct)    : price*(1+slPct);
-    const tpPrice  = isLong ? price*(1+p.tp)     : price*(1-p.tp);
-    const posAmt   = capital * p.pos;
-    const maxLoss  = posAmt * slPct;
-    const maxGain  = posAmt * p.tp;
-    const ev       = p.wr * maxGain - (1 - p.wr) * maxLoss;
-    const tp1Price = isLong ? price*(1+0.06) : price*(1-0.06); // 第一目標
-    const tp2Price = isLong ? price*(1+p.tp) : price*(1-p.tp); // 最終目標
-    const showDual = p.pos >= 1.0;
-
-    return `<div style="background:${p.bg};border:2px solid ${p.border};border-radius:14px;padding:14px 15px;margin-bottom:10px">
-      <!-- 標題 -->
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <span style="font-size:18px">${p.icon}</span>
-        <span style="font-family:Nunito,sans-serif;font-size:15px;font-weight:900;color:${p.color}">${p.label}</span>
-        <span style="font-size:11px;font-weight:900;padding:3px 9px;border-radius:20px;background:${p.bg};border:1.5px solid ${p.border};color:${p.color};font-family:Nunito,sans-serif;margin-left:auto">倉位 ${Math.round(p.pos*100)}% · RR ${p.rr}</span>
-      </div>
-      <!-- 三格：SL / TP / 倉位金額 -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:8px">
-        <div style="background:var(--redb);border:1.5px solid rgba(255,77,109,.25);border-radius:9px;padding:9px;text-align:center">
-          <div style="font-size:10px;font-weight:800;font-family:Nunito,sans-serif;color:var(--red2);margin-bottom:3px">🔴 止損 SL</div>
-          <div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:900;color:var(--red2)">${fmt(slPrice)}</div>
-          <div style="font-size:10px;color:var(--red2);margin-top:2px;font-weight:700">${isLong?'-':'+'}${(slPct*100).toFixed(0)}%</div>
-        </div>
-        <div style="background:var(--greenb);border:1.5px solid rgba(0,200,150,.25);border-radius:9px;padding:9px;text-align:center">
-          <div style="font-size:10px;font-weight:800;font-family:Nunito,sans-serif;color:var(--green2);margin-bottom:3px">🟢 止盈 TP</div>
-          <div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:900;color:var(--green2)">${fmt(tpPrice)}</div>
-          <div style="font-size:10px;color:var(--green2);margin-top:2px;font-weight:700">${isLong?'+':'-'}${(p.tp*100).toFixed(0)}%</div>
-        </div>
-        <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:9px;padding:9px;text-align:center">
-          <div style="font-size:10px;font-weight:800;font-family:Nunito,sans-serif;color:var(--text3);margin-bottom:3px">💼 倉位</div>
-          <div style="font-family:JetBrains Mono,monospace;font-size:13px;font-weight:900;color:${p.color}">${capital>0?'$'+posAmt.toFixed(0):`${Math.round(p.pos*100)}%`}</div>
-          <div style="font-size:10px;color:var(--text3);margin-top:2px">${capital>0?`最大虧 $${maxLoss.toFixed(0)}`:'輸入本金'}</div>
-        </div>
-      </div>
-      ${showDual?`
-      <!-- 分批止盈 -->
-      <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:9px;padding:8px 11px;margin-bottom:8px;font-size:11px;color:var(--text2);line-height:1.8">
-        ${p.pos===2.0?`🎯 分批止盈：50% 在 <strong style="color:var(--green2)">${fmt(tp1Price)}</strong>（+6%），50% 在 <strong style="color:var(--purple)">${fmt(tp2Price)}</strong>（+10%）`:`📌 達到 1:1（${fmt(tp1Price)}）後 → 移動止損至成本，剩餘部位抱至 ${fmt(tp2Price)}`}
-      </div>`:''}
-      <!-- 勝率 & EV -->
-      <div style="font-size:11px;color:${ev>0?'var(--green2)':'var(--red2)'};font-weight:700;font-family:Nunito,sans-serif;margin-bottom:4px">勝率 ${Math.round(p.wr*100)}%${capital>0?` ｜ EV: ${ev>=0?'+':''}$${ev.toFixed(0)}`:'（輸入本金後顯示EV）'}</div>
-      <!-- 備註 -->
-      <div style="font-size:11px;color:${p.color};font-weight:700;font-family:Nunito,sans-serif">${p.note}</div>
-    </div>`;
-  }).join('');
+  const price=parseFloat(document.getElementById('calc-price').value);
+  const el=document.getElementById('calc-result');
+  if(!price||price<=0){
+    el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;font-family:Nunito,sans-serif">輸入價格後顯示風險設定提醒 ✨</div>';
+    return;
+  }
+  el.innerHTML=`<div style="background:var(--goldb);border:1.5px solid rgba(245,166,35,.35);border-radius:12px;padding:14px;color:var(--text2);font-size:12px;line-height:1.8">
+    <strong style="color:var(--gold)">⚠️ 已停用自動止盈止損與倉位方案</strong><br>
+    目前價格：<strong>${price}</strong>。本站沒有你的已驗證勝率、單筆風險、失效結構與盈虧比，因此不會自行套用3%止損、50–200%倉位或假EV。請先依圖表結構決定失效點，再到「正EV計算機」輸入你自己的回測參數。
+  </div>`;
 }
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}

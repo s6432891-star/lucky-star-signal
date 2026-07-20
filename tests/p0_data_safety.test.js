@@ -8,7 +8,9 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 test('外部新聞與 AI 回覆必須以純文字或 escaping 顯示', () => {
   assert.match(html, /function escapeHTML\s*\(/, '缺少共用 HTML escaping helper');
   assert.match(html, /escapeHTML\(n\.title\)/, '新聞標題未 escape');
-  assert.doesNotMatch(html, /el\.innerHTML\s*=\s*reply\.replace/, 'AI 回覆仍直接注入 innerHTML');
+  assert.doesNotMatch(html, /\$\{n\.title\}/, '仍有新聞標題直接插入 HTML');
+  assert.doesNotMatch(html, /window\.open\('\$\{n\.url\}/, '仍有新聞 URL 直接插入 inline handler');
+  assert.match(html, /safeExternalUrl\(n\.url\)/, '新聞外連未驗證 URL 協定');
   assert.match(html, /setSafeMultilineText\(el,\s*reply\)/, 'AI 回覆未使用純文字多行顯示');
 });
 
