@@ -1024,16 +1024,15 @@ document.addEventListener('DOMContentLoaded',()=>{
   loadAllSymbols().then(()=>{
     // 2. 快速載入價格/OI
     loadFast().then(()=>{
-      // 3. VEGAS EMA 全幣掃描（背景執行）
-      loadVEGAS();
-      loadRealIndicators();
+      // 3. VEGAS EMA 全幣掃描優先；完成後再補次要即時指標，避免共用 OKX 佇列互搶。
+      loadVEGAS().then(()=>loadRealIndicators());
     });
   });
   // 4. 新聞快訊（獨立載入，不阻塞主流程）
   loadNews();
   loadFearGreed();
-  // 價格/OI/EV 每60秒更新
-  setInterval(()=>{loadFast();loadRealIndicators();},60000);
+  // 價格/OI/EV 每60秒更新；VEGAS 掃描中暫緩次要即時指標，避免插隊拖慢主掃描。
+  setInterval(()=>{loadFast();if(!_vegasRunning)loadRealIndicators();},60000);
   // 全幣長週期掃描每15分鐘更新；短週期資料仍由各自TTL控制，且禁止重疊掃描。
   setInterval(()=>{loadAllSymbols().then(()=>loadVEGAS());},900000);
   // 新聞每5分鐘更新（恐懼貪婪每日更新，跟著刷新即可）
@@ -1081,7 +1080,6 @@ async function loadVEGAS(){
     res.forEach(r=>{if(r)vegasData.push(r);});
     vegasData.sort((a,b)=>b.score-a.score);
     renderVegas();
-    if(i+batchSize<SYMS.length) await sleep(500);
   }
   if(vbarWrap) vbarWrap.style.display='none';
   setApiStatus('vegas', vegasData.length>0);
@@ -1126,7 +1124,7 @@ function setSafeMultilineText(el,value){
   el.style.whiteSpace='pre-wrap';
 }
 
-// 全域 OKX API 限速器：單通道＋最小間隔，429 指數退讓，避免全幣掃描打爆公開API。
+// 全域 OKX API 限速器：實測採單通道較穩；429 時維持單通道並指數退讓。
 const _okxRL={running:0,max:1,lastAt:0,minGap:250};
 async function okxFetch(url) {
   while (_okxRL.running >= _okxRL.max) await sleep(120);
@@ -1138,7 +1136,7 @@ async function okxFetch(url) {
         if(wait)await sleep(wait);
         _okxRL.lastAt=Date.now();
         const r = await fetch(url);
-        if(r.status===429){await sleep(2000*(2**i));continue;}
+        if(r.status===429){_okxRL.max=1;await sleep(2000*(2**i));continue;}
         if (!r.ok) return null;
         return await r.json();
       } catch(e) { return null; }
@@ -3013,6 +3011,7 @@ function calcQQEMOD(closes, rsiPeriod=14, smoothPeriod=5, qqeFactor=4.238){
 // 解法：記憶體快取（所有週期）＋ 1D 額外持久化到 localStorage（重整頁面仍命中）。
 // rows 一律存「舊→新」（已 reverse），key = sym|bar，依週期給不同 TTL。
 const _klCache = {};                       // 記憶體：'BTC|1D' -> {ts, rows}
+const _klInflight = new Map();              // 同一份資料下載中時共用 Promise，避免重複請求
 const _KL_TTL = { '1D':1800000, '4H':600000, '1H':300000, '15m':180000, '5m':120000 };
 let _klLSFull = false;                      // localStorage 滿了就停止寫，避免反覆 stringify
 function _klTTL(bar){ return _KL_TTL[bar] || 180000; }
@@ -3056,19 +3055,27 @@ async function fetchCandles(sym,bar,limit){
       }
     }catch(e){}
   }
-  try{
-    const rows=await fetchCandlePages(sym,bar,limit);
-    if(!rows) return null;
-    _klCache[key]={ts:now,rows};
-    if(bar==='1D' && !_klLSFull){
-      try{ localStorage.setItem('klc:'+key,JSON.stringify({ts:now,rows})); }
-      catch(e){ _klLSFull=true; }
+  const requestKey=`${key}|${limit}`;
+  if(_klInflight.has(requestKey)) return _klInflight.get(requestKey);
+  const request=(async()=>{
+    try{
+      const rows=await fetchCandlePages(sym,bar,limit);
+      if(!rows) return null;
+      _klCache[key]={ts:Date.now(),rows};
+      if(bar==='1D' && !_klLSFull){
+        try{ localStorage.setItem('klc:'+key,JSON.stringify({ts:Date.now(),rows})); }
+        catch(e){ _klLSFull=true; }
+      }
+      return rows;
+    }catch(e){
+      console.warn(`[KLINE] ${sym} ${bar} 抓取失敗`,e);
+      return null;
+    }finally{
+      _klInflight.delete(requestKey);
     }
-    return rows;
-  }catch(e){
-    console.warn(`[KLINE] ${sym} ${bar} 抓取失敗`,e);
-    return null;
-  }
+  })();
+  _klInflight.set(requestKey,request);
+  return request;
 }
 
 // 只回傳收盤價（close）
