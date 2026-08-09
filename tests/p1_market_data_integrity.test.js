@@ -14,6 +14,15 @@ test('EMA576/676 必須抓足至少 677 根且不得降級冒充 EMA299', () => 
   assert.doesNotMatch(html, /calcEMA\(h4,Math\.min\(576/, '4H EMA576 仍會降級成短週期');
 });
 
+test('長週期歷史不足必須保留短資料供 coverage 分類，但不得拿來計算 EMA576/676', () => {
+  assert.match(html, /if\(!j\.data\.length\)\{[\s\S]{0,100}return\[\]/, 'OKX 正常回覆空歷史仍被誤判為 API 失敗');
+  assert.match(html, /if\(rows===null\) return null/, 'fetchCandles 仍把正常空陣列視為 API 失敗');
+  assert.match(html, /async function fetchKlines\([\s\S]{0,160}if\(rows===null\)return null/, 'fetchKlines 仍把正常空陣列視為 API 失敗');
+  assert.match(html, /async function fetchKlinesOHLCV\([\s\S]{0,180}if\(rows===null\)return null/, 'fetchKlinesOHLCV 仍把正常空陣列視為 API 失敗');
+  assert.match(html, /limit>=677&&rows\.length\?rows:null/, '長週期短歷史仍與 API 失敗混成 null');
+  assert.match(html, /daily\.length<677\|\|h4Confirmed\.length<677[^\n]*insufficientHistory/, '短歷史沒有被明確分類為 insufficientHistory');
+});
+
 test('API 失敗時不得無期限沿用過期 K 線', () => {
   const start = html.indexOf('async function fetchCandles(');
   const end = html.indexOf('// 只回傳收盤價', start);

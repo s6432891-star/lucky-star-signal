@@ -634,6 +634,7 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
 <!-- OVERVIEW -->
 <div class="panel active" id="panel-overview">
   <!-- Top5 多空推薦（與多空推薦Tab同步）-->
+  <div id="snapshot-status-ov" style="display:none;padding:9px 12px;border:1.5px solid rgba(245,166,35,.35);border-radius:10px;background:var(--goldb);color:var(--text2);font-size:11px;font-weight:700;line-height:1.6"></div>
   <div class="rec-wrap" id="rec-wrap-ov"><div class="loading"><div class="spin"></div>計算中...</div></div>
   <!-- AI 新手秒懂市場總結（與多空推薦Tab同步）-->
   <div id="market-brief-ov"><div class="loading"><div class="spin"></div>整理真實市場數據中...</div></div>
@@ -942,6 +943,12 @@ header{position:sticky;top:0;z-index:200;background:rgba(255,245,245,.96);backdr
 // ═══ STATE ═══
 let apiKey = localStorage.getItem('angel_complete') || '';
 let coins = {}, oiData = [], okxTickers = {}, scoredCoins = [], saekSigs = [], vegasData = [];
+const SCAN_LOGIC_VERSION='2026-08-07-v1';
+const SCAN_SNAPSHOT_URL='https://lucky-star-scan.s6432891.workers.dev/api/latest';
+const SCAN_SNAPSHOT_MAX_AGE_MS=30*60*1000;
+let _snapshotActive=false, _snapshotMeta=null;
+let _universeSourceOk=false;
+let _vegasScanCoverage={scanId:null,startedAt:null,completedAt:null,attempted:0,succeeded:0,insufficientHistory:0,failed:0,bySymbol:{}};
 
 // ═══ API 狀態燈號 ═══
 const _apiState = { okx: null, cg: null, vegas: null };
@@ -951,6 +958,11 @@ function setApiStatus(src, ok) {
   const lbl = document.getElementById('api-label');
   if (!dot || !lbl) return;
   const { okx, cg, vegas } = _apiState;
+  if(_snapshotActive){
+    dot.className='api-dot warn';
+    lbl.textContent=_vegasRunning?'快照顯示中 · 背景更新':'完整快照 · 等待即時更新';
+    return;
+  }
   if (okx === null && cg === null) { dot.className='api-dot'; lbl.textContent='連線中'; return; }
   if (okx === false) { dot.className='api-dot err'; lbl.textContent='OKX 無法連線'; return; }
   if (vegas === false) { dot.className='api-dot err'; lbl.textContent='VEGAS 計算失敗'; return; }
@@ -975,9 +987,13 @@ function notionalVolumeUSDT(t){
 
 // 從 OKX 動態取得所有 USDT 永續合約，按成交量排序
 async function loadAllSymbols(){
+  _universeSourceOk=false;
   try{
     const j=await okxFetch('https://www.okx.com/api/v5/market/tickers?instType=SWAP');
-    if(!j||j.code!=='0')return;
+    if(!j||j.code!=='0'||!Array.isArray(j.data))throw new Error('OKX universe unavailable');
+    const availableSymbols=new Set(j.data
+      .filter(t=>t.instId.endsWith('-USDT-SWAP'))
+      .map(t=>t.instId.replace('-USDT-SWAP','')));
     const syms=j.data
       .filter(t=>t.instId.endsWith('-USDT-SWAP'))
       .map(t=>({sym:t.instId.replace('-USDT-SWAP',''),vol:notionalVolumeUSDT(t)}))
@@ -985,13 +1001,16 @@ async function loadAllSymbols(){
       .sort((a,b)=>b.vol-a.vol)
       .slice(0,MAX_SYMS)
       .map(t=>t.sym);
-    // 合併 IND_SYMS（主流幣），確保 Top5 候選池包含 BTC/ETH 等
-    const merged = [...new Set([...syms, ...IND_SYMS])];
+    // 合併仍存在於 OKX 的 IND_SYMS（主流幣），不存在的交易對不得進入完整掃描。
+    const merged = [...new Set([...syms, ...IND_SYMS.filter(sym=>availableSymbols.has(sym))])];
+    if(syms.length!==MAX_SYMS||merged.length<=MAX_SYMS)throw new Error('OKX universe incomplete');
     SYMS = merged;
+    _universeSourceOk=true;
     document.getElementById('vtime').textContent=`掃描 ${merged.length} 個幣種`;
     console.log(`✅ 動態載入 ${syms.length} 個幣種 + IND_SYMS 合併後共 ${merged.length} 個`);
     setApiStatus('okx', true);
-  }catch(e){console.warn('loadAllSymbols失敗',e);setApiStatus('okx',false);}
+    return true;
+  }catch(e){console.warn('loadAllSymbols失敗',e);_universeSourceOk=false;setApiStatus('okx',false);return false;}
 }
 
 // ═══ INIT ═══
@@ -1015,11 +1034,98 @@ function renderSignup(){
   if(bannerEl) bannerEl.innerHTML = banner;
 }
 
-document.addEventListener('DOMContentLoaded',()=>{
+function validateScanSnapshot(snapshot,now=Date.now()){
+  if(!snapshot||snapshot.schemaVersion!==1||snapshot.complete!==true)return{ok:false,reason:'掃描未完成'};
+  if(snapshot.logicVersion!==SCAN_LOGIC_VERSION)return{ok:false,reason:'策略版本不同'};
+  if(snapshot.universeSourceOk!==true)return{ok:false,reason:'動態幣池來源失敗'};
+  if(!/^[a-f0-9]{40}$/i.test(snapshot.sourceSha||''))return{ok:false,reason:'來源版本無效'};
+  if(!/^[a-f0-9]{64}$/i.test(snapshot.universeHash||'')||!/^[a-f0-9]{64}$/i.test(snapshot.contentSha256||''))return{ok:false,reason:'內容雜湊無效'};
+  const started=Date.parse(snapshot.startedAt||''),completed=Date.parse(snapshot.completedAt||''),generated=Date.parse(snapshot.generatedAt||'');
+  if(![started,completed,generated].every(Number.isFinite)||started>completed||completed>generated)return{ok:false,reason:'掃描時間無效'};
+  const age=now-generated;
+  if(age<(-2*60*1000)||age>SCAN_SNAPSHOT_MAX_AGE_MS)return{ok:false,reason:'快照已過期'};
+  if(!Array.isArray(snapshot.symbols)||!Array.isArray(snapshot.vegasData))return{ok:false,reason:'資料格式錯誤'};
+  if(!Number.isInteger(snapshot.scannedTotal)||snapshot.scannedTotal!==snapshot.symbols.length||snapshot.scannedTotal<1)return{ok:false,reason:'掃描數量不完整'};
+  if(!Number.isInteger(snapshot.validTotal)||snapshot.validTotal!==snapshot.vegasData.length)return{ok:false,reason:'有效結果數量不符'};
+  if(snapshot.symbols.some(s=>typeof s!=='string'||!/^[A-Z0-9]{2,15}$/.test(s)))return{ok:false,reason:'幣種格式錯誤'};
+  const symbols=new Set(snapshot.symbols);
+  if(symbols.size!==snapshot.symbols.length)return{ok:false,reason:'掃描幣種重複'};
+  const coverage=snapshot.coverage;
+  if(!coverage||coverage.universeSourceOk!==true||coverage.attempted!==snapshot.symbols.length||coverage.succeeded!==snapshot.validTotal||coverage.failed!==0||coverage.succeeded+coverage.insufficientHistory!==coverage.attempted)return{ok:false,reason:'掃描 coverage 不完整'};
+  if(!coverage.bySymbol||Object.keys(coverage.bySymbol).length!==snapshot.symbols.length)return{ok:false,reason:'逐幣 coverage 不完整'};
+  const counts={succeeded:0,insufficientHistory:0,failed:0};
+  for(const sym of snapshot.symbols){
+    const status=coverage.bySymbol[sym]?.status;
+    if(!Object.hasOwn(counts,status))return{ok:false,reason:'逐幣狀態無效'};
+    counts[status]++;
+  }
+  if(counts.succeeded!==coverage.succeeded||counts.insufficientHistory!==coverage.insufficientHistory||counts.failed!==coverage.failed)return{ok:false,reason:'逐幣狀態計數不符'};
+  const valid=new Set();
+  for(const row of snapshot.vegasData){
+    const sym=row?.sym;
+    if(typeof sym!=='string'||!symbols.has(sym)||valid.has(sym)||coverage.bySymbol[sym]?.status!=='succeeded'||!['bull','bear','neutral'].includes(row?.signal)||!Number.isFinite(row?.score)){
+      return{ok:false,reason:'VEGAS 結果不完整'};
+    }
+    valid.add(sym);
+  }
+  return{ok:true,ageMs:age,generatedAt:generated,stale:age>10*60*1000};
+}
+
+function snapshotTextWithoutContentHash(raw){
+  if(typeof raw!=='string')return'';
+  return raw.replace(/^[ \t]*"contentSha256"[ \t]*:[ \t]*"[a-f0-9]{64}"[ \t]*,\r?\n/im,'');
+}
+async function verifySnapshotHash(snapshot,rawText){
+  if(!crypto?.subtle)return false;
+  const hashSource=snapshotTextWithoutContentHash(rawText);
+  if(!hashSource||hashSource===rawText)return false;
+  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(hashSource));
+  return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('')===snapshot.contentSha256;
+}
+
+function renderSnapshotStatus(){
+  const el=document.getElementById('snapshot-status-ov');
+  if(!el)return;
+  if(!_snapshotActive||!_snapshotMeta){el.style.display='none';el.textContent='';return;}
+  const mins=Math.max(0,Math.floor(_snapshotMeta.ageMs/60000));
+  const at=new Date(_snapshotMeta.generatedAt).toLocaleTimeString('zh-TW',{hour12:false,hour:'2-digit',minute:'2-digit'});
+  const stale=_snapshotMeta.stale===true;
+  el.style.display='block';
+  el.style.borderColor=stale?'rgba(255,77,109,.5)':'rgba(245,166,35,.35)';
+  el.textContent=stale
+    ?`⚠️ 已載入 ${at} 的過期歷史快照（${mins} 分鐘前），只能參考、不提供可執行或推播；網站正在重新掃描 ${_snapshotMeta.scannedTotal} 個幣。`
+    :`⚡ 已先載入 ${at} 的完整背景掃描（${mins} 分鐘前）。目前為快照觀察，不提供可執行或推播；網站正在背景更新 ${_snapshotMeta.scannedTotal} 個幣，完成後自動換成即時結果。`;
+}
+
+async function loadScanSnapshot(){
+  if(new URLSearchParams(location.search).has('snapshot-generator'))return false;
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),3000);
+  try{
+    const r=await fetch(`${SCAN_SNAPSHOT_URL}?t=${Date.now()}`,{cache:'no-store',signal:ctrl.signal});
+    if(!r.ok)return false;
+    const rawText=await r.text();
+    const snapshot=JSON.parse(rawText);
+    const check=validateScanSnapshot(snapshot);
+    if(!check.ok||!(await verifySnapshotHash(snapshot,rawText)))return false;
+    vegasData=snapshot.vegasData.map(row=>({...row,snapshot:true,_provenance:{source:'snapshot',complete:true,generatedAt:snapshot.generatedAt,logicVersion:snapshot.logicVersion}}));
+    _snapshotActive=true;
+    _snapshotMeta={...check,scannedTotal:snapshot.scannedTotal,validTotal:snapshot.validTotal};
+    saekSigs=buildSaek();
+    renderSnapshotStatus();renderVegas();renderMarketBrief();renderHotMovers();renderSaek();renderRecs();
+    setApiStatus('vegas',true);
+    return true;
+  }catch(e){return false;}
+  finally{clearTimeout(timer);}
+}
+
+document.addEventListener('DOMContentLoaded',async()=>{
   if(apiKey){document.getElementById('ainp').value=apiKey;document.getElementById('aist').textContent='● 已連線 ✨';}
   setInterval(()=>document.getElementById('clk').textContent=new Date().toLocaleTimeString('zh-TW',{hour12:false}),1000);
   renderSignup();
   initNotify();
+  // 先完成快照載入／拒絕判定，再啟動 live；最多等待快照 fetch 的 3 秒逾時，避免兩條資料流互相覆寫。
+  await loadScanSnapshot();
   // 1. 先動態載入全部幣種列表
   loadAllSymbols().then(()=>{
     // 2. 快速載入價格/OI
@@ -1055,18 +1161,31 @@ async function loadFast(){
 }
 
 let _vegasRunning=false;
+function markVegasOutcome(sym,status,reason=''){
+  const key=String(sym||'').toUpperCase();
+  if(!key||_vegasScanCoverage.bySymbol[key])return;
+  const allowed=['succeeded','insufficientHistory','failed'];
+  const safeStatus=allowed.includes(status)?status:'failed';
+  _vegasScanCoverage.bySymbol[key]={status:safeStatus,reason:String(reason||'').slice(0,120)};
+  _vegasScanCoverage.attempted++;
+  _vegasScanCoverage[safeStatus]++;
+}
 async function loadVEGAS(){
   if(_vegasRunning)return;
   _vegasRunning=true;
+  const scanId=crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${performance.now().toFixed(3)}`;
+  _vegasScanCoverage={scanId,startedAt:new Date().toISOString(),completedAt:null,universeSourceOk:_universeSourceOk,attempted:0,succeeded:0,insufficientHistory:0,failed:0,bySymbol:{}};
   try{
   setApiStatus('vegas', null);
-  document.getElementById('vlist').innerHTML=`<div class="loading"><div class="spin"></div>掃描 ${SYMS.length} 個幣種中，請稍候...</div>`;
+  const keepSnapshot=_snapshotActive&&vegasData.length>0;
+  if(!keepSnapshot)document.getElementById('vlist').innerHTML=`<div class="loading"><div class="spin"></div>掃描 ${SYMS.length} 個幣種中，請稍候...</div>`;
   const vbarWrap=document.getElementById('vbar-wrap');
   const vbarFill=document.getElementById('vbar-fill');
   const vbarPct=document.getElementById('vbar-pct');
   const vbarLabel=document.getElementById('vbar-label');
   if(vbarWrap) vbarWrap.style.display='block';
-  vegasData=[];
+  const liveVegasData=[];
+  if(!keepSnapshot)vegasData=[];
   const batchSize=2;
   for(let i=0;i<SYMS.length;i+=batchSize){
     const scanned=Math.min(i+batchSize,SYMS.length);
@@ -1077,13 +1196,30 @@ async function loadVEGAS(){
     if(vbarLabel) vbarLabel.textContent=SYMS[i]||'';
     const batch=SYMS.slice(i,i+batchSize);
     const res=await Promise.all(batch.map(s=>computeVEGAS(s)));
-    res.forEach(r=>{if(r)vegasData.push(r);});
-    vegasData.sort((a,b)=>b.score-a.score);
+    batch.forEach((sym,idx)=>{if(!_vegasScanCoverage.bySymbol[sym])markVegasOutcome(sym,res[idx]?'succeeded':'failed','unclassified_result');});
+    res.forEach(r=>{if(r)liveVegasData.push(r);});
+    liveVegasData.sort((a,b)=>b.score-a.score);
+    if(!keepSnapshot){vegasData=liveVegasData;renderVegas();}
+  }
+  _vegasScanCoverage.completedAt=new Date().toISOString();
+  const scanComplete=_vegasScanCoverage.universeSourceOk===true
+    &&_vegasScanCoverage.attempted===SYMS.length
+    &&_vegasScanCoverage.failed===0
+    &&_vegasScanCoverage.succeeded===liveVegasData.length
+    &&(_vegasScanCoverage.succeeded+_vegasScanCoverage.insufficientHistory===SYMS.length);
+  if(liveVegasData.length&&scanComplete){
+    liveVegasData.forEach(row=>{row._provenance={...row._provenance,source:'live',scanId:_vegasScanCoverage.scanId,complete:true,completedAt:_vegasScanCoverage.completedAt};});
+    vegasData=liveVegasData;
+    _snapshotActive=false;_snapshotMeta=null;
+    renderSnapshotStatus();
     renderVegas();
+  }else if(!keepSnapshot){
+    vegasData=liveVegasData;
   }
   if(vbarWrap) vbarWrap.style.display='none';
-  setApiStatus('vegas', vegasData.length>0);
-  if(!vegasData.length){
+  if(scanComplete)setApiStatus('vegas', vegasData.length>0);
+  else setApiStatus('vegas',false);
+  if(!liveVegasData.length&&!keepSnapshot){
     document.getElementById('vlist').innerHTML='<div class="empty">⚠️ VEGAS 計算失敗，請稍後重試；目前不產生交易建議。</div>';
   }
   const done=vegasData.filter(v=>v.signal!=='neutral').length;
@@ -1283,10 +1419,11 @@ function getLiquidMarketUniverse(){
   return getMarketUniverse().filter(x=>x.src!=='OKX'||x.vol===null||Number(x.vol)>=500000);
 }
 function getVegasSummary(){
-  const bull=vegasData.filter(v=>v.signal==='bull').length;
-  const bear=vegasData.filter(v=>v.signal==='bear').length;
-  const neutral=vegasData.filter(v=>v.signal==='neutral').length;
-  return {bull,bear,neutral,total:vegasData.length};
+  const liveRows=vegasData.filter(v=>!isObservationOnly(v));
+  const bull=liveRows.filter(v=>v.signal==='bull').length;
+  const bear=liveRows.filter(v=>v.signal==='bear').length;
+  const neutral=liveRows.filter(v=>v.signal==='neutral').length;
+  return {bull,bear,neutral,total:liveRows.length};
 }
 function getBriefDecision(){
   const btc=getCoinBySym('BTC'), eth=getCoinBySym('ETH');
@@ -1396,17 +1533,18 @@ function renderHotMovers(){
   const head='<div class="mover-head"><div>#</div><div>幣種</div><div>價格</div><div>24H</div><div>VEGAS</div><div>幸運星提醒</div></div>';
   const rows=data.map(({item:x,vd},i)=>{
     const c=classifyMover(x,vd);
+    const observation=isObservationOnly(vd);
     const sig=c.sig;
-    const pill=sig==='bull'?'🚀 做多':sig==='bear'?'📉 做空':'⏳ 觀望';
-    const advice=getMoverAdvice(x,vd);
-    const typeTag=c.aligned?'順勢':c.against?'逆勢':c.volatile?'波動':'觀察';
-    const typeColor=c.aligned?'var(--green2)':c.against?'var(--red2)':c.volatile?'var(--gold)':'var(--text3)';
+    const pill=observation?(vd?._provenance?.source==='snapshot'?'👁 快照觀察':'👁 掃描中觀察'):(sig==='bull'?'🚀 做多':sig==='bear'?'📉 做空':'⏳ 觀望');
+    const advice=observation?'完整 live 掃描前只保留價格異動觀察，不提供方向或進場建議。':getMoverAdvice(x,vd);
+    const typeTag=observation?'不進場':(c.aligned?'順勢':c.against?'逆勢':c.volatile?'波動':'觀察');
+    const typeColor=observation?'var(--text3)':(c.aligned?'var(--green2)':c.against?'var(--red2)':c.volatile?'var(--gold)':'var(--text3)');
     return `<div class="mover-row" onclick="${vd?`openVegasDetail('${x.sym}')`:`sw('overview')`}">
       <div style="font-family:JetBrains Mono,monospace;color:var(--text3);font-weight:800">${i+1}</div>
       <div><div class="mover-sym">${x.sym}</div><div style="font-size:9px;color:var(--text3);font-weight:800">${x.src}</div></div>
       <div style="font-family:JetBrains Mono,monospace;font-weight:800">${fmtUSD(x.price)}</div>
       <div class="${Number(x.chg)>=0?'up':'dn'}" style="font-family:JetBrains Mono,monospace;font-weight:900">${fmtPct(x.chg)}</div>
-      <div><span class="mover-pill ${sig==='bull'?'bull':sig==='bear'?'bear':'neu'}">${pill}</span><div style="font-size:9px;font-weight:900;color:${typeColor};margin-top:2px">${typeTag}</div></div>
+      <div><span class="mover-pill ${observation?'neu':(sig==='bull'?'bull':sig==='bear'?'bear':'neu')}">${pill}</span><div style="font-size:9px;font-weight:900;color:${typeColor};margin-top:2px">${typeTag}</div></div>
       <div style="color:var(--text2);font-weight:700;line-height:1.5">${advice}</div>
     </div>`;
   }).join('');
@@ -1544,7 +1682,7 @@ function renderVolSpike(){
       if(qqeAlign)quality+=4;
       if(pullback&&pat.signal==='long')quality+=5;
       quality=Math.min(100,quality);
-      return{...a,pat,vegasAlign,qqeAlign,pullback,quality};
+      return{...a,vd,pat,vegasAlign,qqeAlign,pullback,quality};
     })
     .filter(Boolean)
     .filter(a=>a.pat.signal!=='watch')
@@ -1560,20 +1698,25 @@ function renderVolSpike(){
   }
   document.getElementById('vol-list').innerHTML=results.map(s=>{
     const p=s.pat;
-    const qualityColor=s.quality>=70?'var(--green2)':s.quality>=60?'var(--gold)':'var(--text3)';
+    const observation=isObservationOnly(s.vd);
+    const displayName=observation?(s.vd?._provenance?.source==='snapshot'?'👁 快照觀察':'👁 掃描中觀察'):p.name;
+    const displayDesc=observation?'成交量型態暫供觀察；完整 live 掃描前不提供方向或進場提示。':p.desc;
+    const displaySignal=observation?'觀察':(p.signal==='long'?'偏多':p.signal==='short'?'偏空':'觀察');
+    const qualityColor=observation?'var(--text3)':(s.quality>=70?'var(--green2)':s.quality>=60?'var(--gold)':'var(--text3)');
     const tags=[];
-    if(s.vegasAlign) tags.push({t:'VEGAS✅',c:'var(--green2)'});
-    if(s.qqeAlign)   tags.push({t:'QQE✅',c:'var(--green2)'});
-    if(s.pullback)   tags.push({t:'通道回踩',c:'var(--purple)'});
-    if(s.pat.signal==='long') tags.push({t:'做多',c:'var(--green2)'});
-    if(s.pat.signal==='short') tags.push({t:'做空',c:'var(--red2)'});
-    return `<div style="border-bottom:1.5px solid var(--pink4);padding:12px 14px;background:${p.bg};cursor:pointer" onclick="openVegasDetail('${s.sym}')">
+    if(observation)tags.push({t:'不進場',c:'var(--text3)'});
+    if(!observation&&s.vegasAlign) tags.push({t:'VEGAS✅',c:'var(--green2)'});
+    if(!observation&&s.qqeAlign)   tags.push({t:'QQE✅',c:'var(--green2)'});
+    if(!observation&&s.pullback)   tags.push({t:'通道回踩',c:'var(--purple)'});
+    if(!observation&&s.pat.signal==='long') tags.push({t:'做多',c:'var(--green2)'});
+    if(!observation&&s.pat.signal==='short') tags.push({t:'做空',c:'var(--red2)'});
+    return `<div style="border-bottom:1.5px solid var(--pink4);padding:12px 14px;background:${observation?'var(--pink5)':p.bg};cursor:pointer" onclick="openVegasDetail('${s.sym}')">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
         <span style="font-family:Nunito,sans-serif;font-size:18px;font-weight:900">${s.sym}</span>
-        <span style="font-size:12px;font-weight:900;padding:3px 9px;border-radius:12px;background:${p.bg};border:1.5px solid ${p.color};color:${p.color};font-family:Nunito,sans-serif">${p.name}</span>
+        <span style="font-size:12px;font-weight:900;padding:3px 9px;border-radius:12px;background:${observation?'var(--pink4)':p.bg};border:1.5px solid ${observation?'var(--text3)':p.color};color:${observation?'var(--text3)':p.color};font-family:Nunito,sans-serif">${displayName}</span>
         <span style="margin-left:auto;font-family:Nunito,sans-serif;font-size:13px;font-weight:800" class="${s.pchg>=0?'up':'dn'}">${s.pchg>=0?'+':''}${s.pchg.toFixed(2)}%</span>
       </div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:7px;line-height:1.5">${p.desc}</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:7px;line-height:1.5">${displayDesc}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:7px">
         <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:8px;padding:6px;text-align:center">
           <div style="font-size:9px;color:var(--text3);font-family:Nunito;font-weight:700">品質分數</div>
@@ -1581,7 +1724,7 @@ function renderVolSpike(){
         </div>
         <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:8px;padding:6px;text-align:center">
           <div style="font-size:9px;color:var(--text3);font-family:Nunito;font-weight:700">方向</div>
-          <div style="font-family:Nunito,sans-serif;font-size:14px;font-weight:900;color:${p.color}">${p.signal==='long'?'偏多':p.signal==='short'?'偏空':'觀察'}</div>
+          <div style="font-family:Nunito,sans-serif;font-size:14px;font-weight:900;color:${observation?'var(--text3)':p.color}">${displaySignal}</div>
         </div>
         <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:8px;padding:6px;text-align:center">
           <div style="font-size:9px;color:var(--text3);font-family:Nunito;font-weight:700">24H量</div>
@@ -1807,17 +1950,19 @@ function renderVolRank(){
   const max=sorted[0]?.vol||1;
   document.getElementById('vol-rank-list').innerHTML=sorted.map((a,i)=>{
     const vd=vegasData.find(v=>v.sym===a.sym);
+    const observation=isObservationOnly(vd);
     const isLong=a.dir==='long', isShort=a.dir==='short';
-    const vegasMatch=vd&&((isLong&&vd.signal==='bull')||(isShort&&vd.signal==='bear'));
-    const qqeMatch=vd&&((isLong&&vd.qqe4h?.isBull)||(isShort&&vd.qqe4h?.isBear));
+    const vegasMatch=!observation&&vd&&((isLong&&vd.signal==='bull')||(isShort&&vd.signal==='bear'));
+    const qqeMatch=!observation&&vd&&((isLong&&vd.qqe4h?.isBull)||(isShort&&vd.qqe4h?.isBear));
+    const directionLabel=observation?(vd?._provenance?.source==='snapshot'?'👁 快照觀察':'👁 掃描中觀察'):(isLong?'🚀 做多':isShort?'📉 做空':'⚖️ 中性');
     const barW=Math.round(a.vol/max*100);
-    const barColor=isLong?'var(--green2)':isShort?'var(--red2)':'var(--text3)';
+    const barColor=observation?'var(--text3)':(isLong?'var(--green2)':isShort?'var(--red2)':'var(--text3)');
     const rankEmoji=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
     return `<div style="padding:9px 13px;border-bottom:1px solid var(--pink4);cursor:pointer" onclick="openVegasDetail('${a.sym}')">
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
         <span style="font-size:12px;min-width:24px">${rankEmoji}</span>
         <span style="font-family:Nunito,sans-serif;font-size:15px;font-weight:900">${a.sym}</span>
-        <span style="font-size:11px;font-weight:800;padding:2px 7px;border-radius:8px;font-family:Nunito,sans-serif;background:${isLong?'var(--greenb)':isShort?'var(--redb)':'var(--pink4)'};color:${barColor}">${isLong?'🚀 做多':isShort?'📉 做空':'⚖️ 中性'}</span>
+        <span style="font-size:11px;font-weight:800;padding:2px 7px;border-radius:8px;font-family:Nunito,sans-serif;background:${observation?'var(--pink4)':isLong?'var(--greenb)':isShort?'var(--redb)':'var(--pink4)'};color:${barColor}">${directionLabel}</span>
         <span style="font-family:JetBrains Mono,monospace;font-size:11px;font-weight:700;margin-left:auto" class="${a.pchg>=0?'up':'dn'}">${a.pchg>=0?'+':''}${a.pchg.toFixed(2)}%</span>
       </div>
       <div style="display:flex;align-items:center;gap:7px">
@@ -1852,7 +1997,7 @@ function renderNewsFromMarket(){
     });
   });
   // 從 VEGAS 資料生成
-  vegasData.filter(v=>v.signal!=='neutral').slice(0,5).forEach(v=>{
+  vegasData.filter(v=>v.signal!=='neutral'&&!isObservationOnly(v)).slice(0,5).forEach(v=>{
     items.push({
       title:`${v.sym} VEGAS通道${v.signal==='bull'?'做多訊號，EMA12突破通道上方':'做空訊號，EMA12跌破通道下方'}，評分 ${v.score}分${v.resonance>=2?`，${v.resonance}TF 共振`:''}`,
       url:`https://www.tradingview.com/chart/?symbol=OKX:${v.sym}USDT.P`,
@@ -1868,6 +2013,7 @@ function renderNewsFromMarket(){
 }
 
 function getOIVegasTag(oi, vd){
+  if(isObservationOnly(vd)) return {label:vd?._provenance?.source==='snapshot'?'快照觀察':'掃描中觀察', cls:'neu', color:'var(--text3)'};
   if(!oi || oi.dir==='neu') return {label:'觀望', cls:'neu', color:'var(--text3)'};
   if(!vd || vd.signal==='neutral') return {label:'等VEGAS確認', cls:'neu', color:'var(--text3)'};
   if(oi.dir==='long' && vd.signal==='bull') return {label:'順勢多 ✅', cls:'long', color:'var(--green2)'};
@@ -2061,6 +2207,7 @@ function executionRiskState(type,rsi,chg24){
 
 // 訊號成熟度：用現有 VEGAS/賽克斯/RSI/漲跌幅判斷生命週期。
 function signalMaturity(type, v, rsi, chg24){
+  if(typeof _snapshotActive!=='undefined'&&_snapshotActive)return{stage:'快照觀察',color:'var(--gold)',desc:'背景完整掃描快照只供觀察；等待本頁即時掃描完成後再判斷執行條件'};
   if(!v) return {stage:'資料不足', color:'var(--text3)', desc:'VEGAS 通道資料未載入，資料不足不給方向判斷'};
   const risk=executionRiskState(type,rsi,chg24);
   if(risk.reason==='資料不足')
@@ -2589,8 +2736,14 @@ function buildTop5Candidates(){
   return [...top5BySym.values()];
 }
 
+// 共用資料狀態閘門：只有完整 live 掃描可出現在任何進場／預警／AI 行動表面。
+function isObservationOnly(v){
+  return !v||v?._provenance?.source!=='live'||v?._provenance?.complete!==true||(typeof _snapshotActive!=='undefined'&&_snapshotActive);
+}
 // 唯一可執行閘門：方向一致、已收盤 Step3、非假突破，且資料完整與風險檢查通過。
 function isExecutableSignal(type,v,rsi,chg24){
+  if(v?._provenance?.source!=='live'||v?._provenance?.complete!==true)return false;
+  if(typeof _snapshotActive!=='undefined'&&_snapshotActive)return false;
   if(!v||v.isFakeBreakout)return false;
   const confirmed=type==='long'
     ? v.signal==='bull'&&v.step3_long===true
@@ -2605,10 +2758,43 @@ function positionGuidance(type,v,rsi,chg24){
     : {executable,label:'條件未完成：不進場',short:'不進場',color:'var(--text3)',reason:maturity.desc};
 }
 
+function renderObservationRecs(candidates){
+  const rows=candidates.map(c=>({c,v:c.vegasData||vegasData.find(v=>v.sym===c.symbol.toUpperCase())}))
+    .filter(x=>x.v)
+    .sort((a,b)=>(Number(b.v.score)||0)-(Number(a.v.score)||0))
+    .slice(0,5);
+  const ranks=['🥇','🥈','🥉','4️⃣','5️⃣'];
+  const body=rows.length?rows.map(({c,v},i)=>{
+    const chFmt=formatMarketChange(c.ch,1);
+    const score=Number.isFinite(Number(v.score))?Math.round(Number(v.score)):'—';
+    const sourceLabel=v?._provenance?.source==='snapshot'?'快照觀察':'掃描中觀察';
+    return `<div data-observation-rec="true" style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:6px;border-bottom:1.5px solid var(--pink4);padding:10px 12px;align-items:center;background:var(--white);cursor:default">
+      <div style="display:flex;align-items:center;gap:6px"><span>${ranks[i]||i+1}</span><div><div style="font-family:Nunito,sans-serif;font-size:15px;font-weight:900">${c.symbol.toUpperCase()}</div><div class="${chFmt.cls}" style="font-size:10px;font-weight:700">${chFmt.text}</div></div></div>
+      <div style="text-align:center;font-family:Nunito,sans-serif;font-size:15px;font-weight:900;color:var(--text2)">${score}</div>
+      <div style="text-align:center;font-size:10px;font-weight:900;color:var(--text3)">${sourceLabel}</div>
+      <div style="text-align:right;font-size:10px;font-weight:900;color:var(--text3)">不進場</div>
+    </div>`;
+  }).join(''):'<div class="empty">觀察資料載入中</div>';
+  const html=`<div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);margin-bottom:10px">
+    <div style="padding:10px 13px;border-bottom:1.5px solid var(--pink4);background:linear-gradient(135deg,var(--pink5),var(--white))">
+      <div style="font-family:Nunito,sans-serif;font-size:14px;font-weight:900;color:var(--text2)">👁 最近完整掃描 Top5</div>
+      <div style="font-size:10px;color:var(--text3);font-weight:800;margin-top:2px">純歷史觀察，不構成交易建議</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:6px;border-bottom:1.5px solid var(--pink4);background:var(--pink5);padding:5px 12px">
+      <div style="font-size:9px;font-weight:800;color:var(--text3)">幣種／24H</div><div style="font-size:9px;font-weight:800;color:var(--text3);text-align:center">歷史掃描分數</div><div style="font-size:9px;font-weight:800;color:var(--text3);text-align:center">資料狀態</div><div style="font-size:9px;font-weight:800;color:var(--text3);text-align:right">用途</div>
+    </div>${body}</div>`;
+  _setAll(html,'rec-wrap','rec-wrap-ov');
+}
+
 function renderRecs(){
   const candidates = buildTop5Candidates();
   if(!candidates.length){
-    _setAll('<div class="loading"><div class="spin"></div>等待 VEGAS 掃描完成後產生 Top5...</div>','rec-wrap','rec-wrap-ov');
+    _setAll('<div class="loading"><div class="spin"></div>等待完整掃描資料...</div>','rec-wrap','rec-wrap-ov');
+    return;
+  }
+  const hasObservationOnly=candidates.some(c=>isObservationOnly(c.vegasData||vegasData.find(v=>v.sym===c.symbol.toUpperCase())));
+  if(hasObservationOnly){
+    renderObservationRecs(candidates);
     return;
   }
   const _getVd=c=>vegasData.find(v=>v.sym===c.symbol.toUpperCase());
@@ -2808,7 +2994,7 @@ function calcSaekScore(coin, type, ind){
 
 // ═══ SAEK SIGNAL（真實指標，無 Math.random）═══
 function buildSaek(){
-  const data=buildTop5Candidates();if(!data.length)return[];
+  const data=buildTop5Candidates().filter(c=>!isObservationOnly(c.vegasData));if(!data.length)return[];
   const sigs=[];
   data.forEach(c=>{
     const sym=c.symbol.toUpperCase();
@@ -3027,7 +3213,11 @@ async function fetchCandlePages(sym,bar,limit){
     const cursor=after?`&after=${encodeURIComponent(after)}`:'';
     const url=`https://www.okx.com/api/v5/market/${endpoint}?instId=${sym}-USDT-SWAP&bar=${bar}&limit=${pageLimit}${cursor}`;
     const j=await okxFetch(url);
-    if(!j||j.code!=='0'||!Array.isArray(j.data)||!j.data.length) return null;
+    if(!j||j.code!=='0'||!Array.isArray(j.data)) return null;
+    if(!j.data.length){
+      if(byTs.size>0)break;
+      return[];
+    }
     j.data.forEach(row=>byTs.set(String(row[0]),row));
     const oldest=j.data.reduce((min,row)=>Number(row[0])<Number(min)?row[0]:min,j.data[0][0]);
     if(String(oldest)===String(after)||j.data.length<pageLimit) break;
@@ -3035,10 +3225,10 @@ async function fetchCandlePages(sym,bar,limit){
     if(byTs.size<limit) await sleep(80);
   }
   const rows=[...byTs.values()].sort((a,b)=>Number(a[0])-Number(b[0]));
-  return rows.length>=limit?rows.slice(rows.length-limit):null;
+  return rows.length>=limit?rows.slice(rows.length-limit):(limit>=677&&rows.length?rows:null);
 }
 
-// 取得「舊→新」原始 K 線列（含快取）；回傳 null 代表資料不足或 API 失敗。
+// 取得「舊→新」原始 K 線列（含快取）；長週期可回傳短歷史供上層標記 insufficientHistory，null 只代表不可用／API 失敗。
 async function fetchCandles(sym,bar,limit){
   const key=sym+'|'+bar, now=Date.now(), ttl=_klTTL(bar);
   let c=_klCache[key];
@@ -3060,7 +3250,7 @@ async function fetchCandles(sym,bar,limit){
   const request=(async()=>{
     try{
       const rows=await fetchCandlePages(sym,bar,limit);
-      if(!rows) return null;
+      if(rows===null) return null;
       _klCache[key]={ts:Date.now(),rows};
       if(bar==='1D' && !_klLSFull){
         try{ localStorage.setItem('klc:'+key,JSON.stringify({ts:Date.now(),rows})); }
@@ -3081,14 +3271,14 @@ async function fetchCandles(sym,bar,limit){
 // 只回傳收盤價（close）
 async function fetchKlines(sym,bar,limit){
   const rows=await fetchCandles(sym,bar,limit);
-  if(!rows)return null;
+  if(rows===null)return null;
   return rows.map(d=>parseFloat(d[4]));
 }
 
 // 回傳完整 OHLCV（供量價型態計算）
 async function fetchKlinesOHLCV(sym,bar,limit){
   const rows=await fetchCandles(sym,bar,limit);
-  if(!rows)return null;
+  if(rows===null)return null;
   return rows.map(d=>({
     ts:parseInt(d[0]),open:parseFloat(d[1]),high:parseFloat(d[2]),
     low:parseFloat(d[3]),close:parseFloat(d[4]),vol:parseFloat(d[5]),confirmed:d[8]==='1'
@@ -3116,6 +3306,8 @@ async function fetchOIChange(sym){
 }
 
 async function computeVEGAS(sym){
+  const recordVegasOutcome=(...args)=>{if(typeof markVegasOutcome==='function')markVegasOutcome(...args);};
+  const activeScanId=typeof _vegasScanCoverage!=='undefined'?_vegasScanCoverage.scanId:'standalone';
   try{
     // 同時抓 日線、4H、1H、15M（賽克斯多週期共振）
     const[dailyRaw,h4raw,h1,m15]=await Promise.all([
@@ -3124,18 +3316,18 @@ async function computeVEGAS(sym){
       fetchKlines(sym,'1H',150),
       fetchKlines(sym,'15m',150)
     ]);
-    if(!dailyRaw||!h4raw)return null;
+    if(!dailyRaw||!h4raw){recordVegasOutcome(sym,'failed','required_klines_unavailable');return null;}
     const daily=getConfirmedCloses(dailyRaw);
     const h4Confirmed=getConfirmedCloses(h4raw);
     const h4=h4Confirmed;
-    if(daily.length<677||h4Confirmed.length<677)return null;
+    if(daily.length<677||h4Confirmed.length<677){recordVegasOutcome(sym,'insufficientHistory','confirmed_history_below_677');return null;}
 
     // ── VEGAS EMA：資料不足就停止，不用短週期冒充 EMA576/676 ──
     const d12=calcEMA(daily,12),d144=calcEMA(daily,144),d169=calcEMA(daily,169);
     const d576=calcEMA(daily,576),d676=calcEMA(daily,676);
     const h4_12=calcEMA(h4,12),h4_144=calcEMA(h4,144),h4_169=calcEMA(h4,169);
     const h4_576=calcEMA(h4,576),h4_676=calcEMA(h4,676);
-    if(!d12||!d144||!d169||!d576||!d676||!h4_12||!h4_144||!h4_169||!h4_576||!h4_676)return null;
+    if(!d12||!d144||!d169||!d576||!d676||!h4_12||!h4_144||!h4_169||!h4_576||!h4_676){recordVegasOutcome(sym,'insufficientHistory','ema_not_ready');return null;}
 
     // ══ MOVE 日線方向：EMA12 與已收盤日 K 都必須完全站在 EMA576/676 大通道同側 ══
     const dailyClose=daily[daily.length-1];
@@ -3283,8 +3475,9 @@ async function computeVEGAS(sym){
     const volPat4H=calcRealVolPattern(h4raw.filter(k=>k.confirmed===true));
 
     const cgId=symToCG(sym),cgCoin=cgId?coins[cgId]:null;
+    recordVegasOutcome(sym,'succeeded');
     return{
-      sym,signal:isBull?'bull':isBear?'bear':'neutral',score,
+      sym,_provenance:{source:'live',scanId:activeScanId,complete:false,capturedAt:new Date().toISOString()},signal:isBull?'bull':isBear?'bear':'neutral',score,
       // MOVE 日線方向（EMA12 vs EMA576）
       moveDailyBull,moveDailyBear,moveDailyTrend,
       // 賽克斯 Step1 日線方向（EMA144/169 vs EMA576/676）
@@ -3313,6 +3506,7 @@ async function computeVEGAS(sym){
       volPat4H // 真實量價型態
     };
   }catch(e){
+    recordVegasOutcome(sym,'failed',e?.message||'compute_exception');
     console.error(`[VEGAS] ${sym} 計算失敗`,e);
     return null;
   }
@@ -3334,6 +3528,12 @@ function searchV(q){
 
 // ═══ 通道埋伏（回踩）訊號渲染 ═══
 function renderPullback(){
+  if(vegasData.some(isObservationOnly)){
+    document.getElementById('pullback-cnt').textContent='觀察資料';
+    document.getElementById('pullback-list').innerHTML='<div class="empty">目前為快照或未完成掃描，只能觀察；不提供通道埋伏或進場提示。</div>';
+    renderNearPullback();
+    return;
+  }
   const pulls=vegasData.filter(v=>v.isPullbackSignal).sort((a,b)=>b.pullbackQuality-a.pullbackQuality);
   document.getElementById('pullback-cnt').textContent=pulls.length?`${pulls.length} 個埋伏機會`:'掃描中...';
   if(!pulls.length){
@@ -3388,6 +3588,11 @@ function renderNearPullback(){
   const cntEl=document.getElementById('near-pullback-cnt');
   const listEl=document.getElementById('near-pullback-list');
   if(!listEl) return;
+  if(vegasData.some(isObservationOnly)){
+    if(cntEl)cntEl.textContent='觀察資料';
+    listEl.innerHTML='<div class="empty" style="padding:14px;font-size:11px">目前為快照或未完成掃描，只能觀察；不提供接近回踩或再進場提示。</div>';
+    return;
+  }
   // 條件：0.5%~2% 使用明確 near 狀態；舊有 2%~5% 預警保留。真正到位者不進本區。
   const near=vegasData.filter(v=>
     !v.isPullbackSignal &&
@@ -3437,6 +3642,8 @@ function renderVegas(){
     return;
   }
   document.getElementById('vlist').innerHTML=list.map(v=>{
+    const observation=isObservationOnly(v);
+    const observationLabel=v?._provenance?.source==='snapshot'?'👁 快照觀察':'👁 掃描中觀察';
     const scCls=v.score>=75?'hi':v.score>=55?'md':'lo';
     const px=v.price,ps=px>=1000?'$'+Number(px).toLocaleString('en-US',{maximumFractionDigits:0}):px>=1?'$'+Number(px).toLocaleString('en-US',{maximumFractionDigits:3}):'$'+Number(px).toFixed(5);
     // 賽克斯三步驟狀態
@@ -3449,7 +3656,7 @@ function renderVegas(){
       <div class="vi-bar ${v.signal}"></div>
       <div class="vi-top">
         <div class="vi-sym">${v.sym}</div>
-        <div class="vi-pill ${v.signal}">${v.signal==='bull'?'🚀 做多':v.signal==='bear'?'📉 做空':'⏳ 觀察'}</div>
+        <div class="vi-pill ${observation?'neu':v.signal}">${observation?observationLabel:(v.signal==='bull'?'🚀 做多':v.signal==='bear'?'📉 做空':'⏳ 觀察')}</div>
         <div class="vi-chg ${Number.isFinite(v.chg24)?(v.chg24>=0?'up':'dn'):'neu'}">${Number.isFinite(v.chg24)?`${v.chg24>=0?'+':''}${v.chg24.toFixed(2)}%`:'無資料'}</div>
         <div class="vi-score ${scCls}">${v.score}</div>
       </div>
@@ -3463,9 +3670,9 @@ function renderVegas(){
           <div style="font-size:9px;color:${s2ok?'var(--green2)':'var(--text3)'};font-weight:800;font-family:Nunito,sans-serif">${s2ok?'✅':'○'} 找位</div>
           <div style="font-size:9px;color:var(--text3);margin-top:1px">${s2ok?'回調至通道':'尚未回調'}</div>
         </div>
-        <div style="background:${s3ok?'rgba(0,200,150,.1)':'var(--pink5)'};border:1.5px solid ${s3ok?'rgba(0,200,150,.3)':'var(--pink4)'};border-radius:8px;padding:5px 7px;text-align:center">
-          <div style="font-size:9px;color:${s3ok?'var(--green2)':'var(--text3)'};font-weight:800;font-family:Nunito,sans-serif">${s3ok?'✅':'○'} 進場</div>
-          <div style="font-size:9px;color:var(--text3);margin-top:1px">${s3ok?'EMA12+QQE✅':'等待訊號'}</div>
+        <div style="background:${!observation&&s3ok?'rgba(0,200,150,.1)':'var(--pink5)'};border:1.5px solid ${!observation&&s3ok?'rgba(0,200,150,.3)':'var(--pink4)'};border-radius:8px;padding:5px 7px;text-align:center">
+          <div style="font-size:9px;color:${!observation&&s3ok?'var(--green2)':'var(--text3)'};font-weight:800;font-family:Nunito,sans-serif">${observation?'○ 觀察':(s3ok?'✅ 進場':'○ 進場')}</div>
+          <div style="font-size:9px;color:var(--text3);margin-top:1px">${observation?'完整 live 掃描前不進場':(s3ok?'EMA12+QQE✅':'等待訊號')}</div>
         </div>
       </div>
       <!-- QQE MOD 多週期 -->
@@ -3514,18 +3721,20 @@ function openSectorDetail(name){
   const color=avg>=0?'var(--green2)':'var(--red2)';
   const bull=items.filter(c=>(c.price_change_percentage_24h||0)>0).length;
   const bear=items.filter(c=>(c.price_change_percentage_24h||0)<0).length;
+  const sectorHasObservation=items.some(c=>isObservationOnly(vegasData.find(v=>v.sym===c.symbol.toUpperCase())));
   const rows=items.map((c,i)=>{
     const ch=c.price_change_percentage_24h||0;
     const v=vegasData.find(x=>x.sym===c.symbol.toUpperCase());
-    const sig=v?.signal==='bull'?'VEGAS多':v?.signal==='bear'?'VEGAS空':'整理';
-    const sigColor=v?.signal==='bull'?'var(--green2)':v?.signal==='bear'?'var(--red2)':'var(--gold)';
+    const observation=isObservationOnly(v);
+    const sig=observation?(v?._provenance?.source==='snapshot'?'快照觀察':'掃描中觀察'):(v?.signal==='bull'?'VEGAS多':v?.signal==='bear'?'VEGAS空':'整理');
+    const sigColor=observation?'var(--text3)':(v?.signal==='bull'?'var(--green2)':v?.signal==='bear'?'var(--red2)':'var(--gold)');
     const type=v?.signal==='bear'?'short':'long';
     return `<div style="display:grid;grid-template-columns:34px 1fr 62px 68px 44px;gap:6px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--pink4);cursor:pointer" onclick="openScoreDetail('${c.id}','${type}')">
       <div style="font-size:12px;color:var(--text3);font-family:Nunito,sans-serif;font-weight:900">${i+1}</div>
       <div><div style="font-size:14px;font-weight:900;font-family:Nunito,sans-serif">${c.symbol.toUpperCase()}</div><div style="font-size:9px;color:var(--text3)">${c.name||c.symbol.toUpperCase()+'/USDT'}</div></div>
       <div class="${ch>=0?'up':'dn'}" style="font-size:12px;font-weight:900;font-family:Nunito,sans-serif;text-align:right">${ch>=0?'+':''}${ch.toFixed(2)}%</div>
       <div style="font-size:10px;font-weight:800;color:${sigColor};text-align:center">${sig}</div>
-      <div style="font-size:9px;color:var(--pink3);font-weight:800;text-align:right">詳情</div>
+      <div style="font-size:9px;color:var(--pink3);font-weight:800;text-align:right">${observation?'觀察':'詳情'}</div>
     </div>`;
   }).join('');
   document.getElementById('mbody').innerHTML=`
@@ -3539,7 +3748,7 @@ function openSectorDetail(name){
         <div style="background:var(--greenb);border:1.5px solid rgba(0,200,150,.2);border-radius:10px;padding:9px;text-align:center"><div style="font-size:9px;color:var(--green2);font-weight:800">上漲</div><div style="font-size:20px;font-weight:900;font-family:Nunito,sans-serif;color:var(--green2)">${bull}</div></div>
         <div style="background:var(--redb);border:1.5px solid rgba(255,77,109,.2);border-radius:10px;padding:9px;text-align:center"><div style="font-size:9px;color:var(--red2);font-weight:800">下跌</div><div style="font-size:20px;font-weight:900;font-family:Nunito,sans-serif;color:var(--red2)">${bear}</div></div>
       </div>
-      <div style="font-size:11px;color:var(--text3);font-weight:800;margin:4px 0 8px">板塊詳情：依 24H 漲跌排序，點擊單一幣種可開啟完整 MOVE / 賽克斯分析</div>
+      <div style="font-size:11px;color:var(--text3);font-weight:800;margin:4px 0 8px">${sectorHasObservation?'目前含快照或未完成掃描，只能查看 24H 價格；完整 live 前不提供 MOVE／賽克斯交易詳情。':'板塊詳情：依 24H 漲跌排序，點擊單一幣種可開啟完整 MOVE / 賽克斯分析'}</div>
       <div style="background:var(--white);border:1.5px solid var(--pink4);border-radius:12px;overflow:hidden">${rows}</div>
     </div>`;
   document.getElementById('modal').classList.add('open');
@@ -3552,6 +3761,10 @@ function openSectorDetail(name){
 // ═══════════════════════════════════════════════════════════════
 function openVegasDetail(sym) {
   const v = vegasData.find(x => x.sym === sym);
+  if(isObservationOnly(v)){
+    showToast('👁 目前為快照或未完成掃描，只能觀察；完整 live 掃描前不提供進場詳情。');
+    return;
+  }
   const cgId = CG_MAP[sym];
   const c = cgId ? scoredCoins.find(x => x.id === cgId) : null;
   const type = (v?.signal === 'bull') ? 'long' : (v?.signal === 'bear') ? 'short' : 'long';
@@ -3567,6 +3780,10 @@ function openScoreDetail(coinId, type) {
 }
 
 function openMOVEDetail(sym, type, v, c) {
+  if(isObservationOnly(v)){
+    showToast(`👁 ${sym} 目前為快照或未完成掃描，只能觀察；完整 live 掃描前不提供交易詳情。`);
+    return;
+  }
   if(!v){
     showToast(`⚠️ ${sym} VEGAS K線尚無可靠資料，暫不產生交易判決`);
     return;
@@ -4272,8 +4489,13 @@ function buildCtx(){
   const top=['bitcoin','ethereum','solana','binancecoin'].map(id=>{const c=coins[id];if(!c)return '';return `${c.symbol.toUpperCase()}=$${c.current_price?.toLocaleString()} (${(c.price_change_percentage_24h||0).toFixed(2)}%)`;}).filter(Boolean).join(' | ');
   const top3=[...scoredCoins].sort((a,b)=>Math.max(b.longScore,b.shortScore)-Math.max(a.longScore,a.shortScore)).slice(0,3).map(c=>`${c.symbol.toUpperCase()}: 多${c.longScore}分 空${c.shortScore}分 RSI=${c.rsi}`).join('; ');
   const oi=oiData.slice(0,3).map(a=>`${a.sym}${a.dirLabel}(${a.pchg.toFixed(1)}%)`).join('; ');
-  const vegas=vegasData.filter(v=>v.signal!=='neutral').slice(0,3).map(v=>`${v.sym} ${v.signal==='bull'?'做多':'做空'}(日線${v.dailyTrend==='bull'?'多頭':'空頭'}+4H${v.h4AboveTunnel?'突破':'跌破'}通道,${v.score}分)`).join('; ');
-  return `主流幣: ${top}\n評分Top3: ${top3}\nOI異常: ${oi||'無'}\nVEGAS真實EMA: ${vegas||'計算中'}\n時間: ${new Date().toLocaleTimeString('zh-TW')}`;
+  const vegasRows=vegasData.filter(v=>v.signal!=='neutral').slice(0,3);
+  const vegasHasObservation=vegasRows.some(isObservationOnly);
+  const vegas=vegasRows.map(v=>isObservationOnly(v)
+    ?`${v.sym} 快照觀察（不可作為進場或推播依據，${v.score}分）`
+    :`${v.sym} ${v.signal==='bull'?'做多':'做空'}(日線${v.dailyTrend==='bull'?'多頭':'空頭'}+4H${v.h4AboveTunnel?'突破':'跌破'}通道,${v.score}分)`).join('; ');
+  const vegasLabel=vegasHasObservation?'VEGAS快照觀察（不可進場）':'VEGAS真實EMA';
+  return `主流幣: ${top}\n評分Top3: ${top3}\nOI異常: ${oi||'無'}\n${vegasLabel}: ${vegas||'計算中'}\n時間: ${new Date().toLocaleTimeString('zh-TW')}`;
 }
 
 function addMsg(role,text){

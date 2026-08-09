@@ -53,7 +53,11 @@ test('成熟度與執行閘門共用資料完整與過熱規則',()=>{
   const src=['executionRiskState','signalMaturity','isExecutableSignal','positionGuidance'].map(extractFunction).join('\n');
   const box={};
   new Function(`${src}\nthis.signalMaturity=signalMaturity;this.isExecutableSignal=isExecutableSignal;this.positionGuidance=positionGuidance;`).call(box);
-  const ready={signal:'bull',step3_long:true,step3_short:false,isFakeBreakout:false};
+  const ready={signal:'bull',step3_long:true,step3_short:false,isFakeBreakout:false,_provenance:{source:'live',complete:true}};
+  const missingProvenance={signal:'bull',step3_long:true,step3_short:false,isFakeBreakout:false};
+  assert.equal(box.isExecutableSignal('long',missingProvenance,60,2),false,'缺少逐筆來源不得可執行');
+  assert.equal(box.isExecutableSignal('long',{...ready,_provenance:{source:'snapshot',complete:true}},60,2),false,'快照來源不得可執行');
+  assert.equal(box.isExecutableSignal('long',{...ready,_provenance:{source:'live',complete:false}},60,2),false,'未完成即時掃描不得可執行');
   assert.equal(box.signalMaturity('long',ready,74,9).stage,'過熱');
   assert.equal(box.isExecutableSignal('long',ready,74,9),false,'成熟度過熱不得可執行');
   assert.equal(box.isExecutableSignal('long',ready,null,2),false,'RSI缺資料不得可執行');
